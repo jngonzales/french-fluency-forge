@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { z } from "zod";
-
-// Secret code for signup protection - change this to your own secret
-const SIGNUP_SECRET = "FLUENT2025";
 
 const signupSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }),
@@ -21,27 +18,33 @@ const signupSchema = z.object({
 });
 
 const Signup = () => {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isValidAccess, setIsValidAccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    const emailParam = searchParams.get("email");
-    const codeParam = searchParams.get("code");
+    // Check if already logged in
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/");
+      }
+    };
+    checkSession();
 
-    if (emailParam && codeParam === SIGNUP_SECRET) {
-      setEmail(decodeURIComponent(emailParam));
-      setIsValidAccess(true);
-    } else {
-      setIsValidAccess(false);
-    }
-  }, [searchParams]);
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        navigate("/");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,28 +92,13 @@ const Signup = () => {
     }
   };
 
-  if (!isValidAccess) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-destructive">Access Denied</CardTitle>
-            <CardDescription>
-              This signup page requires a valid invitation link. Please use the link from your purchase confirmation email.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Create Your Account</CardTitle>
           <CardDescription>
-            Set up your password to access your assessment
+            Sign up for free to access the French fluency assessment
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -121,12 +109,13 @@ const Signup = () => {
                 id="email"
                 type="email"
                 value={email}
-                disabled
-                className="bg-muted"
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                required
               />
-              <p className="text-xs text-muted-foreground">
-                Email is pre-filled from your purchase
-              </p>
+              {errors.email && (
+                <p className="text-xs text-destructive">{errors.email}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -162,6 +151,15 @@ const Signup = () => {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
+
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">
+                Already have an account?{" "}
+                <a href="/login" className="text-primary hover:underline font-medium">
+                  Sign in
+                </a>
+              </p>
+            </div>
           </form>
         </CardContent>
       </Card>
