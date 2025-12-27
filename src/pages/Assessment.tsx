@@ -120,13 +120,24 @@ const Assessment = () => {
     );
   }
 
+  const skipToStatus = async (newStatus: SessionStatus) => {
+    if (!session) return;
+    await supabase
+      .from("assessment_sessions")
+      .update({ status: newStatus })
+      .eq("id", session.id);
+    toast.info(`Skipped to ${newStatus}`);
+    refreshSession();
+  };
+
   // Render current step based on session status
   switch (session.status) {
     case "intake":
       return (
         <IntakeForm 
           sessionId={session.id} 
-          onComplete={handleStepComplete} 
+          onComplete={handleStepComplete}
+          onSkip={() => skipToStatus("consent")}
         />
       );
 
@@ -134,7 +145,8 @@ const Assessment = () => {
       return (
         <ConsentForm 
           sessionId={session.id} 
-          onComplete={handleStepComplete} 
+          onComplete={handleStepComplete}
+          onSkip={() => skipToStatus("quiz")}
         />
       );
 
@@ -152,6 +164,7 @@ const Assessment = () => {
         <ArchetypeQuiz
           sessionId={session.id}
           onComplete={handleQuizComplete}
+          onSkip={() => skipToStatus("mic_check")}
         />
       );
 
@@ -197,12 +210,22 @@ const Assessment = () => {
         toast.success("Assessment complete!");
         refreshSession();
       };
+
+      const skipToNextPhase = () => {
+        if (assessmentPhase === "pronunciation") {
+          setAssessmentPhase("fluency");
+          toast.info("Skipped to fluency module");
+        } else {
+          skipToStatus("processing");
+        }
+      };
       
       if (assessmentPhase === "pronunciation") {
         return (
           <PronunciationModule
             sessionId={session.id}
             onComplete={handlePronunciationComplete}
+            onSkip={skipToNextPhase}
           />
         );
       } else {
@@ -210,6 +233,7 @@ const Assessment = () => {
           <FluencyModule
             sessionId={session.id}
             onComplete={handleFluencyComplete}
+            onSkip={skipToNextPhase}
           />
         );
       }

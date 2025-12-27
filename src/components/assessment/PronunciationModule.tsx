@@ -16,6 +16,7 @@ import {
   AlertCircle,
   ChevronRight
 } from "lucide-react";
+import SkipButton from "./SkipButton";
 
 // 6 pronunciation sentences - French-French neutral
 const PRONUNCIATION_ITEMS = [
@@ -62,9 +63,10 @@ interface PronunciationItemResult {
 interface PronunciationModuleProps {
   sessionId: string;
   onComplete: (results: PronunciationItemResult[]) => void;
+  onSkip?: () => void;
 }
 
-const PronunciationModule = ({ sessionId, onComplete }: PronunciationModuleProps) => {
+const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationModuleProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [results, setResults] = useState<PronunciationItemResult[]>([]);
   const [isPlayingReference, setIsPlayingReference] = useState(false);
@@ -420,6 +422,8 @@ const PronunciationModule = ({ sessionId, onComplete }: PronunciationModuleProps
             <li>• You can re-record if needed before submitting</li>
           </ul>
         </div>
+
+        {onSkip && <SkipButton onClick={onSkip} />}
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import SkipButton from "./SkipButton";
 
 type GenderType = Database["public"]["Enums"]["gender_type"];
 type AgeBandType = Database["public"]["Enums"]["age_band_type"];
@@ -79,9 +80,10 @@ const TRACK_OPTIONS: { value: TrackType; label: string; description: string }[] 
 interface IntakeFormProps {
   sessionId: string;
   onComplete: () => void;
+  onSkip?: () => void;
 }
 
-const IntakeForm = ({ sessionId, onComplete }: IntakeFormProps) => {
+const IntakeForm = ({ sessionId, onComplete, onSkip }: IntakeFormProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   
@@ -280,6 +282,8 @@ const IntakeForm = ({ sessionId, onComplete }: IntakeFormProps) => {
             {isSubmitting ? "Saving..." : "Continue to Consent"}
           </Button>
         </form>
+
+        {onSkip && <SkipButton onClick={onSkip} />}
       </div>
     </div>
   );

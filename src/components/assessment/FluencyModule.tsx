@@ -17,6 +17,7 @@ import {
   Timer,
   Clock
 } from "lucide-react";
+import SkipButton from "./SkipButton";
 
 // 2 fluency prompts - open-ended speaking tasks
 const FLUENCY_PROMPTS = [
@@ -59,9 +60,10 @@ interface FluencyItemResult {
 interface FluencyModuleProps {
   sessionId: string;
   onComplete: (results: FluencyItemResult[]) => void;
+  onSkip?: () => void;
 }
 
-const FluencyModule = ({ sessionId, onComplete }: FluencyModuleProps) => {
+const FluencyModule = ({ sessionId, onComplete, onSkip }: FluencyModuleProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [results, setResults] = useState<FluencyItemResult[]>([]);
   const [isPlayingRecording, setIsPlayingRecording] = useState(false);
@@ -428,6 +430,8 @@ const FluencyModule = ({ sessionId, onComplete }: FluencyModuleProps) => {
             <li>• Try to speak for the full time if you can</li>
           </ul>
         </div>
+
+        {onSkip && <SkipButton onClick={onSkip} />}
       </div>
     </div>
   );
