@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import IntakeForm from "@/components/assessment/IntakeForm";
 import ConsentForm from "@/components/assessment/ConsentForm";
 import PronunciationModule from "@/components/assessment/PronunciationModule";
+import FluencyModule from "@/components/assessment/FluencyModule";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
@@ -22,6 +23,7 @@ const Assessment = () => {
   
   const [session, setSession] = useState<AssessmentSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [assessmentPhase, setAssessmentPhase] = useState<"pronunciation" | "fluency">("pronunciation");
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -184,22 +186,38 @@ const Assessment = () => {
     case "assessment":
       const handlePronunciationComplete = async (results: any[]) => {
         console.log("Pronunciation results:", results);
-        // For now, move to processing
+        toast.success("Pronunciation module complete!");
+        // Move to fluency phase
+        setAssessmentPhase("fluency");
+      };
+
+      const handleFluencyComplete = async (results: any[]) => {
+        console.log("Fluency results:", results);
+        // Move to processing
         await supabase
           .from("assessment_sessions")
           .update({ status: "processing" })
           .eq("id", session.id);
         
-        toast.success("Pronunciation module complete!");
+        toast.success("Assessment complete!");
         refreshSession();
       };
       
-      return (
-        <PronunciationModule
-          sessionId={session.id}
-          onComplete={handlePronunciationComplete}
-        />
-      );
+      if (assessmentPhase === "pronunciation") {
+        return (
+          <PronunciationModule
+            sessionId={session.id}
+            onComplete={handlePronunciationComplete}
+          />
+        );
+      } else {
+        return (
+          <FluencyModule
+            sessionId={session.id}
+            onComplete={handleFluencyComplete}
+          />
+        );
+      }
 
     case "processing":
       return (

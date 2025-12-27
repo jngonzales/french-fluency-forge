@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.transcribe-pronunciation]
 verify_jwt = false
+
+[functions.analyze-fluency]
+verify_jwt = false
