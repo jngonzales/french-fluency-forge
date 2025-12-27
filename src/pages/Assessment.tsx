@@ -1,0 +1,213 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import IntakeForm from "@/components/assessment/IntakeForm";
+import ConsentForm from "@/components/assessment/ConsentForm";
+import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+
+type SessionStatus = Database["public"]["Enums"]["session_status"];
+
+interface AssessmentSession {
+  id: string;
+  status: SessionStatus;
+}
+
+const Assessment = () => {
+  const navigate = useNavigate();
+  const { user, isLoading: authLoading } = useAuth();
+  
+  const [session, setSession] = useState<AssessmentSession | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      loadOrCreateSession();
+    }
+  }, [user, authLoading]);
+
+  const loadOrCreateSession = async () => {
+    if (!user) return;
+
+    try {
+      // Check for existing in-progress session
+      const { data: existingSession, error: fetchError } = await supabase
+        .from("assessment_sessions")
+        .select("id, status")
+        .eq("user_id", user.id)
+        .in("status", ["intake", "consent", "quiz", "mic_check", "assessment", "processing"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      if (existingSession) {
+        setSession(existingSession);
+      } else {
+        // Create new session starting at intake
+        const { data: newSession, error: createError } = await supabase
+          .from("assessment_sessions")
+          .insert({
+            user_id: user.id,
+            status: "intake" as SessionStatus,
+          })
+          .select("id, status")
+          .single();
+
+        if (createError) throw createError;
+        setSession(newSession);
+      }
+    } catch (error) {
+      console.error("Error loading session:", error);
+      toast.error("Failed to load assessment session");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshSession = async () => {
+    if (!session) return;
+
+    const { data, error } = await supabase
+      .from("assessment_sessions")
+      .select("id, status")
+      .eq("id", session.id)
+      .single();
+
+    if (error) {
+      console.error("Error refreshing session:", error);
+      return;
+    }
+
+    setSession(data);
+  };
+
+  const handleStepComplete = () => {
+    refreshSession();
+  };
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
+          <p className="text-muted-foreground">Preparing your assessment...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <p className="text-destructive mb-4">Unable to start assessment</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="text-primary underline"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Render current step based on session status
+  switch (session.status) {
+    case "intake":
+      return (
+        <IntakeForm 
+          sessionId={session.id} 
+          onComplete={handleStepComplete} 
+        />
+      );
+
+    case "consent":
+      return (
+        <ConsentForm 
+          sessionId={session.id} 
+          onComplete={handleStepComplete} 
+        />
+      );
+
+    case "quiz":
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+          <div className="text-center max-w-md">
+            <h1 className="text-2xl font-bold mb-4">Archetype Quiz</h1>
+            <p className="text-muted-foreground mb-6">
+              Next step: A quick quiz to understand your learning style.
+            </p>
+            <p className="text-sm text-muted-foreground">Coming soon...</p>
+          </div>
+        </div>
+      );
+
+    case "mic_check":
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+          <div className="text-center max-w-md">
+            <h1 className="text-2xl font-bold mb-4">Microphone Check</h1>
+            <p className="text-muted-foreground mb-6">
+              Let&apos;s make sure your microphone is working properly.
+            </p>
+            <p className="text-sm text-muted-foreground">Coming soon...</p>
+          </div>
+        </div>
+      );
+
+    case "assessment":
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+          <div className="text-center max-w-md">
+            <h1 className="text-2xl font-bold mb-4">Assessment in Progress</h1>
+            <p className="text-muted-foreground mb-6">
+              The main assessment modules will appear here.
+            </p>
+            <p className="text-sm text-muted-foreground">Coming soon...</p>
+          </div>
+        </div>
+      );
+
+    case "processing":
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+          <div className="text-center max-w-md">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-6" />
+            <h1 className="text-2xl font-bold mb-4">Analyzing Your Results</h1>
+            <p className="text-muted-foreground">
+              We&apos;re processing your responses to generate your personalized diagnostic...
+            </p>
+          </div>
+        </div>
+      );
+
+    case "completed":
+      navigate("/results");
+      return null;
+
+    case "abandoned":
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+          <div className="text-center max-w-md">
+            <h1 className="text-2xl font-bold mb-4">Session Expired</h1>
+            <p className="text-muted-foreground mb-6">
+              This assessment session has been abandoned. Please start a new one.
+            </p>
+          </div>
+        </div>
+      );
+
+    default:
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <p className="text-muted-foreground">Unknown session state</p>
+        </div>
+      );
+  }
+};
+
+export default Assessment;
