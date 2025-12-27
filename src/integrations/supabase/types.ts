@@ -14,7 +14,181 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      assessment_sessions: {
+        Row: {
+          age_band: Database["public"]["Enums"]["age_band_type"] | null
+          completed_at: string | null
+          created_at: string
+          gender: Database["public"]["Enums"]["gender_type"] | null
+          goals: string | null
+          id: string
+          languages_spoken: string[] | null
+          primary_track: Database["public"]["Enums"]["track_type"] | null
+          purchase_id: string | null
+          started_at: string
+          status: Database["public"]["Enums"]["session_status"]
+          updated_at: string
+          user_id: string
+          variant: string | null
+        }
+        Insert: {
+          age_band?: Database["public"]["Enums"]["age_band_type"] | null
+          completed_at?: string | null
+          created_at?: string
+          gender?: Database["public"]["Enums"]["gender_type"] | null
+          goals?: string | null
+          id?: string
+          languages_spoken?: string[] | null
+          primary_track?: Database["public"]["Enums"]["track_type"] | null
+          purchase_id?: string | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
+          user_id: string
+          variant?: string | null
+        }
+        Update: {
+          age_band?: Database["public"]["Enums"]["age_band_type"] | null
+          completed_at?: string | null
+          created_at?: string
+          gender?: Database["public"]["Enums"]["gender_type"] | null
+          goals?: string | null
+          id?: string
+          languages_spoken?: string[] | null
+          primary_track?: Database["public"]["Enums"]["track_type"] | null
+          purchase_id?: string | null
+          started_at?: string
+          status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
+          user_id?: string
+          variant?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_sessions_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "purchases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consent_records: {
+        Row: {
+          consented_at: string
+          data_processing_consent: boolean
+          id: string
+          ip_address: string | null
+          recording_consent: boolean
+          retention_acknowledged: boolean
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          consented_at?: string
+          data_processing_consent?: boolean
+          id?: string
+          ip_address?: string | null
+          recording_consent?: boolean
+          retention_acknowledged?: boolean
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          consented_at?: string
+          data_processing_consent?: boolean
+          id?: string
+          ip_address?: string | null
+          recording_consent?: boolean
+          retention_acknowledged?: boolean
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consent_records_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      purchases: {
+        Row: {
+          amount_cents: number
+          completed_at: string | null
+          created_at: string
+          currency: string
+          email: string
+          id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_payment_intent_id: string
+          user_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          email: string
+          id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_payment_intent_id: string
+          user_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          email?: string
+          id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +197,24 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      age_band_type: "18_24" | "25_34" | "35_44" | "45_54" | "55_64" | "65_plus"
+      gender_type: "male" | "female" | "non_binary" | "prefer_not"
+      session_status:
+        | "intake"
+        | "consent"
+        | "quiz"
+        | "mic_check"
+        | "assessment"
+        | "processing"
+        | "completed"
+        | "abandoned"
+      track_type:
+        | "small_talk"
+        | "transactions"
+        | "bilingual_friends"
+        | "work"
+        | "home"
+        | "in_laws"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +341,27 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      age_band_type: ["18_24", "25_34", "35_44", "45_54", "55_64", "65_plus"],
+      gender_type: ["male", "female", "non_binary", "prefer_not"],
+      session_status: [
+        "intake",
+        "consent",
+        "quiz",
+        "mic_check",
+        "assessment",
+        "processing",
+        "completed",
+        "abandoned",
+      ],
+      track_type: [
+        "small_talk",
+        "transactions",
+        "bilingual_friends",
+        "work",
+        "home",
+        "in_laws",
+      ],
+    },
   },
 } as const
