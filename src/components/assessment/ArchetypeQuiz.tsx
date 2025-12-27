@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ChevronRight, ChevronLeft, Loader2, Sparkles } from "lucide-react";
+import SkipButton from "./SkipButton";
 
 // Quiz questions with archetype scoring
 const QUIZ_QUESTIONS = [
@@ -117,9 +118,10 @@ type ArchetypeKey = keyof typeof ARCHETYPES;
 interface ArchetypeQuizProps {
   sessionId: string;
   onComplete: (archetype: string) => void;
+  onSkip?: () => void;
 }
 
-const ArchetypeQuiz = ({ sessionId, onComplete }: ArchetypeQuizProps) => {
+const ArchetypeQuiz = ({ sessionId, onComplete, onSkip }: ArchetypeQuizProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -367,6 +369,8 @@ const ArchetypeQuiz = ({ sessionId, onComplete }: ArchetypeQuizProps) => {
             This quiz helps us understand how you learn best so we can personalize your experience.
           </p>
         </div>
+
+        {onSkip && <SkipButton onClick={onSkip} />}
       </div>
     </div>
   );

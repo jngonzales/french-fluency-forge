@@ -7,13 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Shield, Mic, Clock, Trash2 } from "lucide-react";
+import SkipButton from "./SkipButton";
 
 interface ConsentFormProps {
   sessionId: string;
   onComplete: () => void;
+  onSkip?: () => void;
 }
 
-const ConsentForm = ({ sessionId, onComplete }: ConsentFormProps) => {
+const ConsentForm = ({ sessionId, onComplete, onSkip }: ConsentFormProps) => {
   const { user } = useAuth();
   
   const [recordingConsent, setRecordingConsent] = useState(false);
@@ -190,6 +192,8 @@ const ConsentForm = ({ sessionId, onComplete }: ConsentFormProps) => {
             By continuing, you agree to our privacy policy and terms of service.
           </p>
         </form>
+
+        {onSkip && <SkipButton onClick={onSkip} />}
       </div>
     </div>
   );
