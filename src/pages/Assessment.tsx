@@ -6,6 +6,7 @@ import IntakeForm from "@/components/assessment/IntakeForm";
 import ConsentForm from "@/components/assessment/ConsentForm";
 import PronunciationModule from "@/components/assessment/PronunciationModule";
 import FluencyModule from "@/components/assessment/FluencyModule";
+import ArchetypeQuiz from "@/components/assessment/ArchetypeQuiz";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
@@ -138,26 +139,20 @@ const Assessment = () => {
       );
 
     case "quiz":
-      // Skip quiz for now, go straight to mic check
-      const skipToMicCheck = async () => {
+      const handleQuizComplete = async (archetype: string) => {
+        console.log("Archetype result:", archetype);
         await supabase
           .from("assessment_sessions")
           .update({ status: "mic_check" })
           .eq("id", session.id);
+        toast.success("Quiz complete!");
         refreshSession();
       };
       return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-4">
-          <div className="text-center max-w-md">
-            <h1 className="text-2xl font-bold mb-4">Archetype Quiz</h1>
-            <p className="text-muted-foreground mb-6">
-              Coming soon - a quick quiz to understand your learning style.
-            </p>
-            <Button onClick={skipToMicCheck}>
-              Skip to Mic Check (Dev)
-            </Button>
-          </div>
-        </div>
+        <ArchetypeQuiz
+          sessionId={session.id}
+          onComplete={handleQuizComplete}
+        />
       );
 
     case "mic_check":
