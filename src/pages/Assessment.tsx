@@ -4,7 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import IntakeForm from "@/components/assessment/IntakeForm";
 import ConsentForm from "@/components/assessment/ConsentForm";
+import PronunciationModule from "@/components/assessment/PronunciationModule";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
 
 type SessionStatus = Database["public"]["Enums"]["session_status"];
@@ -134,42 +136,69 @@ const Assessment = () => {
       );
 
     case "quiz":
+      // Skip quiz for now, go straight to mic check
+      const skipToMicCheck = async () => {
+        await supabase
+          .from("assessment_sessions")
+          .update({ status: "mic_check" })
+          .eq("id", session.id);
+        refreshSession();
+      };
       return (
         <div className="flex min-h-screen items-center justify-center bg-background p-4">
           <div className="text-center max-w-md">
             <h1 className="text-2xl font-bold mb-4">Archetype Quiz</h1>
             <p className="text-muted-foreground mb-6">
-              Next step: A quick quiz to understand your learning style.
+              Coming soon - a quick quiz to understand your learning style.
             </p>
-            <p className="text-sm text-muted-foreground">Coming soon...</p>
+            <Button onClick={skipToMicCheck}>
+              Skip to Mic Check (Dev)
+            </Button>
           </div>
         </div>
       );
 
     case "mic_check":
+      // Skip mic check for now, go to assessment
+      const skipToAssessment = async () => {
+        await supabase
+          .from("assessment_sessions")
+          .update({ status: "assessment" })
+          .eq("id", session.id);
+        refreshSession();
+      };
       return (
         <div className="flex min-h-screen items-center justify-center bg-background p-4">
           <div className="text-center max-w-md">
             <h1 className="text-2xl font-bold mb-4">Microphone Check</h1>
             <p className="text-muted-foreground mb-6">
-              Let&apos;s make sure your microphone is working properly.
+              Coming soon - let&apos;s make sure your microphone is working properly.
             </p>
-            <p className="text-sm text-muted-foreground">Coming soon...</p>
+            <Button onClick={skipToAssessment}>
+              Skip to Assessment (Dev)
+            </Button>
           </div>
         </div>
       );
 
     case "assessment":
+      const handlePronunciationComplete = async (results: any[]) => {
+        console.log("Pronunciation results:", results);
+        // For now, move to processing
+        await supabase
+          .from("assessment_sessions")
+          .update({ status: "processing" })
+          .eq("id", session.id);
+        
+        toast.success("Pronunciation module complete!");
+        refreshSession();
+      };
+      
       return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-4">
-          <div className="text-center max-w-md">
-            <h1 className="text-2xl font-bold mb-4">Assessment in Progress</h1>
-            <p className="text-muted-foreground mb-6">
-              The main assessment modules will appear here.
-            </p>
-            <p className="text-sm text-muted-foreground">Coming soon...</p>
-          </div>
-        </div>
+        <PronunciationModule
+          sessionId={session.id}
+          onComplete={handlePronunciationComplete}
+        />
       );
 
     case "processing":
