@@ -1,1 +1,7 @@
 project_id = "mjqykgcvfteihqmgeufb"
+
+[functions.french-tts]
+verify_jwt = false
+
+[functions.transcribe-pronunciation]
+verify_jwt = false
