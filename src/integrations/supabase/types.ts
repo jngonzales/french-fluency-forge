@@ -17,6 +17,7 @@ export type Database = {
       assessment_sessions: {
         Row: {
           age_band: Database["public"]["Enums"]["age_band_type"] | null
+          archetype: string | null
           completed_at: string | null
           created_at: string
           gender: Database["public"]["Enums"]["gender_type"] | null
@@ -33,6 +34,7 @@ export type Database = {
         }
         Insert: {
           age_band?: Database["public"]["Enums"]["age_band_type"] | null
+          archetype?: string | null
           completed_at?: string | null
           created_at?: string
           gender?: Database["public"]["Enums"]["gender_type"] | null
@@ -49,6 +51,7 @@ export type Database = {
         }
         Update: {
           age_band?: Database["public"]["Enums"]["age_band_type"] | null
+          archetype?: string | null
           completed_at?: string | null
           created_at?: string
           gender?: Database["public"]["Enums"]["gender_type"] | null
