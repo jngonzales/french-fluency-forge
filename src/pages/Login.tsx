@@ -127,10 +127,16 @@ const Login = () => {
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
 
-            <div className="text-center">
-              <a href="/forgot-password" className="text-sm text-muted-foreground hover:text-primary">
+            <div className="text-center space-y-2">
+              <a href="/forgot-password" className="text-sm text-muted-foreground hover:text-primary block">
                 Forgot your password?
               </a>
+              <p className="text-sm text-muted-foreground">
+                Don't have an account?{" "}
+                <a href="/signup" className="text-primary hover:underline font-medium">
+                  Sign up for free
+                </a>
+              </p>
             </div>
           </form>
         </CardContent>
