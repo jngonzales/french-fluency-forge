@@ -1,5 +1,14 @@
 import { motion } from "framer-motion";
-import { Archetype, normalizeScore, getAxisLabel, AxisKey } from "./quizConfig";
+import { Archetype, AxisKey } from "./quizConfig";
+import { Share2, Download, Instagram, Facebook, MessageCircle, Link, Mic } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 interface AxisResult {
   raw: number;
@@ -61,6 +70,74 @@ export function PersonalityResult({ archetype, axes, consistencyGap, onContinue 
     (axes.control_flow.normalized < 40 || axes.accuracy_expressiveness.normalized < 40 || axes.security_risk.normalized < 40);
   
   const showConsistencyNote = consistencyGap && consistencyGap > 0.3;
+
+  const shareText = `I just discovered I'm "${archetype.name}" ${archetype.emoji} in my French learning journey! Take the personality test to find yours:`;
+  const shareUrl = typeof window !== 'undefined' ? window.location.origin + '/assessment' : '';
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+    toast.success("Link copied to clipboard!");
+  };
+
+  const handleShareInstagram = () => {
+    // Instagram doesn't have a direct share URL, so we copy the text
+    navigator.clipboard.writeText(`${shareText}\n\n${shareUrl}`);
+    toast.success("Text copied! Paste it in your Instagram story or post.");
+  };
+
+  const handleShareFacebook = () => {
+    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
+    window.open(fbUrl, '_blank', 'width=600,height=400');
+  };
+
+  const handleShareWhatsApp = () => {
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`;
+    window.open(waUrl, '_blank');
+  };
+
+  const handleExportPDF = () => {
+    // Create a simple text-based "export" that could be printed/saved
+    const content = `
+My French Learning Personality
+==============================
+
+${archetype.emoji} ${archetype.name}
+
+YOUR 3-AXIS PROFILE
+-------------------
+• Control ↔ Flow: ${axes.control_flow.label} (${Math.round(axes.control_flow.normalized)}%)
+• Accuracy ↔ Expressiveness: ${axes.accuracy_expressiveness.label} (${Math.round(axes.accuracy_expressiveness.normalized)}%)
+• Security ↔ Risk: ${axes.security_risk.label} (${Math.round(axes.security_risk.normalized)}%)
+
+✨ YOUR STRENGTHS
+${archetype.strengths}
+
+🔍 HIDDEN BOTTLENECK
+${archetype.bottleneck}
+
+🚀 FASTEST PATH
+${archetype.fastestPath}
+
+⚠️ DANGER PATH
+${archetype.dangerPath}
+
+${archetype.encouragement ? `💡 ${archetype.encouragement}` : ''}
+
+---
+Take the test: ${shareUrl}
+    `.trim();
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${archetype.name.replace(/\s+/g, '-').toLowerCase()}-personality.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Your results have been downloaded!");
+  };
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
@@ -156,24 +233,70 @@ export function PersonalityResult({ archetype, axes, consistencyGap, onContinue 
               className="p-4 rounded-xl bg-muted text-center"
             >
               <p className="text-sm text-muted-foreground">
-                💡 You <em>want</em> to be more spontaneous, but under pressure you default to control. 
+                You <em>want</em> to be more spontaneous, but under pressure you default to control. 
                 That's normal — we'll train the bridge.
               </p>
             </motion.div>
           )}
 
+          {/* Share & Export Actions */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.85 }}
+            className="flex flex-wrap justify-center gap-3"
+          >
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="lg" className="gap-2">
+                  <Share2 className="h-4 w-4" />
+                  Share Result
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-48 bg-popover">
+                <DropdownMenuItem onClick={handleShareInstagram} className="gap-2 cursor-pointer">
+                  <Instagram className="h-4 w-4" />
+                  Instagram
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleShareFacebook} className="gap-2 cursor-pointer">
+                  <Facebook className="h-4 w-4" />
+                  Facebook
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleShareWhatsApp} className="gap-2 cursor-pointer">
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleCopyLink} className="gap-2 cursor-pointer">
+                  <Link className="h-4 w-4" />
+                  Copy Link
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button variant="outline" size="lg" className="gap-2" onClick={handleExportPDF}>
+              <Download className="h-4 w-4" />
+              Export Results
+            </Button>
+          </motion.div>
+
           {/* CTA */}
-          <motion.button
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9 }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={onContinue}
-            className="w-full py-4 px-6 rounded-xl bg-primary text-primary-foreground font-semibold text-lg shadow-lg shadow-primary/30 hover:shadow-xl transition-shadow"
+            className="space-y-2"
           >
-            Continue to Mic Check →
-          </motion.button>
+            <button
+              onClick={onContinue}
+              className="w-full py-4 px-6 rounded-xl bg-primary text-primary-foreground font-semibold text-lg shadow-lg shadow-primary/30 hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3"
+            >
+              <Mic className="h-5 w-5" />
+              Continue to Fluency Assessment
+            </button>
+            <p className="text-center text-sm text-muted-foreground">
+              Takes ~10 minutes • Microphone needed
+            </p>
+          </motion.div>
         </motion.div>
       </div>
     </div>
