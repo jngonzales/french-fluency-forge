@@ -260,16 +260,17 @@ serve(async (req) => {
   }
 
   try {
-    const { audioBase64, moduleType, itemId, promptText, recordingId } = await req.json();
+    const { audioBase64, transcript: directTranscript, moduleType, itemId, promptText, recordingId } = await req.json();
 
-    if (!audioBase64 || !moduleType || !itemId || !promptText || !recordingId) {
+    // Either audioBase64 or directTranscript is required
+    if ((!audioBase64 && !directTranscript) || !moduleType || !itemId || !promptText || !recordingId) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Processing ${moduleType} recording ${recordingId}`);
+    console.log(`Processing ${moduleType} recording ${recordingId}${directTranscript ? ' (dev mode - text input)' : ''}`);
 
     // Get auth token
     const authHeader = req.headers.get('authorization');
@@ -291,8 +292,14 @@ serve(async (req) => {
       .update({ status: 'processing' })
       .eq('id', recordingId);
 
-    // Transcribe audio
-    const transcript = await transcribeAudio(audioBase64);
+    // Use direct transcript if provided (dev mode), otherwise transcribe audio
+    let transcript: string;
+    if (directTranscript) {
+      console.log('Using direct text input (dev mode)');
+      transcript = directTranscript;
+    } else {
+      transcript = await transcribeAudio(audioBase64);
+    }
     const wordCount = transcript.split(/\s+/).filter(w => w.length > 0).length;
 
     // Analyze with AI

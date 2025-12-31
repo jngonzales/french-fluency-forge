@@ -21,6 +21,7 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
     getAttemptCount,
     getResult,
     handleRecordingComplete,
+    handleTextSubmit,
     handleNext,
     handleRedo
   } = useSkillModule({
@@ -29,6 +30,8 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
     prompts: syntaxPrompts,
     onComplete
   });
+
+  const isDev = import.meta.env.DEV || window.location.pathname.startsWith('/dev');
 
   if (showIntro) {
     return (
@@ -86,10 +89,12 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
       totalQuestions={totalPrompts}
       moduleTitle={syntaxConfig.title}
       onRecordingComplete={handleRecordingComplete}
+      onTextSubmit={handleTextSubmit}
       onNext={handleNext}
       onRedo={handleRedo}
       existingResult={getResult(currentPrompt.id)}
       isLast={isLastPrompt}
+      devMode={isDev}
     />
   );
 }
