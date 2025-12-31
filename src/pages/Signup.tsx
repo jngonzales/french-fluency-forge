@@ -152,11 +152,17 @@ const Signup = () => {
               {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
 
-            <div className="text-center">
+            <div className="text-center space-y-2">
               <p className="text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <a href="/login" className="text-primary hover:underline font-medium">
                   Sign in
+                </a>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Purchased access?{" "}
+                <a href="/activate" className="text-primary hover:underline font-medium">
+                  Activate your account
                 </a>
               </p>
             </div>

@@ -16,6 +16,8 @@ import Assessment from "./pages/Assessment";
 import Results from "./pages/Results";
 import DevPreview from "./pages/DevPreview";
 import NotFound from "./pages/NotFound";
+import Activate from "./pages/Activate";
+import AdminProducts from "./pages/AdminProducts";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +45,15 @@ const App = () => (
               } 
             />
             <Route path="/results" element={<Results />} />
+            <Route path="/activate" element={<Activate />} />
+            <Route 
+              path="/admin/systemeio-products" 
+              element={
+                <ProtectedRoute>
+                  <AdminProducts />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/dev" element={<DevPreview />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.analyze-syntax]
 verify_jwt = false
+
+[functions.systemeio-webhook]
+verify_jwt = false
