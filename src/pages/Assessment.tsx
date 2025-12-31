@@ -9,6 +9,7 @@ import { FluencyModule } from "@/components/assessment/fluency";
 import { ConfidenceModule } from "@/components/assessment/confidence";
 import { SyntaxModule } from "@/components/assessment/syntax";
 import { ConversationModule } from "@/components/assessment/conversation";
+import { ComprehensionModule } from "@/components/assessment/comprehension";
 import { PersonalityQuiz } from "@/components/assessment/personality-quiz";
 import { ProcessingView } from "@/components/assessment/ProcessingView";
 import { toast } from "sonner";
@@ -16,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
 
 type SessionStatus = Database["public"]["Enums"]["session_status"];
-type AssessmentPhase = "pronunciation" | "fluency" | "confidence" | "syntax" | "conversation";
+type AssessmentPhase = "pronunciation" | "fluency" | "confidence" | "syntax" | "conversation" | "comprehension";
 
 interface AssessmentSession {
   id: string;
@@ -114,7 +115,7 @@ const Assessment = () => {
     );
   }
 
-  const phaseOrder: AssessmentPhase[] = ["pronunciation", "fluency", "confidence", "syntax", "conversation"];
+  const phaseOrder: AssessmentPhase[] = ["pronunciation", "fluency", "confidence", "syntax", "conversation", "comprehension"];
   
   const advancePhase = async () => {
     const currentIdx = phaseOrder.indexOf(assessmentPhase);
@@ -172,6 +173,8 @@ const Assessment = () => {
           return <SyntaxModule {...moduleProps} />;
         case "conversation":
           return <ConversationModule {...moduleProps} />;
+        case "comprehension":
+          return <ComprehensionModule {...moduleProps} />;
       }
       break;
 

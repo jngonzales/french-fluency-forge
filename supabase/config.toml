@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.analyze-skill]
 verify_jwt = false
+
+[functions.analyze-comprehension]
+verify_jwt = false

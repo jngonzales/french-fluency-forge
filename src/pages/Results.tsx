@@ -164,8 +164,19 @@ const Results = () => {
         // TODO: Fetch pronunciation scores when available
         const pronunciationScore: number | null = null;
 
-        // TODO: Fetch comprehension scores when module is implemented
-        const comprehensionScore: number | null = null;
+        // Fetch comprehension scores
+        const { data: comprehensionRecordings } = await supabase
+          .from("comprehension_recordings")
+          .select("ai_score")
+          .eq("session_id", sessionId)
+          .eq("used_for_scoring", true)
+          .not("ai_score", "is", null);
+        
+        let comprehensionScore: number | null = null;
+        if (comprehensionRecordings && comprehensionRecordings.length > 0) {
+          const totalScore = comprehensionRecordings.reduce((sum, r) => sum + Number(r.ai_score || 0), 0);
+          comprehensionScore = Math.round(totalScore / comprehensionRecordings.length);
+        }
 
         setSessionData({
           fluencyWpm: avgWpm,
