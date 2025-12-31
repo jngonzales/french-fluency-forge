@@ -5,7 +5,7 @@ import { FluencyIntroPanel } from "./FluencyIntroPanel";
 import { FluencyRecordingCard } from "./FluencyRecordingCard";
 import { FluencyRedoDialog } from "./FluencyRedoDialog";
 import { useFluencyModule } from "./useFluencyModule";
-import { RotateCcw, ChevronRight, Check } from "lucide-react";
+import { RotateCcw, ChevronRight, Check, Loader2 } from "lucide-react";
 import SkipButton from "../SkipButton";
 
 interface FluencyModuleProps {
@@ -19,12 +19,13 @@ export function FluencyModule({ sessionId, onComplete, onSkip }: FluencyModulePr
   const [showRedoModuleDialog, setShowRedoModuleDialog] = useState(false);
 
   const {
-    prompts,
-    currentPrompt,
+    pictureCards,
+    currentCard,
     currentIndex,
     currentState,
     allComplete,
     moduleAttemptCount,
+    isLoading,
     setRecordingState,
     handleRecordingComplete,
     handleNext,
@@ -33,7 +34,9 @@ export function FluencyModule({ sessionId, onComplete, onSkip }: FluencyModulePr
     lockModule,
   } = useFluencyModule(sessionId);
 
-  const progress = ((currentIndex + (currentState.recordingState === "done" ? 1 : 0)) / prompts.length) * 100;
+  const progress = pictureCards.length > 0 
+    ? ((currentIndex + (currentState.recordingState === "done" ? 1 : 0)) / pictureCards.length) * 100
+    : 0;
 
   const handleFinishModule = async () => {
     await lockModule();
@@ -50,11 +53,13 @@ export function FluencyModule({ sessionId, onComplete, onSkip }: FluencyModulePr
     setShowRedoModuleDialog(false);
   };
 
-  // Check if all questions have been completed (for showing "redo module" option)
-  const allQuestionsAnswered = prompts.every((p) => {
-    // This is a simplified check - in production you'd check the actual state
-    return currentIndex === prompts.length - 1 && allComplete;
-  });
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
@@ -76,19 +81,22 @@ export function FluencyModule({ sessionId, onComplete, onSkip }: FluencyModulePr
         <FluencyIntroPanel />
 
         {/* Recording Card */}
-        {!allComplete && (
+        {!allComplete && currentCard && (
           <FluencyRecordingCard
-            prompt={currentPrompt}
+            card={currentCard}
             questionNumber={currentIndex + 1}
-            totalQuestions={prompts.length}
+            totalQuestions={pictureCards.length}
             attemptCount={currentState.attemptCount}
             recordingState={currentState.recordingState}
             setRecordingState={setRecordingState}
             onRecordingComplete={handleRecordingComplete}
             onNext={handleNext}
             onRedo={() => setShowRedoItemDialog(true)}
-            isLast={currentIndex === prompts.length - 1}
+            isLast={currentIndex === pictureCards.length - 1}
             errorMessage={currentState.errorMessage}
+            score={currentState.score}
+            speedSubscore={currentState.speedSubscore}
+            pauseSubscore={currentState.pauseSubscore}
           />
         )}
 
@@ -99,13 +107,13 @@ export function FluencyModule({ sessionId, onComplete, onSkip }: FluencyModulePr
               <Check className="h-12 w-12 text-green-500 mx-auto mb-4" />
               <h2 className="text-xl font-bold mb-2">Fluency Complete!</h2>
               <p className="text-muted-foreground">
-                You've finished both speaking prompts. Ready to continue?
+                Tu as terminé les {pictureCards.length} images. Prêt(e) à continuer ?
               </p>
             </div>
 
             <div className="flex flex-col gap-3">
               <Button size="lg" onClick={handleFinishModule} className="w-full">
-                Continue to Next Section
+                Continuer vers la section suivante
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
 
@@ -115,12 +123,12 @@ export function FluencyModule({ sessionId, onComplete, onSkip }: FluencyModulePr
                 className="w-full"
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Redo Fluency (start over)
+                Refaire Fluency (recommencer)
               </Button>
             </div>
 
             <p className="text-center text-sm text-amber-600 dark:text-amber-400">
-              Once you continue, you won't be able to come back and redo this section.
+              Une fois que tu continues, tu ne pourras plus revenir en arrière.
             </p>
           </div>
         )}
