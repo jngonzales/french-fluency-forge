@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import IntakeForm from "@/components/assessment/IntakeForm";
 import ConsentForm from "@/components/assessment/ConsentForm";
-import PronunciationModule from "@/components/assessment/PronunciationModule";
+import { PronunciationModule } from "@/components/assessment/pronunciation";
 import { FluencyModule } from "@/components/assessment/fluency";
 import { ConfidenceModule } from "@/components/assessment/confidence";
 import { SyntaxModule } from "@/components/assessment/syntax";
