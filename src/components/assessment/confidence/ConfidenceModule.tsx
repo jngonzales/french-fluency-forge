@@ -4,14 +4,17 @@ import { Button } from '@/components/ui/button';
 import { MessageCircle, ArrowRight } from 'lucide-react';
 import { SkillRecordingCard, useSkillModule } from '../shared';
 import { confidencePrompts, confidenceConfig } from './confidencePrompts';
+import { ConfidenceQuestionnaire } from './ConfidenceQuestionnaire';
 
 interface ConfidenceModuleProps {
   sessionId: string;
   onComplete: () => void;
 }
 
+type Phase = 'intro' | 'questionnaire' | 'speaking';
+
 export function ConfidenceModule({ sessionId, onComplete }: ConfidenceModuleProps) {
-  const [showIntro, setShowIntro] = useState(true);
+  const [phase, setPhase] = useState<Phase>('intro');
 
   const {
     currentPrompt,
@@ -34,7 +37,7 @@ export function ConfidenceModule({ sessionId, onComplete }: ConfidenceModuleProp
   // Enable dev mode in development
   const isDev = import.meta.env.DEV || window.location.pathname.startsWith('/dev');
 
-  if (showIntro) {
+  if (phase === 'intro') {
     return (
       <div className="max-w-2xl mx-auto">
         <Card className="border-primary/20">
@@ -49,6 +52,14 @@ export function ConfidenceModule({ sessionId, onComplete }: ConfidenceModuleProp
               {confidenceConfig.description}
             </p>
             
+            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+              <h4 className="font-medium">This assessment has two parts:</h4>
+              <ul className="text-sm text-muted-foreground space-y-2">
+                <li>• <strong>Part 1:</strong> 8 quick self-reflection questions about your speaking habits</li>
+                <li>• <strong>Part 2:</strong> 2 speaking prompts where you respond in French</li>
+              </ul>
+            </div>
+
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
               <h4 className="font-medium">What we're assessing:</h4>
               <ul className="text-sm text-muted-foreground space-y-2">
@@ -67,7 +78,7 @@ export function ConfidenceModule({ sessionId, onComplete }: ConfidenceModuleProp
             </div>
 
             <div className="text-center pt-4">
-              <Button size="lg" onClick={() => setShowIntro(false)} className="gap-2">
+              <Button size="lg" onClick={() => setPhase('questionnaire')} className="gap-2">
                 Start
                 <ArrowRight className="h-5 w-5" />
               </Button>
@@ -78,6 +89,16 @@ export function ConfidenceModule({ sessionId, onComplete }: ConfidenceModuleProp
     );
   }
 
+  if (phase === 'questionnaire') {
+    return (
+      <ConfidenceQuestionnaire
+        sessionId={sessionId}
+        onComplete={() => setPhase('speaking')}
+      />
+    );
+  }
+
+  // Speaking phase
   if (!currentPrompt) {
     return <div>Loading...</div>;
   }

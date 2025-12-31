@@ -29,6 +29,8 @@ interface SessionData {
   fluencyWpm: number | null;
   pronunciationScore: number | null;
   confidenceScore: number | null;
+  confidenceQuestionnaireScore: number | null;
+  confidenceHonestyFlag: boolean;
   syntaxScore: number | null;
   conversationScore: number | null;
   comprehensionScore: number | null;
@@ -74,6 +76,8 @@ const Results = () => {
     fluencyWpm: null,
     pronunciationScore: null,
     confidenceScore: null,
+    confidenceQuestionnaireScore: null,
+    confidenceHonestyFlag: false,
     syntaxScore: null,
     conversationScore: null,
     comprehensionScore: null,
@@ -118,6 +122,13 @@ const Results = () => {
           .eq("used_for_scoring", true)
           .not("ai_score", "is", null);
 
+        // Fetch confidence questionnaire response
+        const { data: questionnaireData } = await supabase
+          .from("confidence_questionnaire_responses")
+          .select("normalized_score, honesty_flag")
+          .eq("session_id", sessionId)
+          .maybeSingle();
+
         // Calculate average scores per module
         const moduleScores: Record<string, number[]> = {};
         if (skillRecordings) {
@@ -137,8 +148,20 @@ const Results = () => {
           return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
         };
 
+        // Calculate combined confidence score (50% questionnaire + 50% speaking)
+        const speakingConfidence = getAvgScore("confidence");
+        const questionnaireConfidence = questionnaireData?.normalized_score ?? null;
+        
+        let combinedConfidenceScore: number | null = null;
+        if (speakingConfidence !== null && questionnaireConfidence !== null) {
+          combinedConfidenceScore = Math.round((speakingConfidence + questionnaireConfidence) / 2);
+        } else if (speakingConfidence !== null) {
+          combinedConfidenceScore = speakingConfidence;
+        } else if (questionnaireConfidence !== null) {
+          combinedConfidenceScore = Math.round(questionnaireConfidence);
+        }
+
         // TODO: Fetch pronunciation scores when available
-        // For now, we'll use a placeholder or null
         const pronunciationScore: number | null = null;
 
         // TODO: Fetch comprehension scores when module is implemented
@@ -147,7 +170,9 @@ const Results = () => {
         setSessionData({
           fluencyWpm: avgWpm,
           pronunciationScore,
-          confidenceScore: getAvgScore("confidence"),
+          confidenceScore: combinedConfidenceScore,
+          confidenceQuestionnaireScore: questionnaireConfidence,
+          confidenceHonestyFlag: questionnaireData?.honesty_flag ?? false,
           syntaxScore: getAvgScore("syntax"),
           conversationScore: getAvgScore("conversation"),
           comprehensionScore,
@@ -337,6 +362,14 @@ const Results = () => {
                           <p className="text-xs text-muted-foreground leading-relaxed">
                             {skill.description}
                           </p>
+                        )}
+                        {/* Confidence honesty flag note */}
+                        {skill.skill === 'Confidence' && sessionData.confidenceHonestyFlag && (
+                          <div className="mt-2 p-2 rounded bg-amber-500/10 border border-amber-500/20">
+                            <p className="text-xs text-amber-700 dark:text-amber-400">
+                              You want to be more spontaneous, but under pressure you still avoid speaking sometimes — totally normal.
+                            </p>
+                          </div>
                         )}
                       </div>
                     ))}

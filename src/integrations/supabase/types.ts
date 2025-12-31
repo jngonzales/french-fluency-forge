@@ -142,6 +142,54 @@ export type Database = {
           },
         ]
       }
+      confidence_questionnaire_responses: {
+        Row: {
+          created_at: string
+          honesty_flag: boolean | null
+          id: string
+          normalized_score: number | null
+          raw_score: number | null
+          responses: Json
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          honesty_flag?: boolean | null
+          id?: string
+          normalized_score?: number | null
+          raw_score?: number | null
+          responses?: Json
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          honesty_flag?: boolean | null
+          id?: string
+          normalized_score?: number | null
+          raw_score?: number | null
+          responses?: Json
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "confidence_questionnaire_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "confidence_questionnaire_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consent_records: {
         Row: {
           consented_at: string
