@@ -18,6 +18,7 @@ interface TaskRecording {
   taskId: string;
   transcript?: string;
   audioBase64?: string;
+  audioMimeType?: string;
 }
 
 interface SyntaxResult {
@@ -56,6 +57,7 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
 
   // Callback for when recording completes
   const handleRecordingComplete = useCallback((blob: Blob) => {
+    const mimeType = blob.type || 'audio/webm';
     const reader = new FileReader();
     reader.onload = () => {
       const base64 = (reader.result as string).split(',')[1];
@@ -63,7 +65,7 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
       setTaskRecordings(prev => {
         const updated = [
           ...prev.filter(r => r.taskId !== currentTask.id),
-          { taskId: currentTask.id, audioBase64: base64 }
+          { taskId: currentTask.id, audioBase64: base64, audioMimeType: mimeType }
         ];
         
         // Check if this was the last task

@@ -85,6 +85,7 @@ export function useSkillModule({ sessionId, moduleType, prompts, onComplete }: U
           },
           body: JSON.stringify({
             audioBase64,
+            audioMimeType: audioBlob.type || 'audio/webm',
             moduleType,
             itemId,
             promptText: currentPrompt.text,

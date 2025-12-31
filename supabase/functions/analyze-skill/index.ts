@@ -120,8 +120,9 @@ DECREASE score for:
 - Engagement with the topic
 - Use of discourse markers (bon, alors, enfin, bref, etc.)`;
 
-async function transcribeAudio(audioBase64: string): Promise<string> {
+async function transcribeAudio(audioBase64: string, audioMimeType?: string): Promise<string> {
   console.log('Starting transcription...');
+  console.log('Audio MIME type:', audioMimeType || 'not provided, defaulting to audio/webm');
   
   // Convert base64 to blob
   const binaryString = atob(audioBase64);
@@ -130,8 +131,21 @@ async function transcribeAudio(audioBase64: string): Promise<string> {
     bytes[i] = binaryString.charCodeAt(i);
   }
   
+  // Detect format from MIME type or default to webm
+  const mimeType = audioMimeType || 'audio/webm';
+  let extension = 'webm';
+  
+  if (mimeType.includes('wav')) extension = 'wav';
+  else if (mimeType.includes('mp3') || mimeType.includes('mpeg')) extension = 'mp3';
+  else if (mimeType.includes('mp4') || mimeType.includes('m4a')) extension = 'm4a';
+  else if (mimeType.includes('ogg')) extension = 'ogg';
+  else if (mimeType.includes('flac')) extension = 'flac';
+  else if (mimeType.includes('webm')) extension = 'webm';
+  
+  console.log(`Using file extension: ${extension}, MIME type: ${mimeType}`);
+  
   const formData = new FormData();
-  formData.append('file', new Blob([bytes], { type: 'audio/webm' }), 'audio.webm');
+  formData.append('file', new Blob([bytes], { type: mimeType }), `audio.${extension}`);
   formData.append('model', 'whisper-1');
   formData.append('language', 'fr');
   formData.append('response_format', 'json');
@@ -260,7 +274,7 @@ serve(async (req) => {
   }
 
   try {
-    const { audioBase64, transcript: directTranscript, moduleType, itemId, promptText, recordingId } = await req.json();
+    const { audioBase64, audioMimeType, transcript: directTranscript, moduleType, itemId, promptText, recordingId } = await req.json();
 
     // Either audioBase64 or directTranscript is required
     if ((!audioBase64 && !directTranscript) || !moduleType || !itemId || !promptText || !recordingId) {
@@ -271,6 +285,9 @@ serve(async (req) => {
     }
 
     console.log(`Processing ${moduleType} recording ${recordingId}${directTranscript ? ' (dev mode - text input)' : ''}`);
+    if (audioMimeType) {
+      console.log(`Audio MIME type: ${audioMimeType}`);
+    }
 
     // Get auth token
     const authHeader = req.headers.get('authorization');
@@ -298,7 +315,7 @@ serve(async (req) => {
       console.log('Using direct text input (dev mode)');
       transcript = directTranscript;
     } else {
-      transcript = await transcribeAudio(audioBase64);
+      transcript = await transcribeAudio(audioBase64, audioMimeType);
     }
     const wordCount = transcript.split(/\s+/).filter(w => w.length > 0).length;
 
