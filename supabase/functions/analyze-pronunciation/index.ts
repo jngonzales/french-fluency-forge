@@ -54,13 +54,15 @@ interface PronunciationResult {
   completenessScore: number;
   words: WordResult[];
   phonemes: PhonemeResult[];
+  rawResponse?: unknown;
 }
 
 async function assessPronunciation(
   audioData: Uint8Array,
   referenceText: string,
   speechKey: string,
-  speechRegion: string
+  speechRegion: string,
+  audioFormat: string
 ): Promise<PronunciationResult> {
   // Create pronunciation assessment config
   const pronunciationConfig = {
@@ -72,15 +74,29 @@ async function assessPronunciation(
   };
 
   const pronunciationConfigBase64 = btoa(JSON.stringify(pronunciationConfig));
+  
+  console.log('[Pronunciation] Config:', JSON.stringify(pronunciationConfig));
+  console.log('[Pronunciation] Audio format from client:', audioFormat);
 
-  // Azure Speech API endpoint
-  const endpoint = `https://${speechRegion}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=fr-FR`;
+  // Determine content type based on audio format
+  // Browser MediaRecorder typically outputs webm/opus
+  let contentType = 'audio/webm; codecs=opus';
+  if (audioFormat?.includes('wav')) {
+    contentType = 'audio/wav; codecs=audio/pcm; samplerate=16000';
+  } else if (audioFormat?.includes('ogg')) {
+    contentType = 'audio/ogg; codecs=opus';
+  }
+  
+  console.log('[Pronunciation] Using Content-Type:', contentType);
+
+  // Azure Speech API endpoint - using the detailed output format
+  const endpoint = `https://${speechRegion}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=fr-FR&format=detailed`;
 
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Ocp-Apim-Subscription-Key': speechKey,
-      'Content-Type': 'audio/wav; codecs=audio/pcm; samplerate=16000',
+      'Content-Type': contentType,
       'Pronunciation-Assessment': pronunciationConfigBase64,
       'Accept': 'application/json',
     },
@@ -90,53 +106,82 @@ async function assessPronunciation(
   if (!response.ok) {
     const errorText = await response.text();
     console.error('[Pronunciation] Azure API error:', response.status, errorText);
-    throw new Error(`Azure Speech API error: ${response.status}`);
+    throw new Error(`Azure Speech API error: ${response.status} - ${errorText}`);
   }
 
   const result = await response.json();
-  console.log('[Pronunciation] Azure response:', JSON.stringify(result).slice(0, 500));
+  console.log('[Pronunciation] Full Azure response:', JSON.stringify(result));
 
   // Parse the response
   const nBest = result.NBest?.[0];
   if (!nBest) {
-    throw new Error('No pronunciation assessment result');
+    console.error('[Pronunciation] No NBest in response:', JSON.stringify(result));
+    return {
+      pronScore: 0,
+      accuracyScore: 0,
+      fluencyScore: 0,
+      completenessScore: 0,
+      words: [],
+      phonemes: [],
+      rawResponse: result,
+    };
   }
 
+  // Log the structure for debugging
+  console.log('[Pronunciation] NBest keys:', Object.keys(nBest));
+  console.log('[Pronunciation] NBest.PronunciationAssessment:', JSON.stringify(nBest.PronunciationAssessment));
+  
   const assessment = nBest.PronunciationAssessment || {};
   const words: WordResult[] = [];
   const phonemes: PhonemeResult[] = [];
 
-  // Extract word-level results
+  // Extract word-level results - Azure has different response structures
   if (nBest.Words) {
+    console.log('[Pronunciation] First word structure:', JSON.stringify(nBest.Words[0]));
+    
     for (const word of nBest.Words) {
-      const wordAssessment = word.PronunciationAssessment || {};
+      // Try both nested and flat structures
+      const wordAssessment = word.PronunciationAssessment || word;
+      const accuracyScore = wordAssessment.AccuracyScore ?? word.AccuracyScore ?? 0;
+      const errorType = wordAssessment.ErrorType ?? word.ErrorType ?? 'None';
+      
       words.push({
         word: word.Word,
-        accuracyScore: wordAssessment.AccuracyScore || 0,
-        errorType: wordAssessment.ErrorType || 'None',
+        accuracyScore,
+        errorType,
       });
 
       // Extract phoneme-level results
-      if (word.Phonemes) {
-        for (const phoneme of word.Phonemes) {
-          const phonemeAssessment = phoneme.PronunciationAssessment || {};
-          phonemes.push({
-            phoneme: phoneme.Phoneme,
-            accuracyScore: phonemeAssessment.AccuracyScore || 0,
-          });
-        }
+      const phonemeList = word.Phonemes || [];
+      for (const phoneme of phonemeList) {
+        const phonemeAssessment = phoneme.PronunciationAssessment || phoneme;
+        phonemes.push({
+          phoneme: phoneme.Phoneme,
+          accuracyScore: phonemeAssessment.AccuracyScore ?? phoneme.AccuracyScore ?? 0,
+        });
       }
     }
   }
 
-  return {
-    pronScore: assessment.PronScore || 0,
-    accuracyScore: assessment.AccuracyScore || 0,
-    fluencyScore: assessment.FluencyScore || 0,
-    completenessScore: assessment.CompletenessScore || 0,
+  const resultData = {
+    pronScore: assessment.PronScore ?? nBest.PronScore ?? 0,
+    accuracyScore: assessment.AccuracyScore ?? nBest.AccuracyScore ?? 0,
+    fluencyScore: assessment.FluencyScore ?? nBest.FluencyScore ?? 0,
+    completenessScore: assessment.CompletenessScore ?? nBest.CompletenessScore ?? 0,
     words,
     phonemes,
+    rawResponse: result,
   };
+  
+  console.log('[Pronunciation] Parsed result:', JSON.stringify({
+    pronScore: resultData.pronScore,
+    accuracyScore: resultData.accuracyScore,
+    wordCount: resultData.words.length,
+    phonemeCount: resultData.phonemes.length,
+    firstWordScore: resultData.words[0]?.accuracyScore
+  }));
+
+  return resultData;
 }
 
 serve(async (req) => {
@@ -145,7 +190,7 @@ serve(async (req) => {
   }
 
   try {
-    const { audio, referenceText, itemId } = await req.json();
+    const { audio, referenceText, itemId, audioFormat } = await req.json();
 
     if (!audio) {
       throw new Error('No audio data provided');
@@ -162,16 +207,20 @@ serve(async (req) => {
       throw new Error('Azure Speech credentials not configured');
     }
 
-    console.log(`[Pronunciation] Processing item: ${itemId}, reference: "${referenceText.slice(0, 50)}..."`);
+    console.log(`[Pronunciation] Processing item: ${itemId}`);
+    console.log(`[Pronunciation] Reference text: "${referenceText}"`);
+    console.log(`[Pronunciation] Audio format: ${audioFormat}`);
 
     // Process audio
     const binaryAudio = processBase64Chunks(audio);
     console.log(`[Pronunciation] Audio size: ${binaryAudio.length} bytes`);
+    console.log(`[Pronunciation] Audio header (first 20 bytes):`, Array.from(binaryAudio.slice(0, 20)));
 
     // Call Azure Speech Pronunciation Assessment
-    const result = await assessPronunciation(binaryAudio, referenceText, speechKey, speechRegion);
+    const result = await assessPronunciation(binaryAudio, referenceText, speechKey, speechRegion, audioFormat || 'audio/webm');
 
-    console.log(`[Pronunciation] Score: ${result.pronScore}, Words: ${result.words.length}, Phonemes: ${result.phonemes.length}`);
+    console.log(`[Pronunciation] Final scores - Pron: ${result.pronScore}, Accuracy: ${result.accuracyScore}, Fluency: ${result.fluencyScore}, Completeness: ${result.completenessScore}`);
+    console.log(`[Pronunciation] Words: ${result.words.length}, Phonemes: ${result.phonemes.length}`);
 
     return new Response(
       JSON.stringify({
@@ -183,6 +232,11 @@ serve(async (req) => {
         completenessScore: result.completenessScore,
         words: result.words,
         phonemes: result.phonemes,
+        debug: {
+          rawResponse: result.rawResponse,
+          audioSize: binaryAudio.length,
+          audioFormat: audioFormat || 'audio/webm',
+        }
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -190,12 +244,15 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorStack = error instanceof Error ? error.stack : undefined;
     console.error('[Pronunciation] Error:', errorMessage);
+    console.error('[Pronunciation] Stack:', errorStack);
     
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: errorMessage 
+        error: errorMessage,
+        stack: errorStack,
       }),
       {
         status: 500,
