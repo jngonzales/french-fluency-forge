@@ -1,56 +1,47 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { FLUENCY_PICTURE_CARDS, getRandomPictureCards, type FluencyPictureCard } from "./fluencyPictureCards";
 import type { RecordingState } from "./FluencyRecordingCard";
 import type { Json } from "@/integrations/supabase/types";
 
-const FLUENCY_PROMPTS = [
-  {
-    id: "fluency-1",
-    prompt: "Describe your typical morning routine",
-    promptFr: "Décrivez votre routine matinale typique",
-    duration: 30,
-    tips: [
-      "What time do you wake up?",
-      "What do you eat for breakfast?",
-      "How do you get ready for the day?",
-    ],
-  },
-  {
-    id: "fluency-2",
-    prompt: "Tell me about your favorite place to visit",
-    promptFr: "Parlez-moi de votre endroit préféré à visiter",
-    duration: 30,
-    tips: [
-      "Where is this place?",
-      "Why do you like it?",
-      "What can you do there?",
-    ],
-  },
-];
+// Number of picture cards per assessment
+const CARDS_PER_ASSESSMENT = 3;
 
 interface ItemState {
   recordingState: RecordingState;
   attemptCount: number;
   recordingId?: string;
   errorMessage?: string;
+  score?: number;
+  speedSubscore?: number;
+  pauseSubscore?: number;
 }
 
 export function useFluencyModule(sessionId: string) {
   const { user } = useAuth();
+  const [pictureCards, setPictureCards] = useState<FluencyPictureCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [itemStates, setItemStates] = useState<Record<string, ItemState>>(() => {
-    const initial: Record<string, ItemState> = {};
-    FLUENCY_PROMPTS.forEach((p) => {
-      initial[p.id] = { recordingState: "ready", attemptCount: 1 };
-    });
-    return initial;
-  });
+  const [itemStates, setItemStates] = useState<Record<string, ItemState>>({});
   const [moduleAttemptCount, setModuleAttemptCount] = useState(1);
   const [allComplete, setAllComplete] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const currentPrompt = FLUENCY_PROMPTS[currentIndex];
-  const currentState = itemStates[currentPrompt.id];
+  // Initialize picture cards on mount
+  useEffect(() => {
+    const cards = getRandomPictureCards(CARDS_PER_ASSESSMENT);
+    setPictureCards(cards);
+    
+    const initial: Record<string, ItemState> = {};
+    cards.forEach((card) => {
+      initial[card.id] = { recordingState: "ready", attemptCount: 1 };
+    });
+    setItemStates(initial);
+    setIsLoading(false);
+  }, []);
+
+  const currentCard = pictureCards[currentIndex];
+  const currentState = currentCard ? itemStates[currentCard.id] : { recordingState: "ready" as RecordingState, attemptCount: 1 };
 
   const logEvent = useCallback(async (
     eventType: "fluency_recording_started" | "fluency_recording_completed" | "fluency_redo_clicked" | "fluency_redo_confirmed" | "fluency_redo_cancelled" | "fluency_module_locked",
@@ -76,20 +67,22 @@ export function useFluencyModule(sessionId: string) {
   }, [sessionId, user]);
 
   const setRecordingState = useCallback((state: RecordingState) => {
+    if (!currentCard) return;
+    
     setItemStates((prev) => ({
       ...prev,
-      [currentPrompt.id]: { ...prev[currentPrompt.id], recordingState: state },
+      [currentCard.id]: { ...prev[currentCard.id], recordingState: state },
     }));
     
     if (state === "recording") {
-      logEvent("fluency_recording_started", currentPrompt.id, currentState.attemptCount);
+      logEvent("fluency_recording_started", currentCard.id, currentState.attemptCount);
     }
-  }, [currentPrompt.id, currentState.attemptCount, logEvent]);
+  }, [currentCard, currentState.attemptCount, logEvent]);
 
   const handleRecordingComplete = useCallback(async (audioBlob: Blob, duration: number): Promise<void> => {
-    if (!user) throw new Error("Not authenticated");
+    if (!user || !currentCard) throw new Error("Not authenticated");
 
-    console.log("[Fluency] Starting recording upload for", currentPrompt.id, "attempt", currentState.attemptCount);
+    console.log("[Fluency] Starting recording upload for", currentCard.id, "attempt", currentState.attemptCount);
 
     // Convert blob to base64
     const arrayBuffer = await audioBlob.arrayBuffer();
@@ -101,12 +94,12 @@ export function useFluencyModule(sessionId: string) {
     const base64Audio = btoa(binary);
     console.log("[Fluency] Audio converted to base64, size:", base64Audio.length);
 
-    // Get the max attempt number for this item to avoid duplicates
+    // Get the max attempt number for this item
     const { data: existingRecordings } = await supabase
       .from("fluency_recordings")
       .select("attempt_number")
       .eq("session_id", sessionId)
-      .eq("item_id", currentPrompt.id)
+      .eq("item_id", currentCard.id)
       .order("attempt_number", { ascending: false })
       .limit(1);
 
@@ -121,7 +114,7 @@ export function useFluencyModule(sessionId: string) {
       .from("fluency_recordings")
       .update({ superseded: true, used_for_scoring: false })
       .eq("session_id", sessionId)
-      .eq("item_id", currentPrompt.id)
+      .eq("item_id", currentCard.id)
       .eq("used_for_scoring", true);
 
     // Create new recording entry
@@ -130,7 +123,7 @@ export function useFluencyModule(sessionId: string) {
       .insert({
         session_id: sessionId,
         user_id: user.id,
-        item_id: currentPrompt.id,
+        item_id: currentCard.id,
         attempt_number: nextAttemptNumber,
         status: "processing",
         duration_seconds: duration,
@@ -148,15 +141,15 @@ export function useFluencyModule(sessionId: string) {
     // Set state to processing
     setItemStates((prev) => ({
       ...prev,
-      [currentPrompt.id]: { 
-        ...prev[currentPrompt.id], 
+      [currentCard.id]: { 
+        ...prev[currentCard.id], 
         recordingState: "processing",
         recordingId: recording.id,
         attemptCount: nextAttemptNumber,
       },
     }));
 
-    // Send to analysis service (audio is NOT stored, only sent to Whisper API)
+    // Send to analysis service
     console.log("[Fluency] Sending to analyze-fluency edge function...");
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-fluency`,
@@ -169,7 +162,7 @@ export function useFluencyModule(sessionId: string) {
         },
         body: JSON.stringify({
           audio: base64Audio,
-          itemId: currentPrompt.id,
+          itemId: currentCard.id,
           recordingDuration: duration,
         }),
       }
@@ -184,7 +177,6 @@ export function useFluencyModule(sessionId: string) {
         const errorJson = JSON.parse(errorText);
         errorMessage = errorJson.error || errorMessage;
         
-        // Check for specific errors
         if (errorMessage.includes("429") || errorMessage.includes("quota")) {
           errorMessage = "Speech analysis quota exceeded. Please try again later.";
         }
@@ -197,11 +189,10 @@ export function useFluencyModule(sessionId: string) {
         .update({ status: "error", error_message: errorMessage })
         .eq("id", recording.id);
       
-      // Set error state with message
       setItemStates((prev) => ({
         ...prev,
-        [currentPrompt.id]: { 
-          ...prev[currentPrompt.id], 
+        [currentCard.id]: { 
+          ...prev[currentCard.id], 
           errorMessage,
         },
       }));
@@ -210,52 +201,70 @@ export function useFluencyModule(sessionId: string) {
     }
 
     const result = await response.json();
-    console.log("[Fluency] Analysis complete:", { wpm: result.wpm, wordCount: result.wordCount });
+    console.log("[Fluency] Analysis complete:", { 
+      articulationWpm: result.articulationWpm, 
+      wordCount: result.wordCount,
+      totalScore: result.totalScore,
+    });
 
-    // Update recording with results (transcript never shown to user)
+    // Update recording with results
     await supabase
       .from("fluency_recordings")
       .update({
         status: "completed",
         transcript: result.transcript,
         word_count: result.wordCount,
-        wpm: result.wpm,
-        pause_count: result.pauseCount,
+        wpm: result.articulationWpm,
+        pause_count: result.longPauseCount,
         total_pause_duration: result.totalPauseDuration,
         completed_at: new Date().toISOString(),
       })
       .eq("id", recording.id);
 
-    logEvent("fluency_recording_completed", currentPrompt.id, nextAttemptNumber, {
-      wpm: result.wpm,
+    // Update state with scores
+    setItemStates((prev) => ({
+      ...prev,
+      [currentCard.id]: { 
+        ...prev[currentCard.id], 
+        score: result.totalScore,
+        speedSubscore: result.speedSubscore,
+        pauseSubscore: result.pauseSubscore,
+      },
+    }));
+
+    logEvent("fluency_recording_completed", currentCard.id, nextAttemptNumber, {
+      articulationWpm: result.articulationWpm,
       wordCount: result.wordCount,
+      totalScore: result.totalScore,
     });
-  }, [user, sessionId, currentPrompt.id, currentState.attemptCount, logEvent]);
+  }, [user, sessionId, currentCard, currentState.attemptCount, logEvent]);
 
   const handleNext = useCallback(() => {
-    if (currentIndex < FLUENCY_PROMPTS.length - 1) {
+    if (currentIndex < pictureCards.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
       setAllComplete(true);
     }
-  }, [currentIndex]);
+  }, [currentIndex, pictureCards.length]);
 
   const handleRedoItem = useCallback((confirmed: boolean) => {
+    if (!currentCard) return;
+    
     if (!confirmed) {
-      logEvent("fluency_redo_cancelled", currentPrompt.id);
+      logEvent("fluency_redo_cancelled", currentCard.id);
       return;
     }
     
-    logEvent("fluency_redo_confirmed", currentPrompt.id, currentState.attemptCount);
+    logEvent("fluency_redo_confirmed", currentCard.id, currentState.attemptCount);
     
     setItemStates((prev) => ({
       ...prev,
-      [currentPrompt.id]: {
+      [currentCard.id]: {
         recordingState: "ready",
-        attemptCount: prev[currentPrompt.id].attemptCount + 1,
+        attemptCount: prev[currentCard.id].attemptCount + 1,
       },
     }));
-  }, [currentPrompt.id, currentState.attemptCount, logEvent]);
+  }, [currentCard, currentState.attemptCount, logEvent]);
 
   const handleRedoModule = useCallback((confirmed: boolean) => {
     if (!confirmed) {
@@ -265,10 +274,14 @@ export function useFluencyModule(sessionId: string) {
     
     logEvent("fluency_redo_confirmed", undefined, moduleAttemptCount);
     
+    // Get new random cards
+    const newCards = getRandomPictureCards(CARDS_PER_ASSESSMENT);
+    setPictureCards(newCards);
+    
     // Reset all items
     const resetStates: Record<string, ItemState> = {};
-    FLUENCY_PROMPTS.forEach((p) => {
-      resetStates[p.id] = { recordingState: "ready", attemptCount: 1 };
+    newCards.forEach((card) => {
+      resetStates[card.id] = { recordingState: "ready", attemptCount: 1 };
     });
     
     setItemStates(resetStates);
@@ -290,12 +303,13 @@ export function useFluencyModule(sessionId: string) {
   }, [sessionId, logEvent]);
 
   return {
-    prompts: FLUENCY_PROMPTS,
-    currentPrompt,
+    pictureCards,
+    currentCard,
     currentIndex,
     currentState,
     allComplete,
     moduleAttemptCount,
+    isLoading,
     setRecordingState,
     handleRecordingComplete,
     handleNext,

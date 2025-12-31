@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAudioRecorder, formatTime } from "@/hooks/useAudioRecorder";
@@ -11,8 +11,10 @@ import {
   AlertCircle, 
   Check,
   RotateCcw,
-  ChevronRight
+  ChevronRight,
+  ImageIcon
 } from "lucide-react";
+import type { FluencyPictureCard } from "./fluencyPictureCards";
 
 export type RecordingState = 
   | "ready" 
@@ -23,16 +25,8 @@ export type RecordingState =
   | "done" 
   | "error";
 
-interface FluencyPrompt {
-  id: string;
-  prompt: string;
-  promptFr: string;
-  duration: number;
-  tips: string[];
-}
-
 interface Props {
-  prompt: FluencyPrompt;
+  card: FluencyPictureCard;
   questionNumber: number;
   totalQuestions: number;
   attemptCount: number;
@@ -43,10 +37,15 @@ interface Props {
   recordingState: RecordingState;
   setRecordingState: (state: RecordingState) => void;
   errorMessage?: string;
+  score?: number;
+  speedSubscore?: number;
+  pauseSubscore?: number;
 }
 
+const RECORDING_DURATION = 45; // seconds
+
 export function FluencyRecordingCard({
-  prompt,
+  card,
   questionNumber,
   totalQuestions,
   attemptCount,
@@ -57,8 +56,13 @@ export function FluencyRecordingCard({
   recordingState,
   setRecordingState,
   errorMessage,
+  score,
+  speedSubscore,
+  pauseSubscore,
 }: Props) {
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const {
@@ -70,13 +74,17 @@ export function FluencyRecordingCard({
     stopRecording,
     resetRecording,
   } = useAudioRecorder({ 
-    maxDuration: prompt.duration,
-    onRecordingComplete: () => {
-      // Auto-stopped
-    }
+    maxDuration: RECORDING_DURATION,
+    onRecordingComplete: () => {}
   });
 
-  const remainingTime = prompt.duration - recordingTime;
+  const remainingTime = RECORDING_DURATION - recordingTime;
+
+  // Reset image state when card changes
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageError(false);
+  }, [card.id]);
 
   // Cleanup countdown on unmount
   useEffect(() => {
@@ -140,14 +148,24 @@ export function FluencyRecordingCard({
     setRecordingState("ready");
   };
 
-  const isDisabled = recordingState === "uploading" || recordingState === "processing";
+  // Convert OpenClipart detail URL to actual image URL
+  const getImageUrl = (url: string): string => {
+    // OpenClipart detail URLs need to be converted to actual image URLs
+    // Format: https://openclipart.org/detail/191160/messy-room
+    // Actual: https://openclipart.org/image/800px/191160
+    const match = url.match(/\/detail\/(\d+)/);
+    if (match) {
+      return `https://openclipart.org/image/400px/${match[1]}`;
+    }
+    return url;
+  };
 
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-muted-foreground">
-            Question {questionNumber} of {totalQuestions}
+            Picture {questionNumber} of {totalQuestions}
           </span>
           {attemptCount > 1 && (
             <span className="text-xs text-muted-foreground">
@@ -155,24 +173,40 @@ export function FluencyRecordingCard({
             </span>
           )}
         </div>
-        <CardTitle className="text-lg">{prompt.promptFr}</CardTitle>
-        <CardDescription className="italic">{prompt.prompt}</CardDescription>
+        <CardTitle className="text-lg">{card.promptFr}</CardTitle>
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {/* Tips */}
-        <div className="p-3 rounded-lg bg-muted/50">
-          <p className="text-xs font-medium text-muted-foreground mb-2">
-            Ideas to help you:
+        {/* Picture Card Image */}
+        <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+          {!imageLoaded && !imageError && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          )}
+          {imageError && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+              <ImageIcon className="h-12 w-12 mb-2" />
+              <p className="text-sm">Image unavailable</p>
+            </div>
+          )}
+          <img
+            src={getImageUrl(card.image)}
+            alt="Speaking prompt"
+            className={`w-full h-full object-contain transition-opacity duration-300 ${
+              imageLoaded ? "opacity-100" : "opacity-0"
+            }`}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageError(true)}
+          />
+        </div>
+
+        {/* Follow-up question hint */}
+        <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
+          <p className="text-xs font-medium text-muted-foreground mb-1">
+            Question suivante :
           </p>
-          <ul className="space-y-1">
-            {prompt.tips.map((tip, i) => (
-              <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                <span className="text-primary">•</span>
-                {tip}
-              </li>
-            ))}
-          </ul>
+          <p className="text-sm text-foreground">{card.followupFr}</p>
         </div>
 
         {/* Recording Error */}
@@ -231,7 +265,7 @@ export function FluencyRecordingCard({
                   <Mic className="h-8 w-8" />
                 </Button>
                 <p className="text-sm text-muted-foreground">
-                  Click to start ({prompt.duration} seconds)
+                  Parle pendant {RECORDING_DURATION} secondes maximum
                 </p>
               </motion.div>
             )}
@@ -245,23 +279,20 @@ export function FluencyRecordingCard({
                 exit={{ opacity: 0 }}
                 className="flex flex-col items-center gap-4 w-full"
               >
-                {/* Large Timer */}
                 <div className="text-5xl font-mono tabular-nums text-primary">
                   {formatTime(remainingTime)}
                 </div>
                 
-                {/* Progress bar */}
                 <div className="w-full max-w-xs">
                   <Progress 
-                    value={(recordingTime / prompt.duration) * 100} 
+                    value={(recordingTime / RECORDING_DURATION) * 100} 
                     className="h-2"
                   />
                 </div>
                 
-                {/* Recording indicator */}
                 <div className="flex items-center gap-2 text-destructive">
                   <span className="h-3 w-3 rounded-full bg-destructive animate-pulse" />
-                  <span className="text-sm font-medium">Recording...</span>
+                  <span className="text-sm font-medium">Enregistrement...</span>
                 </div>
                 
                 <Button
@@ -274,7 +305,7 @@ export function FluencyRecordingCard({
                 </Button>
                 
                 <p className="text-xs text-muted-foreground">
-                  Click to stop early or wait for auto-stop
+                  Clique pour arrêter ou attends la fin automatique
                 </p>
               </motion.div>
             )}
@@ -293,10 +324,10 @@ export function FluencyRecordingCard({
                 </div>
                 <div className="text-center">
                   <p className="font-medium">
-                    {recordingState === "uploading" ? "Uploading..." : "Analyzing..."}
+                    {recordingState === "uploading" ? "Envoi..." : "Analyse..."}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Please wait, don't close this page
+                    Ne ferme pas cette page
                   </p>
                 </div>
               </motion.div>
@@ -315,8 +346,21 @@ export function FluencyRecordingCard({
                   <Check className="h-10 w-10 text-green-500" />
                 </div>
                 <p className="font-medium text-green-600 dark:text-green-400">
-                  Recording saved!
+                  Enregistrement sauvegardé !
                 </p>
+                
+                {/* Score display */}
+                {score !== undefined && (
+                  <div className="flex gap-4 text-sm text-muted-foreground">
+                    <span>Score: <strong className="text-foreground">{score}/100</strong></span>
+                    {speedSubscore !== undefined && (
+                      <span>Vitesse: {speedSubscore}/60</span>
+                    )}
+                    {pauseSubscore !== undefined && (
+                      <span>Pauses: {pauseSubscore}/40</span>
+                    )}
+                  </div>
+                )}
                 
                 <div className="flex flex-col gap-2 w-full max-w-xs mt-4">
                   <Button 
@@ -327,11 +371,11 @@ export function FluencyRecordingCard({
                     {isLast ? (
                       <>
                         <Check className="h-4 w-4 mr-2" />
-                        Finish Fluency
+                        Terminer Fluency
                       </>
                     ) : (
                       <>
-                        Next Question
+                        Image suivante
                         <ChevronRight className="h-4 w-4 ml-2" />
                       </>
                     )}
@@ -343,7 +387,7 @@ export function FluencyRecordingCard({
                     className="w-full"
                   >
                     <RotateCcw className="h-4 w-4 mr-2" />
-                    Redo this answer
+                    Refaire cette réponse
                   </Button>
                 </div>
               </motion.div>
