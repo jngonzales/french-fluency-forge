@@ -72,6 +72,10 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastWordScores, setLastWordScores] = useState<WordScore[] | null>(null);
   
+  // Debug state
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [showDebug, setShowDebug] = useState(false);
+  
   const referenceAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const {
@@ -196,6 +200,7 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
             audio: base64Audio,
             referenceText,
             itemId: currentItem.id,
+            audioFormat: audioBlob.type || 'audio/webm',
           }),
         }
       );
@@ -203,6 +208,15 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
       if (!response.ok) throw new Error("Assessment failed");
 
       const result = await response.json();
+      
+      // Store debug info
+      console.log('[Pronunciation] Full API response:', result);
+      setDebugInfo({
+        ...result,
+        timestamp: new Date().toISOString(),
+        itemId: currentItem.id,
+        referenceText,
+      });
       
       // Process word scores
       const wordScores: WordScore[] = (result.words || []).map((w: any) => ({
@@ -223,7 +237,11 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
       };
 
       setResults((prev) => [...prev, itemResult]);
-      advanceToNext();
+      
+      // Don't auto-advance in debug mode
+      if (!showDebug) {
+        advanceToNext();
+      }
       
     } catch (error) {
       console.error("Pronunciation assessment error:", error);
@@ -317,9 +335,19 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-2xl font-bold">Pronunciation</h1>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {getSectionIcon(currentSection)}
-              <span>{getSectionTitle(currentSection)}</span>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDebug(!showDebug)}
+                className="text-xs"
+              >
+                {showDebug ? 'Hide Debug' : 'Debug'}
+              </Button>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                {getSectionIcon(currentSection)}
+                <span>{getSectionTitle(currentSection)}</span>
+              </div>
             </div>
           </div>
           <Progress value={progress} className="h-2" />
@@ -329,6 +357,40 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
             {currentSection === "minimalPairs" && "Listen and select the word you hear"}
           </p>
         </div>
+
+        {/* Debug Panel */}
+        {showDebug && debugInfo && (
+          <div className="mb-6 p-4 rounded-lg bg-muted border text-xs font-mono overflow-auto max-h-80">
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-bold text-sm">Debug Info</span>
+              <Button size="sm" variant="ghost" onClick={() => advanceToNext()}>
+                Next Item →
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <div><strong>Item:</strong> {debugInfo.itemId}</div>
+              <div><strong>Reference:</strong> {debugInfo.referenceText}</div>
+              <div><strong>Pron Score:</strong> {debugInfo.pronScore}</div>
+              <div><strong>Accuracy:</strong> {debugInfo.accuracyScore}</div>
+              <div><strong>Fluency:</strong> {debugInfo.fluencyScore}</div>
+              <div><strong>Completeness:</strong> {debugInfo.completenessScore}</div>
+              <div><strong>Audio Size:</strong> {debugInfo.debug?.audioSize} bytes</div>
+              <div><strong>Audio Format:</strong> {debugInfo.debug?.audioFormat}</div>
+              <details className="mt-2">
+                <summary className="cursor-pointer font-bold">Raw Response</summary>
+                <pre className="mt-2 whitespace-pre-wrap break-all text-[10px]">
+                  {JSON.stringify(debugInfo.debug?.rawResponse, null, 2)}
+                </pre>
+              </details>
+              <details className="mt-2">
+                <summary className="cursor-pointer font-bold">Words ({debugInfo.words?.length || 0})</summary>
+                <pre className="mt-2 whitespace-pre-wrap break-all text-[10px]">
+                  {JSON.stringify(debugInfo.words, null, 2)}
+                </pre>
+              </details>
+            </div>
+          </div>
+        )}
 
         {/* Recording error */}
         {recordingError && (
