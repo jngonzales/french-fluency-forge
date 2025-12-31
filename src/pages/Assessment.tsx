@@ -239,14 +239,48 @@ const Assessment = () => {
       }
 
     case "processing":
+      const handleViewResults = async () => {
+        await supabase
+          .from("assessment_sessions")
+          .update({ status: "completed" })
+          .eq("id", session.id);
+        navigate("/results");
+      };
+
+      const handleStartFresh = async () => {
+        // Create a new session
+        const { data: newSession, error } = await supabase
+          .from("assessment_sessions")
+          .insert({
+            user_id: user!.id,
+            status: "intake" as SessionStatus,
+          })
+          .select("id, status")
+          .single();
+
+        if (!error && newSession) {
+          setSession(newSession);
+          setAssessmentPhase("pronunciation");
+        }
+      };
+
       return (
         <div className="flex min-h-screen items-center justify-center bg-background p-4">
           <div className="text-center max-w-md">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-6" />
             <h1 className="text-2xl font-bold mb-4">Analyzing Your Results</h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-6">
               We&apos;re processing your responses to generate your personalized diagnostic...
             </p>
+            {/* Dev controls */}
+            <div className="flex flex-col gap-2">
+              <Button onClick={handleViewResults}>
+                Skip to Results (Dev)
+              </Button>
+              <Button variant="outline" onClick={handleStartFresh}>
+                Start Fresh Assessment
+              </Button>
+            </div>
           </div>
         </div>
       );
