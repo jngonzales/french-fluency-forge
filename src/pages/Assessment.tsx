@@ -116,12 +116,12 @@ const Assessment = () => {
 
   const phaseOrder: AssessmentPhase[] = ["pronunciation", "fluency", "confidence", "syntax", "conversation"];
   
-  const advancePhase = () => {
+  const advancePhase = async () => {
     const currentIdx = phaseOrder.indexOf(assessmentPhase);
     if (currentIdx < phaseOrder.length - 1) {
       setAssessmentPhase(phaseOrder[currentIdx + 1]);
     } else {
-      skipToStatus("processing");
+      await skipToStatus("processing");
     }
   };
 
