@@ -54,6 +54,10 @@ export type Database = {
           age_band: Database["public"]["Enums"]["age_band_type"] | null
           archetype: string | null
           completed_at: string | null
+          confidence_locked: boolean
+          confidence_locked_at: string | null
+          conversation_locked: boolean
+          conversation_locked_at: string | null
           created_at: string
           fluency_locked: boolean
           fluency_locked_at: string | null
@@ -65,6 +69,8 @@ export type Database = {
           purchase_id: string | null
           started_at: string
           status: Database["public"]["Enums"]["session_status"]
+          syntax_locked: boolean
+          syntax_locked_at: string | null
           updated_at: string
           user_id: string
           variant: string | null
@@ -73,6 +79,10 @@ export type Database = {
           age_band?: Database["public"]["Enums"]["age_band_type"] | null
           archetype?: string | null
           completed_at?: string | null
+          confidence_locked?: boolean
+          confidence_locked_at?: string | null
+          conversation_locked?: boolean
+          conversation_locked_at?: string | null
           created_at?: string
           fluency_locked?: boolean
           fluency_locked_at?: string | null
@@ -84,6 +94,8 @@ export type Database = {
           purchase_id?: string | null
           started_at?: string
           status?: Database["public"]["Enums"]["session_status"]
+          syntax_locked?: boolean
+          syntax_locked_at?: string | null
           updated_at?: string
           user_id: string
           variant?: string | null
@@ -92,6 +104,10 @@ export type Database = {
           age_band?: Database["public"]["Enums"]["age_band_type"] | null
           archetype?: string | null
           completed_at?: string | null
+          confidence_locked?: boolean
+          confidence_locked_at?: string | null
+          conversation_locked?: boolean
+          conversation_locked_at?: string | null
           created_at?: string
           fluency_locked?: boolean
           fluency_locked_at?: string | null
@@ -103,6 +119,8 @@ export type Database = {
           purchase_id?: string | null
           started_at?: string
           status?: Database["public"]["Enums"]["session_status"]
+          syntax_locked?: boolean
+          syntax_locked_at?: string | null
           updated_at?: string
           user_id?: string
           variant?: string | null
@@ -352,6 +370,87 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skill_recordings: {
+        Row: {
+          ai_breakdown: Json | null
+          ai_feedback: string | null
+          ai_score: number | null
+          attempt_number: number
+          audio_storage_path: string | null
+          completed_at: string | null
+          created_at: string
+          duration_seconds: number | null
+          error_message: string | null
+          id: string
+          item_id: string
+          module_type: string
+          session_id: string
+          status: string
+          superseded: boolean
+          transcript: string | null
+          used_for_scoring: boolean
+          user_id: string
+          word_count: number | null
+        }
+        Insert: {
+          ai_breakdown?: Json | null
+          ai_feedback?: string | null
+          ai_score?: number | null
+          attempt_number?: number
+          audio_storage_path?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          item_id: string
+          module_type: string
+          session_id: string
+          status?: string
+          superseded?: boolean
+          transcript?: string | null
+          used_for_scoring?: boolean
+          user_id: string
+          word_count?: number | null
+        }
+        Update: {
+          ai_breakdown?: Json | null
+          ai_feedback?: string | null
+          ai_score?: number | null
+          attempt_number?: number
+          audio_storage_path?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          item_id?: string
+          module_type?: string
+          session_id?: string
+          status?: string
+          superseded?: boolean
+          transcript?: string | null
+          used_for_scoring?: boolean
+          user_id?: string
+          word_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_recordings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_recordings_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
