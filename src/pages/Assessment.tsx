@@ -31,7 +31,15 @@ const Assessment = () => {
   
   const [session, setSession] = useState<AssessmentSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [assessmentPhase, setAssessmentPhase] = useState<AssessmentPhase>("pronunciation");
+  const [assessmentPhase, setAssessmentPhase] = useState<AssessmentPhase>(() => {
+    // Check for dev override
+    const devPhase = sessionStorage.getItem("dev_assessment_phase");
+    if (devPhase && ["pronunciation", "fluency", "confidence", "syntax", "conversation", "comprehension"].includes(devPhase)) {
+      sessionStorage.removeItem("dev_assessment_phase"); // Clear after reading
+      return devPhase as AssessmentPhase;
+    }
+    return "pronunciation";
+  });
 
   useEffect(() => {
     if (!authLoading && user) {
