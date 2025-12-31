@@ -6,7 +6,7 @@ import IntakeForm from "@/components/assessment/IntakeForm";
 import ConsentForm from "@/components/assessment/ConsentForm";
 import PronunciationModule from "@/components/assessment/PronunciationModule";
 import FluencyModule from "@/components/assessment/FluencyModule";
-import ArchetypeQuiz from "@/components/assessment/ArchetypeQuiz";
+import { PersonalityQuiz } from "@/components/assessment/personality-quiz";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
@@ -161,7 +161,7 @@ const Assessment = () => {
         refreshSession();
       };
       return (
-        <ArchetypeQuiz
+        <PersonalityQuiz
           sessionId={session.id}
           onComplete={handleQuizComplete}
           onSkip={() => skipToStatus("mic_check")}
