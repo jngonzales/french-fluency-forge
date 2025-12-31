@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Archetype, AxisKey, Badge, getEarnedBadges } from "./quizConfig";
-import { Share2, Download, Instagram, Facebook, MessageCircle, Link, Mic, MessageSquare, CheckCircle, AlertTriangle, Plus } from "lucide-react";
+import { Share2, Download, Instagram, Facebook, MessageCircle, Link, Mic, MessageSquare, CheckCircle, AlertTriangle, Plus, Image, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { FeedbackDialog } from "./FeedbackDialog";
+import { ExportDialog } from "./export";
 
 interface AxisResult {
   raw: number;
@@ -86,6 +87,7 @@ function BadgeCard({ badge }: { badge: Badge }) {
 
 export function PersonalityResult({ archetype, axes, consistencyGap, sessionId, onContinue }: Props) {
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [hasShownAutoPopup, setHasShownAutoPopup] = useState(false);
 
   // Get earned badges based on normalized axis scores
@@ -398,11 +400,31 @@ Take the test: ${shareUrl}
             transition={{ delay: 0.8 }}
             className="flex flex-wrap justify-center gap-3"
           >
+            <Button 
+              variant="default" 
+              size="lg" 
+              className="gap-2" 
+              onClick={() => setExportDialogOpen(true)}
+            >
+              <Image className="h-4 w-4" />
+              Share to IG/FB
+            </Button>
+
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="gap-2" 
+              onClick={() => setExportDialogOpen(true)}
+            >
+              <FileText className="h-4 w-4" />
+              Download PDF
+            </Button>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="lg" className="gap-2">
                   <Share2 className="h-4 w-4" />
-                  Share Result
+                  Quick Share
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="center" className="w-48 bg-popover">
@@ -425,21 +447,28 @@ Take the test: ${shareUrl}
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button variant="outline" size="lg" className="gap-2" onClick={handleExportPDF}>
-              <Download className="h-4 w-4" />
-              Export Results
-            </Button>
-
             <Button 
-              variant="outline" 
+              variant="ghost" 
               size="lg" 
               className="gap-2" 
               onClick={() => setFeedbackDialogOpen(true)}
             >
               <MessageSquare className="h-4 w-4" />
-              Share my feedback
+              Give Feedback
             </Button>
           </motion.div>
+
+          {/* Export Dialog */}
+          <ExportDialog
+            open={exportDialogOpen}
+            onOpenChange={setExportDialogOpen}
+            data={{
+              archetype,
+              axes,
+              badges: earnedBadges,
+              shareUrl: shareUrl || 'https://yoursite.com/assessment',
+            }}
+          />
 
           {/* Feedback Dialog */}
           <FeedbackDialog
