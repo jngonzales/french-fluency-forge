@@ -134,7 +134,13 @@ const Login = () => {
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{" "}
                 <a href="/signup" className="text-primary hover:underline font-medium">
-                  Sign up for free
+                  Sign up
+                </a>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Purchased access?{" "}
+                <a href="/activate" className="text-primary hover:underline font-medium">
+                  Activate your account
                 </a>
               </p>
             </div>

@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_accounts: {
+        Row: {
+          access_status: string
+          created_at: string
+          email: string
+          id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          access_status?: string
+          created_at?: string
+          email: string
+          id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          access_status?: string
+          created_at?: string
+          email?: string
+          id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       archetype_feedback: {
         Row: {
           created_at: string
@@ -311,6 +338,79 @@ export type Database = {
           },
         ]
       }
+      credit_transactions: {
+        Row: {
+          account_id: string
+          created_at: string
+          delta: number
+          id: string
+          reason: string
+          systemeio_message_id: string | null
+          systemeio_offer_price_plan_id: string | null
+          systemeio_order_id: string | null
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          delta: number
+          id?: string
+          reason: string
+          systemeio_message_id?: string | null
+          systemeio_offer_price_plan_id?: string | null
+          systemeio_order_id?: string | null
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          delta?: number
+          id?: string
+          reason?: string
+          systemeio_message_id?: string | null
+          systemeio_offer_price_plan_id?: string | null
+          systemeio_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "app_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_wallets: {
+        Row: {
+          account_id: string
+          id: string
+          test_credits_lifetime: number
+          test_credits_remaining: number
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          id?: string
+          test_credits_lifetime?: number
+          test_credits_remaining?: number
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          id?: string
+          test_credits_lifetime?: number
+          test_credits_remaining?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_wallets_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: true
+            referencedRelation: "app_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fluency_events: {
         Row: {
           attempt_number: number | null
@@ -585,6 +685,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      systemeio_product_map: {
+        Row: {
+          active: boolean
+          credits_delta: number
+          grants_access: boolean
+          id: string
+          note: string | null
+          offer_price_plan_id: string
+          product_key: string
+        }
+        Insert: {
+          active?: boolean
+          credits_delta?: number
+          grants_access?: boolean
+          id?: string
+          note?: string | null
+          offer_price_plan_id: string
+          product_key: string
+        }
+        Update: {
+          active?: boolean
+          credits_delta?: number
+          grants_access?: boolean
+          id?: string
+          note?: string | null
+          offer_price_plan_id?: string
+          product_key?: string
+        }
+        Relationships: []
+      }
+      systemeio_webhook_events: {
+        Row: {
+          error: string | null
+          event_name: string
+          event_timestamp: string | null
+          id: string
+          payload: Json
+          processed_at: string | null
+          processing_status: string
+          received_at: string
+        }
+        Insert: {
+          error?: string | null
+          event_name: string
+          event_timestamp?: string | null
+          id: string
+          payload: Json
+          processed_at?: string | null
+          processing_status?: string
+          received_at?: string
+        }
+        Update: {
+          error?: string | null
+          event_name?: string
+          event_timestamp?: string | null
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          processing_status?: string
+          received_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {
