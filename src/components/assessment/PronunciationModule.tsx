@@ -2,6 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useAudioRecorder, formatTime } from "@/hooks/useAudioRecorder";
 import { toast } from "sonner";
 import { 
@@ -14,9 +17,12 @@ import {
   Check, 
   Loader2,
   AlertCircle,
-  ChevronRight
+  ChevronRight,
+  Type
 } from "lucide-react";
 import SkipButton from "./SkipButton";
+
+const isDev = import.meta.env.DEV;
 
 // 6 pronunciation paragraphs with embedded minimal pairs
 // Each paragraph focuses on specific French pronunciation challenges
@@ -87,6 +93,10 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
   const [isPlayingRecording, setIsPlayingRecording] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [referenceAudioUrl, setReferenceAudioUrl] = useState<string | null>(null);
+  
+  // Dev mode state
+  const [useTextInput, setUseTextInput] = useState(false);
+  const [devTextInput, setDevTextInput] = useState("");
   
   const referenceAudioRef = useRef<HTMLAudioElement | null>(null);
   const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -175,6 +185,46 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
   };
 
   const handleSubmitItem = async () => {
+    // Dev mode: use text input directly
+    if (isDev && useTextInput) {
+      if (!devTextInput.trim()) {
+        toast.error("Please enter some text");
+        return;
+      }
+
+      setIsSubmitting(true);
+
+      try {
+        // Simulate processing with the text input as transcript
+        // Calculate a mock similarity score based on text length ratio
+        const targetWords = currentItem.text.split(/\s+/).length;
+        const inputWords = devTextInput.trim().split(/\s+/).length;
+        const mockSimilarity = Math.min(100, Math.round((inputWords / targetWords) * 100));
+
+        const itemResult: PronunciationItemResult = {
+          itemId: currentItem.id,
+          audioBlob: new Blob(["dev-mode"], { type: "text/plain" }),
+          transcript: devTextInput.trim(),
+          similarity: mockSimilarity,
+          status: "completed",
+        };
+
+        setResults((prev) => [...prev, itemResult]);
+
+        if (currentIndex < PRONUNCIATION_ITEMS.length - 1) {
+          setCurrentIndex((prev) => prev + 1);
+          setDevTextInput("");
+          toast.success(`Paragraph ${currentIndex + 1} completed! (Dev mode)`);
+        } else {
+          const allResults = [...results, itemResult];
+          onComplete(allResults);
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
     if (!audioBlob) {
       toast.error("Please record your pronunciation first");
       return;
@@ -344,78 +394,39 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
         {/* Recording controls */}
         <Card>
           <CardContent className="pt-6">
-            <div className="flex flex-col items-center space-y-6">
-              {/* Timer */}
-              <div className="text-3xl font-mono tabular-nums">
-                {formatTime(recordingTime)}
+            {/* Dev mode toggle */}
+            {isDev && (
+              <div className="mb-6 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Type className="h-4 w-4 text-amber-600" />
+                    <Label htmlFor="dev-text-mode" className="text-sm font-medium text-amber-700">
+                      Dev: Use text input
+                    </Label>
+                  </div>
+                  <Switch
+                    id="dev-text-mode"
+                    checked={useTextInput}
+                    onCheckedChange={setUseTextInput}
+                  />
+                </div>
               </div>
+            )}
 
-              {/* Main controls */}
-              <div className="flex items-center gap-4">
-                {!isRecording && !audioBlob && (
-                  <Button
-                    size="lg"
-                    onClick={startRecording}
-                    className="h-16 w-16 rounded-full"
-                  >
-                    <Mic className="h-6 w-6" />
-                  </Button>
-                )}
-
-                {isRecording && (
-                  <Button
-                    size="lg"
-                    variant="destructive"
-                    onClick={stopRecording}
-                    className="h-16 w-16 rounded-full animate-pulse"
-                  >
-                    <Square className="h-6 w-6" />
-                  </Button>
-                )}
-
-                {!isRecording && audioBlob && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      onClick={playRecording}
-                      className="h-14 w-14 rounded-full"
-                    >
-                      {isPlayingRecording ? (
-                        <Pause className="h-5 w-5" />
-                      ) : (
-                        <Play className="h-5 w-5" />
-                      )}
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      onClick={resetRecording}
-                      className="h-14 w-14 rounded-full"
-                    >
-                      <RotateCcw className="h-5 w-5" />
-                    </Button>
-                  </>
-                )}
-              </div>
-
-              {/* Status text */}
-              <p className="text-sm text-muted-foreground">
-                {isRecording
-                  ? "Recording... Click to stop"
-                  : audioBlob
-                    ? "Review your recording or re-record"
-                    : "Click the microphone to start recording"}
-              </p>
-
-              {/* Submit button */}
-              {audioBlob && !isRecording && (
+            {/* Dev text input mode */}
+            {isDev && useTextInput ? (
+              <div className="space-y-4">
+                <Textarea
+                  placeholder="Type the French text here (dev mode - bypasses audio recording)..."
+                  value={devTextInput}
+                  onChange={(e) => setDevTextInput(e.target.value)}
+                  className="min-h-[120px]"
+                />
                 <Button
                   size="lg"
                   className="w-full"
                   onClick={handleSubmitItem}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !devTextInput.trim()}
                 >
                   {isSubmitting ? (
                     <>
@@ -434,8 +445,101 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
                     </>
                   )}
                 </Button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center space-y-6">
+                {/* Timer */}
+                <div className="text-3xl font-mono tabular-nums">
+                  {formatTime(recordingTime)}
+                </div>
+
+                {/* Main controls */}
+                <div className="flex items-center gap-4">
+                  {!isRecording && !audioBlob && (
+                    <Button
+                      size="lg"
+                      onClick={startRecording}
+                      className="h-16 w-16 rounded-full"
+                    >
+                      <Mic className="h-6 w-6" />
+                    </Button>
+                  )}
+
+                  {isRecording && (
+                    <Button
+                      size="lg"
+                      variant="destructive"
+                      onClick={stopRecording}
+                      className="h-16 w-16 rounded-full animate-pulse"
+                    >
+                      <Square className="h-6 w-6" />
+                    </Button>
+                  )}
+
+                  {!isRecording && audioBlob && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        onClick={playRecording}
+                        className="h-14 w-14 rounded-full"
+                      >
+                        {isPlayingRecording ? (
+                          <Pause className="h-5 w-5" />
+                        ) : (
+                          <Play className="h-5 w-5" />
+                        )}
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        onClick={resetRecording}
+                        className="h-14 w-14 rounded-full"
+                      >
+                        <RotateCcw className="h-5 w-5" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {/* Status text */}
+                <p className="text-sm text-muted-foreground">
+                  {isRecording
+                    ? "Recording... Click to stop"
+                    : audioBlob
+                      ? "Review your recording or re-record"
+                      : "Click the microphone to start recording"}
+                </p>
+
+                {/* Submit button */}
+                {audioBlob && !isRecording && (
+                  <Button
+                    size="lg"
+                    className="w-full"
+                    onClick={handleSubmitItem}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : currentIndex < PRONUNCIATION_ITEMS.length - 1 ? (
+                      <>
+                        Submit & Continue
+                        <ChevronRight className="h-4 w-4 ml-2" />
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        Complete Pronunciation
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
