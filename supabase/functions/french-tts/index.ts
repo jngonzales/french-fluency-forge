@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voiceId } = await req.json();
+    const { text, voiceId, speed, stability } = await req.json();
 
     if (!text) {
       throw new Error("No text provided");
@@ -29,8 +29,16 @@ serve(async (req) => {
     // You can change this to another French voice ID
     const selectedVoiceId = voiceId || "FGY2WhTYpPnrIDTdsKH5"; // Laura - neutral French
 
+    // Speed parameter: default 0.9 for clarity, can be increased for fast speech
+    // Range: 0.7 - 1.2 (ElevenLabs supports up to 1.2)
+    const speechSpeed = speed ?? 0.9;
+    
+    // Stability parameter: default 0.6, lower for more natural/messy variation
+    // Range: 0 - 1 (lower = more expressive/variable)
+    const speechStability = stability ?? 0.6;
+
     console.log(`[TTS] Generating audio for text: "${text.substring(0, 50)}..."`);
-    console.log(`[TTS] Using voice ID: ${selectedVoiceId}`);
+    console.log(`[TTS] Using voice ID: ${selectedVoiceId}, speed: ${speechSpeed}, stability: ${speechStability}`);
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
@@ -45,11 +53,11 @@ serve(async (req) => {
           model_id: "eleven_multilingual_v2",
           output_format: "mp3_44100_128",
           voice_settings: {
-            stability: 0.6,
+            stability: speechStability,
             similarity_boost: 0.75,
             style: 0.3,
             use_speaker_boost: true,
-            speed: 0.9, // Slightly slower for clarity
+            speed: speechSpeed,
           },
         }),
       }

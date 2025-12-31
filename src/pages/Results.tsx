@@ -14,20 +14,36 @@ import {
   Tooltip
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Share2, AlertCircle, Target, ChevronRight } from "lucide-react";
+import { Download, Share2, AlertCircle, Target, ChevronRight, Info } from "lucide-react";
 
 interface SkillScore {
   skill: string;
   score: number;
   fullMark: 10;
   available: boolean;
+  description?: string;
+  rawValue?: string;
 }
 
 interface SessionData {
   fluencyWpm: number | null;
   pronunciationScore: number | null;
+  confidenceScore: number | null;
+  syntaxScore: number | null;
+  conversationScore: number | null;
+  comprehensionScore: number | null;
   archetype: string | null;
 }
+
+// Skill descriptions for the results page
+const SKILL_DESCRIPTIONS: Record<string, string> = {
+  Pronunciation: "Ability to produce French sounds accurately, especially challenging minimal pairs like 'dessus/dessous' and nasal vowels.",
+  Fluency: "Speaking speed and naturalness measured in words per minute (WPM). Target: 80-150 WPM for conversational French.",
+  Confidence: "Willingness to express opinions, take risks, and speak without excessive hesitation in French.",
+  Syntax: "Grammatical accuracy including verb conjugation, gender agreement, and correct sentence structure.",
+  Conversation: "Ability to handle real-world dialogue, respond to unexpected situations, and adapt to misunderstandings.",
+  Comprehension: "Understanding of natural spoken French at native speed, including informal speech and varied accents."
+};
 
 // Convert WPM to 1-10 scale (target: 80-150 WPM for French)
 const wpmToScore = (wpm: number | null): number => {
@@ -43,6 +59,12 @@ const pronunciationToScore = (similarity: number | null): number => {
   return Math.min(10, Math.max(1, Math.round(similarity / 10)));
 };
 
+// Convert AI score (0-100) to 1-10 scale
+const aiScoreToScale = (score: number | null): number => {
+  if (score === null) return 0;
+  return Math.min(10, Math.max(1, Math.round(score / 10)));
+};
+
 const Results = () => {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session");
@@ -51,6 +73,10 @@ const Results = () => {
   const [sessionData, setSessionData] = useState<SessionData>({
     fluencyWpm: null,
     pronunciationScore: null,
+    confidenceScore: null,
+    syntaxScore: null,
+    conversationScore: null,
+    comprehensionScore: null,
     archetype: null
   });
 
@@ -84,13 +110,47 @@ const Results = () => {
           avgWpm = Math.round(totalWpm / fluencyRecordings.length);
         }
 
+        // Fetch skill recordings for Confidence, Syntax, and Conversation
+        const { data: skillRecordings } = await supabase
+          .from("skill_recordings")
+          .select("module_type, ai_score")
+          .eq("session_id", sessionId)
+          .eq("used_for_scoring", true)
+          .not("ai_score", "is", null);
+
+        // Calculate average scores per module
+        const moduleScores: Record<string, number[]> = {};
+        if (skillRecordings) {
+          for (const recording of skillRecordings) {
+            if (!moduleScores[recording.module_type]) {
+              moduleScores[recording.module_type] = [];
+            }
+            if (recording.ai_score !== null) {
+              moduleScores[recording.module_type].push(Number(recording.ai_score));
+            }
+          }
+        }
+
+        const getAvgScore = (moduleType: string): number | null => {
+          const scores = moduleScores[moduleType];
+          if (!scores || scores.length === 0) return null;
+          return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+        };
+
         // TODO: Fetch pronunciation scores when available
         // For now, we'll use a placeholder or null
         const pronunciationScore: number | null = null;
 
+        // TODO: Fetch comprehension scores when module is implemented
+        const comprehensionScore: number | null = null;
+
         setSessionData({
           fluencyWpm: avgWpm,
           pronunciationScore,
+          confidenceScore: getAvgScore("confidence"),
+          syntaxScore: getAvgScore("syntax"),
+          conversationScore: getAvgScore("conversation"),
+          comprehensionScore,
           archetype: session?.archetype || null
         });
       } catch (error) {
@@ -109,37 +169,49 @@ const Results = () => {
       skill: "Pronunciation", 
       score: pronunciationToScore(sessionData.pronunciationScore), 
       fullMark: 10,
-      available: sessionData.pronunciationScore !== null
+      available: sessionData.pronunciationScore !== null,
+      description: SKILL_DESCRIPTIONS.Pronunciation,
+      rawValue: sessionData.pronunciationScore !== null ? `${sessionData.pronunciationScore}% similarity` : undefined
     },
     { 
       skill: "Fluency", 
       score: wpmToScore(sessionData.fluencyWpm), 
       fullMark: 10,
-      available: sessionData.fluencyWpm !== null
+      available: sessionData.fluencyWpm !== null,
+      description: SKILL_DESCRIPTIONS.Fluency,
+      rawValue: sessionData.fluencyWpm !== null ? `${sessionData.fluencyWpm} WPM` : undefined
     },
     { 
       skill: "Confidence", 
-      score: 0, 
+      score: aiScoreToScale(sessionData.confidenceScore), 
       fullMark: 10,
-      available: false
+      available: sessionData.confidenceScore !== null,
+      description: SKILL_DESCRIPTIONS.Confidence,
+      rawValue: sessionData.confidenceScore !== null ? `${sessionData.confidenceScore}/100` : undefined
     },
     { 
       skill: "Comprehension", 
-      score: 0, 
+      score: aiScoreToScale(sessionData.comprehensionScore), 
       fullMark: 10,
-      available: false
+      available: sessionData.comprehensionScore !== null,
+      description: SKILL_DESCRIPTIONS.Comprehension,
+      rawValue: sessionData.comprehensionScore !== null ? `${sessionData.comprehensionScore}/100` : undefined
     },
     { 
       skill: "Syntax", 
-      score: 0, 
+      score: aiScoreToScale(sessionData.syntaxScore), 
       fullMark: 10,
-      available: false
+      available: sessionData.syntaxScore !== null,
+      description: SKILL_DESCRIPTIONS.Syntax,
+      rawValue: sessionData.syntaxScore !== null ? `${sessionData.syntaxScore}/100` : undefined
     },
     { 
       skill: "Conversation", 
-      score: 0, 
+      score: aiScoreToScale(sessionData.conversationScore), 
       fullMark: 10,
-      available: false
+      available: sessionData.conversationScore !== null,
+      description: SKILL_DESCRIPTIONS.Conversation,
+      rawValue: sessionData.conversationScore !== null ? `${sessionData.conversationScore}/100` : undefined
     }
   ];
 
@@ -247,23 +319,25 @@ const Results = () => {
                   <div className="space-y-3">
                     <h3 className="text-sm font-medium text-foreground">Assessed Skills</h3>
                     {availableSkills.map((skill) => (
-                      <div key={skill.skill} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                        <div>
-                          <span className="font-medium text-foreground">{skill.skill}</span>
-                          {skill.skill === "Fluency" && sessionData.fluencyWpm && (
-                            <p className="text-xs text-muted-foreground">
-                              Average: {sessionData.fluencyWpm} WPM
-                            </p>
-                          )}
-                          {skill.skill === "Pronunciation" && sessionData.pronunciationScore && (
-                            <p className="text-xs text-muted-foreground">
-                              Similarity: {sessionData.pronunciationScore}%
-                            </p>
-                          )}
+                      <div key={skill.skill} className="p-4 rounded-lg bg-muted/30 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">{skill.skill}</span>
+                            {skill.rawValue && (
+                              <span className="text-xs text-muted-foreground">
+                                ({skill.rawValue})
+                              </span>
+                            )}
+                          </div>
+                          <Badge variant="default" className="text-lg font-bold">
+                            {skill.score}/10
+                          </Badge>
                         </div>
-                        <Badge variant="default" className="text-lg font-bold">
-                          {skill.score}/10
-                        </Badge>
+                        {skill.description && (
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            {skill.description}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -274,9 +348,16 @@ const Results = () => {
                   <div className="space-y-3">
                     <h3 className="text-sm font-medium text-muted-foreground">Coming Soon</h3>
                     {unavailableSkills.map((skill) => (
-                      <div key={skill.skill} className="flex items-center justify-between p-3 rounded-lg bg-muted/10 opacity-50">
-                        <span className="text-muted-foreground">{skill.skill}</span>
-                        <Badge variant="outline">—</Badge>
+                      <div key={skill.skill} className="p-4 rounded-lg bg-muted/10 opacity-50 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">{skill.skill}</span>
+                          <Badge variant="outline">—</Badge>
+                        </div>
+                        {skill.description && (
+                          <p className="text-xs text-muted-foreground/70 leading-relaxed">
+                            {skill.description}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -294,6 +375,41 @@ const Results = () => {
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Understanding Your Results */}
+            <Card className="border-border/50">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Info className="h-5 w-5 text-primary" />
+                  <CardTitle className="font-serif text-xl">Understanding Your Results</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4 text-sm text-muted-foreground">
+                <p>
+                  Your French diagnostic measures 6 key language skills on a scale of 1-10. 
+                  Each skill is assessed through specific exercises designed to evaluate different 
+                  aspects of your French proficiency.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="p-3 rounded-lg bg-muted/20">
+                    <div className="font-medium text-foreground mb-1">1-3: Beginner</div>
+                    <p className="text-xs">Foundation skills, needs significant practice</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/20">
+                    <div className="font-medium text-foreground mb-1">4-5: Elementary</div>
+                    <p className="text-xs">Basic competency, room for improvement</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/20">
+                    <div className="font-medium text-foreground mb-1">6-7: Intermediate</div>
+                    <p className="text-xs">Good working knowledge, can handle most situations</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/20">
+                    <div className="font-medium text-foreground mb-1">8-10: Advanced</div>
+                    <p className="text-xs">Strong proficiency, near-native competency</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -342,6 +458,33 @@ const Results = () => {
                   <span className="text-foreground">
                     {sessionData.pronunciationScore !== null 
                       ? `${sessionData.pronunciationScore}%` 
+                      : "—"
+                    }
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Confidence</span>
+                  <span className="text-foreground">
+                    {sessionData.confidenceScore !== null 
+                      ? `${sessionData.confidenceScore}/100` 
+                      : "—"
+                    }
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Syntax</span>
+                  <span className="text-foreground">
+                    {sessionData.syntaxScore !== null 
+                      ? `${sessionData.syntaxScore}/100` 
+                      : "—"
+                    }
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Conversation</span>
+                  <span className="text-foreground">
+                    {sessionData.conversationScore !== null 
+                      ? `${sessionData.conversationScore}/100` 
                       : "—"
                     }
                   </span>

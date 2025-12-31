@@ -18,37 +18,50 @@ import {
 } from "lucide-react";
 import SkipButton from "./SkipButton";
 
-// 6 pronunciation sentences - French-French neutral
+// 6 pronunciation paragraphs with embedded minimal pairs
+// Each paragraph focuses on specific French pronunciation challenges
 const PRONUNCIATION_ITEMS = [
   {
     id: "pron-1",
-    text: "Bonjour, je voudrais un café s'il vous plaît.",
-    translation: "Hello, I would like a coffee please.",
+    text: "Ce matin, j'ai bu mon café dans la rue. Il y avait de la boue partout près de la roue du bus. C'était vraiment une drôle de vue!",
+    translation: "This morning, I drank my coffee in the street. There was mud everywhere near the bus wheel. It was really a funny sight!",
+    minimalPairs: ["bu", "boue", "rue", "roue", "vue"], // /y/ vs /u/
+    focusArea: "Vowel pairs: /u/ (ou) vs /y/ (u)",
   },
   {
     id: "pron-2", 
-    text: "Est-ce que vous pourriez me dire où se trouve la gare?",
-    translation: "Could you tell me where the train station is?",
+    text: "Le vin était excellent malgré le vent d'automne. Un brin de romarin décorait le plat brun. L'an dernier, on a trouvé un bon restaurant.",
+    translation: "The wine was excellent despite the autumn wind. A sprig of rosemary decorated the brown dish. Last year, we found a good restaurant.",
+    minimalPairs: ["vin", "vent", "brin", "brun", "an", "on", "bon"], // nasal vowels
+    focusArea: "Nasal vowels: /ɛ̃/ vs /ɑ̃/ vs /ɔ̃/",
   },
   {
     id: "pron-3",
-    text: "Je suis désolé, je n'ai pas bien compris.",
-    translation: "I'm sorry, I didn't understand well.",
+    text: "Attention: le poisson n'est pas un poison! La prononciation française peut être délicate. Faisons une pause et écoutons bien la différence.",
+    translation: "Attention: fish is not poison! French pronunciation can be tricky. Let's take a pause and listen carefully to the difference.",
+    minimalPairs: ["poisson", "poison", "pause"], // /s/ vs /z/
+    focusArea: "Consonant pairs: /s/ vs /z/",
   },
   {
     id: "pron-4",
-    text: "Qu'est-ce que vous me conseillez comme plat du jour?",
-    translation: "What would you recommend as today's special?",
+    text: "Le chat est sous la table, pas dessus. Mais le livre est sur l'étagère, pas dessous. Sur ou sous? Dessus ou dessous? C'est souvent confus!",
+    translation: "The cat is under the table, not on top. But the book is on the shelf, not underneath. On or under? Above or below? It's often confusing!",
+    minimalPairs: ["sous", "dessus", "sur", "dessous", "sourd"], // position words
+    focusArea: "Position words: sur/sous, dessus/dessous",
   },
   {
     id: "pron-5",
-    text: "J'aimerais prendre rendez-vous pour la semaine prochaine.",
-    translation: "I would like to make an appointment for next week.",
+    text: "Dans mon lit, je ris souvent en lisant. La pâte à tarte est douce comme une patte de chat. J'ai mis le rat près du ras du mur.",
+    translation: "In my bed, I often laugh while reading. The pie dough is soft like a cat's paw. I put the rat near the edge of the wall.",
+    minimalPairs: ["lit", "ris", "pâte", "patte", "rat", "ras"], // /l/ vs /ʁ/, open vs closed vowels
+    focusArea: "Consonants: /l/ vs /ʁ/, Vowels: open /a/ vs back /ɑ/",
   },
   {
     id: "pron-6",
-    text: "Excusez-moi, est-ce que cette place est libre?",
-    translation: "Excuse me, is this seat free?",
+    text: "Le feu brillait dans le foin. Peu de gens traversaient le pont vers les maisons. C'était une chasse au trésor, pas une jasse de paille!",
+    translation: "The fire shone in the hay. Few people crossed the bridge toward the houses. It was a treasure hunt, not a bundle of straw!",
+    minimalPairs: ["feu", "foin", "peu", "pont", "chasse", "jasse"], // oral vs nasal, /ʃ/ vs /ʒ/
+    focusArea: "Oral vs nasal vowels, /ʃ/ (ch) vs /ʒ/ (j)",
   },
 ];
 
@@ -90,7 +103,7 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
     startRecording,
     stopRecording,
     resetRecording,
-  } = useAudioRecorder({ maxDuration: 30 });
+  } = useAudioRecorder({ maxDuration: 45 }); // Longer duration for paragraphs
 
   // Load reference audio for current item
   useEffect(() => {
@@ -179,7 +192,7 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
       }
       const base64Audio = btoa(binary);
 
-      // Send to transcription service
+      // Send to transcription service with minimal pairs context
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe-pronunciation`,
         {
@@ -193,6 +206,7 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
             audio: base64Audio,
             targetText: currentItem.text,
             itemId: currentItem.id,
+            minimalPairs: currentItem.minimalPairs, // Pass minimal pairs for weighted scoring
           }),
         }
       );
@@ -218,7 +232,7 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
       if (currentIndex < PRONUNCIATION_ITEMS.length - 1) {
         setCurrentIndex((prev) => prev + 1);
         resetRecording();
-        toast.success(`Item ${currentIndex + 1} completed!`);
+        toast.success(`Paragraph ${currentIndex + 1} completed!`);
       } else {
         // All items complete
         const allResults = [...results, itemResult];
@@ -245,7 +259,7 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
           </div>
           <Progress value={progress} className="h-2" />
           <p className="text-sm text-muted-foreground mt-2">
-            Listen to the reference, then record yourself saying the sentence.
+            Listen to the reference, then record yourself saying the paragraph.
           </p>
         </div>
 
@@ -257,9 +271,14 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
           </div>
         )}
 
-        {/* Current sentence card */}
+        {/* Current paragraph card */}
         <Card className="mb-6">
           <CardHeader>
+            <div className="flex items-center justify-between mb-2">
+              <CardTitle className="text-base font-medium text-primary">
+                {currentItem.focusArea}
+              </CardTitle>
+            </div>
             <CardTitle className="text-lg font-medium leading-relaxed">
               {currentItem.text}
             </CardTitle>
@@ -268,6 +287,14 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Minimal pairs highlight */}
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <p className="text-xs font-medium text-amber-600 mb-1">Key sounds to practice:</p>
+              <p className="text-sm text-amber-700">
+                {currentItem.minimalPairs.join(" • ")}
+              </p>
+            </div>
+
             {/* Reference audio player */}
             <div className="flex items-center gap-3">
               <Button
@@ -416,9 +443,10 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
         <div className="mt-6 p-4 rounded-lg bg-muted/50 text-sm">
           <h3 className="font-medium mb-2">Tips for best results:</h3>
           <ul className="space-y-1 text-muted-foreground">
-            <li>• Find a quiet space with minimal background noise</li>
-            <li>• Speak clearly at a natural pace</li>
+            <li>• Pay special attention to the highlighted minimal pairs</li>
+            <li>• Speak clearly but at a natural pace</li>
             <li>• Listen to the reference audio before recording</li>
+            <li>• Focus on the difference between similar sounds</li>
             <li>• You can re-record if needed before submitting</li>
           </ul>
         </div>
