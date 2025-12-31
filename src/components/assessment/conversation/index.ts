@@ -1,2 +1,2 @@
 export * from './ConversationModule';
-export * from './conversationPrompts';
+export * from './conversationScenarios';
