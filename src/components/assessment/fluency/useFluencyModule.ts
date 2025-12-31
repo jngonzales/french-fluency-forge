@@ -89,6 +89,8 @@ export function useFluencyModule(sessionId: string) {
   const handleRecordingComplete = useCallback(async (audioBlob: Blob, duration: number): Promise<void> => {
     if (!user) throw new Error("Not authenticated");
 
+    console.log("[Fluency] Starting recording upload for", currentPrompt.id, "attempt", currentState.attemptCount);
+
     // Convert blob to base64
     const arrayBuffer = await audioBlob.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
@@ -97,6 +99,22 @@ export function useFluencyModule(sessionId: string) {
       binary += String.fromCharCode(bytes[i]);
     }
     const base64Audio = btoa(binary);
+    console.log("[Fluency] Audio converted to base64, size:", base64Audio.length);
+
+    // Get the max attempt number for this item to avoid duplicates
+    const { data: existingRecordings } = await supabase
+      .from("fluency_recordings")
+      .select("attempt_number")
+      .eq("session_id", sessionId)
+      .eq("item_id", currentPrompt.id)
+      .order("attempt_number", { ascending: false })
+      .limit(1);
+
+    const nextAttemptNumber = existingRecordings && existingRecordings.length > 0 
+      ? existingRecordings[0].attempt_number + 1 
+      : 1;
+
+    console.log("[Fluency] Next attempt number:", nextAttemptNumber);
 
     // Mark previous attempts as superseded
     await supabase
@@ -113,14 +131,19 @@ export function useFluencyModule(sessionId: string) {
         session_id: sessionId,
         user_id: user.id,
         item_id: currentPrompt.id,
-        attempt_number: currentState.attemptCount,
+        attempt_number: nextAttemptNumber,
         status: "processing",
         duration_seconds: duration,
       })
       .select("id")
       .single();
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error("[Fluency] Insert error:", insertError);
+      throw new Error(`Database error: ${insertError.message}`);
+    }
+
+    console.log("[Fluency] Recording created with ID:", recording.id);
 
     // Set state to processing
     setItemStates((prev) => ({
@@ -129,10 +152,12 @@ export function useFluencyModule(sessionId: string) {
         ...prev[currentPrompt.id], 
         recordingState: "processing",
         recordingId: recording.id,
+        attemptCount: nextAttemptNumber,
       },
     }));
 
-    // Send to analysis service
+    // Send to analysis service (audio is NOT stored, only sent to Whisper API)
+    console.log("[Fluency] Sending to analyze-fluency edge function...");
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-fluency`,
       {
@@ -151,14 +176,41 @@ export function useFluencyModule(sessionId: string) {
     );
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[Fluency] Edge function error:", response.status, errorText);
+      
+      let errorMessage = "Analysis failed";
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.error || errorMessage;
+        
+        // Check for specific errors
+        if (errorMessage.includes("429") || errorMessage.includes("quota")) {
+          errorMessage = "Speech analysis quota exceeded. Please try again later.";
+        }
+      } catch {
+        errorMessage = `Analysis failed (${response.status})`;
+      }
+      
       await supabase
         .from("fluency_recordings")
-        .update({ status: "error", error_message: "Analysis failed" })
+        .update({ status: "error", error_message: errorMessage })
         .eq("id", recording.id);
-      throw new Error("Failed to analyze recording");
+      
+      // Set error state with message
+      setItemStates((prev) => ({
+        ...prev,
+        [currentPrompt.id]: { 
+          ...prev[currentPrompt.id], 
+          errorMessage,
+        },
+      }));
+      
+      throw new Error(errorMessage);
     }
 
     const result = await response.json();
+    console.log("[Fluency] Analysis complete:", { wpm: result.wpm, wordCount: result.wordCount });
 
     // Update recording with results (transcript never shown to user)
     await supabase
@@ -174,7 +226,7 @@ export function useFluencyModule(sessionId: string) {
       })
       .eq("id", recording.id);
 
-    logEvent("fluency_recording_completed", currentPrompt.id, currentState.attemptCount, {
+    logEvent("fluency_recording_completed", currentPrompt.id, nextAttemptNumber, {
       wpm: result.wpm,
       wordCount: result.wordCount,
     });
