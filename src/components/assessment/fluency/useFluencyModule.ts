@@ -9,7 +9,7 @@ const FLUENCY_PROMPTS = [
     id: "fluency-1",
     prompt: "Describe your typical morning routine",
     promptFr: "Décrivez votre routine matinale typique",
-    duration: 60,
+    duration: 30,
     tips: [
       "What time do you wake up?",
       "What do you eat for breakfast?",
@@ -20,7 +20,7 @@ const FLUENCY_PROMPTS = [
     id: "fluency-2",
     prompt: "Tell me about your favorite place to visit",
     promptFr: "Parlez-moi de votre endroit préféré à visiter",
-    duration: 60,
+    duration: 30,
     tips: [
       "Where is this place?",
       "Why do you like it?",
