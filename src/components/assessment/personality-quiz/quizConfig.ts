@@ -181,9 +181,9 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   {
     id: 'q11',
     type: 'slider',
-    prompt: 'When I don\'t know "how to phrase" a reaction in a situation, I…',
-    leftLabel: 'Improvise anyway',
-    rightLabel: 'Freeze / go silent',
+    prompt: "When I don't know the right words to react in the moment, I usually…",
+    leftLabel: 'Say something anyway',
+    rightLabel: 'Stay quiet',
     leftAxis: { axis: 'control_flow', delta: 2 },
     rightAxis: { axis: 'control_flow', delta: -2 },
     secondaryRight: { axis: 'security_risk', delta: -2 },
@@ -204,12 +204,12 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   {
     id: 'q13',
     type: 'scenario',
-    prompt: 'Which feels more stressful in French?',
+    prompt: 'Which situation feels most stressful in French?',
     options: [
-      { id: 'a', text: 'A phone call', primary: { axis: 'security_risk', delta: -2 } },
-      { id: 'b', text: 'A group conversation', primary: { axis: 'security_risk', delta: -2 } },
-      { id: 'c', text: 'One-on-one with a friendly person', primary: { axis: 'security_risk', delta: 0 } },
-      { id: 'd', text: 'Ordering in a café', primary: { axis: 'security_risk', delta: 0 } },
+      { id: 'a', text: 'An unexpected phone call', primary: { axis: 'security_risk', delta: -2 } },
+      { id: 'b', text: 'A fast-paced group conversation', primary: { axis: 'security_risk', delta: -2 } },
+      { id: 'c', text: 'A long one-on-one chat with someone new', primary: { axis: 'security_risk', delta: -1 } },
+      { id: 'd', text: 'Ordering in a busy, noisy café', primary: { axis: 'security_risk', delta: -1 } },
     ],
   },
   // Q14 - Ideal-self check
@@ -229,7 +229,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   {
     id: 'q15',
     type: 'character',
-    prompt: 'In language learning, who are you most like?',
+    prompt: "Let's bet — can you guess which language learner personality you are?",
     characters: [
       { id: 'strategist', name: 'The Strategist', description: 'Plans every move, loves systems', axes: [{ axis: 'control_flow', delta: -1 }, { axis: 'accuracy_expressiveness', delta: -1 }] },
       { id: 'performer', name: 'The Performer', description: 'Loves the spotlight, expressive', axes: [{ axis: 'accuracy_expressiveness', delta: 1 }, { axis: 'security_risk', delta: 1 }] },
