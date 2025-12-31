@@ -35,6 +35,73 @@ function processBase64Chunks(base64String: string, chunkSize = 32768): Uint8Arra
   return result;
 }
 
+// Normalize text for comparison
+function normalizeText(text: string): string[] {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove accents for comparison
+    .replace(/[^\w\s]/g, "")
+    .trim()
+    .split(/\s+/);
+}
+
+// Calculate weighted similarity with emphasis on minimal pairs
+function calculateSimilarity(
+  targetText: string, 
+  transcript: string, 
+  minimalPairs?: string[]
+): { similarity: number; matchedWords: number; totalWords: number; minimalPairAccuracy: number } {
+  const targetWords = normalizeText(targetText);
+  const transcriptWords = normalizeText(transcript);
+  
+  // Normalize minimal pairs for comparison
+  const normalizedPairs = (minimalPairs || []).map(word => 
+    word.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  );
+
+  let matchCount = 0;
+  let minimalPairMatches = 0;
+  let minimalPairTotal = 0;
+  const usedIndices = new Set<number>();
+
+  for (const targetWord of targetWords) {
+    const isMinimalPair = normalizedPairs.includes(targetWord);
+    if (isMinimalPair) minimalPairTotal++;
+
+    for (let i = 0; i < transcriptWords.length; i++) {
+      if (!usedIndices.has(i) && transcriptWords[i] === targetWord) {
+        matchCount++;
+        if (isMinimalPair) minimalPairMatches++;
+        usedIndices.add(i);
+        break;
+      }
+    }
+  }
+
+  // Calculate base similarity
+  const baseSimilarity = targetWords.length > 0 
+    ? (matchCount / targetWords.length) * 100 
+    : 0;
+
+  // Calculate minimal pair accuracy
+  const minimalPairAccuracy = minimalPairTotal > 0 
+    ? (minimalPairMatches / minimalPairTotal) * 100 
+    : 100;
+
+  // Weighted similarity: 60% base accuracy + 40% minimal pair accuracy
+  const weightedSimilarity = minimalPairTotal > 0
+    ? (baseSimilarity * 0.6) + (minimalPairAccuracy * 0.4)
+    : baseSimilarity;
+
+  return {
+    similarity: Math.round(weightedSimilarity),
+    matchedWords: matchCount,
+    totalWords: targetWords.length,
+    minimalPairAccuracy: Math.round(minimalPairAccuracy)
+  };
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -42,7 +109,7 @@ serve(async (req) => {
   }
 
   try {
-    const { audio, targetText, itemId } = await req.json();
+    const { audio, targetText, itemId, minimalPairs } = await req.json();
 
     if (!audio) {
       throw new Error("No audio data provided");
@@ -50,6 +117,7 @@ serve(async (req) => {
 
     console.log(`[TRANSCRIBE] Processing audio for item: ${itemId}`);
     console.log(`[TRANSCRIBE] Target text: ${targetText}`);
+    console.log(`[TRANSCRIBE] Minimal pairs: ${minimalPairs?.join(", ") || "none"}`);
 
     // Process audio in chunks
     const binaryAudio = processBase64Chunks(audio);
@@ -61,6 +129,14 @@ serve(async (req) => {
     formData.append("file", blob, "audio.webm");
     formData.append("model", "whisper-1");
     formData.append("language", "fr"); // Force French language
+    
+    // Add prompt with minimal pairs vocabulary to reduce transcription bias
+    // This primes Whisper to recognize both words in minimal pairs without bias
+    if (minimalPairs && minimalPairs.length > 0) {
+      const promptVocabulary = `Vocabulaire français: ${minimalPairs.join(", ")}. Ces mots doivent être transcrits exactement comme prononcés.`;
+      formData.append("prompt", promptVocabulary);
+      console.log(`[TRANSCRIBE] Whisper prompt: ${promptVocabulary}`);
+    }
 
     // Send to OpenAI Whisper
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
@@ -89,44 +165,22 @@ serve(async (req) => {
     
     console.log(`[TRANSCRIBE] Transcript: ${transcript}`);
 
-    // Calculate basic similarity score (word-level comparison)
-    const normalizeText = (text: string) =>
-      text
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // Remove accents for comparison
-        .replace(/[^\w\s]/g, "")
-        .trim()
-        .split(/\s+/);
+    // Calculate weighted similarity score
+    const { similarity, matchedWords, totalWords, minimalPairAccuracy } = calculateSimilarity(
+      targetText, 
+      transcript, 
+      minimalPairs
+    );
 
-    const targetWords = normalizeText(targetText);
-    const transcriptWords = normalizeText(transcript);
-
-    let matchCount = 0;
-    const usedIndices = new Set<number>();
-
-    for (const targetWord of targetWords) {
-      for (let i = 0; i < transcriptWords.length; i++) {
-        if (!usedIndices.has(i) && transcriptWords[i] === targetWord) {
-          matchCount++;
-          usedIndices.add(i);
-          break;
-        }
-      }
-    }
-
-    const similarity = targetWords.length > 0 
-      ? Math.round((matchCount / targetWords.length) * 100) 
-      : 0;
-
-    console.log(`[TRANSCRIBE] Similarity score: ${similarity}%`);
+    console.log(`[TRANSCRIBE] Similarity: ${similarity}%, Minimal pair accuracy: ${minimalPairAccuracy}%`);
 
     return new Response(
       JSON.stringify({
         transcript,
         similarity,
-        targetWords: targetWords.length,
-        matchedWords: matchCount,
+        targetWords: totalWords,
+        matchedWords,
+        minimalPairAccuracy,
         itemId,
       }),
       {

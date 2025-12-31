@@ -277,16 +277,26 @@ export function SkillRecordingCard({
           {/* Uploading State */}
           {recordingState === 'uploading' && (
             <div className="text-center py-8 space-y-4">
-              <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary" />
-              <p className="text-muted-foreground">Uploading audio...</p>
+              <div className="space-y-2">
+                <Progress value={30} className="h-2 w-48 mx-auto" />
+                <p className="text-muted-foreground">Uploading audio...</p>
+              </div>
             </div>
           )}
 
           {/* Processing State */}
           {recordingState === 'processing' && (
-            <div className="text-center py-8 space-y-4">
-              <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary" />
-              <p className="text-muted-foreground">Analyzing your response...</p>
+            <div className="text-center py-8 space-y-6">
+              <div className="space-y-3">
+                <div className="relative w-64 mx-auto">
+                  <Progress value={100} className="h-2 animate-pulse" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/20 to-transparent animate-[shimmer_2s_infinite]" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">Analyzing your response...</p>
+                  <p className="text-xs text-muted-foreground">Transcribing • Scoring • Generating feedback</p>
+                </div>
+              </div>
             </div>
           )}
 
