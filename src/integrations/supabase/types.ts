@@ -54,6 +54,8 @@ export type Database = {
           age_band: Database["public"]["Enums"]["age_band_type"] | null
           archetype: string | null
           completed_at: string | null
+          comprehension_locked: boolean
+          comprehension_locked_at: string | null
           confidence_locked: boolean
           confidence_locked_at: string | null
           conversation_locked: boolean
@@ -79,6 +81,8 @@ export type Database = {
           age_band?: Database["public"]["Enums"]["age_band_type"] | null
           archetype?: string | null
           completed_at?: string | null
+          comprehension_locked?: boolean
+          comprehension_locked_at?: string | null
           confidence_locked?: boolean
           confidence_locked_at?: string | null
           conversation_locked?: boolean
@@ -104,6 +108,8 @@ export type Database = {
           age_band?: Database["public"]["Enums"]["age_band_type"] | null
           archetype?: string | null
           completed_at?: string | null
+          comprehension_locked?: boolean
+          comprehension_locked_at?: string | null
           confidence_locked?: boolean
           confidence_locked_at?: string | null
           conversation_locked?: boolean
@@ -138,6 +144,80 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comprehension_recordings: {
+        Row: {
+          ai_confidence: number | null
+          ai_feedback_fr: string | null
+          ai_score: number | null
+          attempt_number: number
+          audio_played_at: string | null
+          audio_storage_path: string | null
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          intent_match: Json | null
+          item_id: string
+          session_id: string
+          status: string
+          superseded: boolean
+          transcript: string | null
+          understood_facts: Json | null
+          used_for_scoring: boolean
+          user_id: string
+        }
+        Insert: {
+          ai_confidence?: number | null
+          ai_feedback_fr?: string | null
+          ai_score?: number | null
+          attempt_number?: number
+          audio_played_at?: string | null
+          audio_storage_path?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          intent_match?: Json | null
+          item_id: string
+          session_id: string
+          status?: string
+          superseded?: boolean
+          transcript?: string | null
+          understood_facts?: Json | null
+          used_for_scoring?: boolean
+          user_id: string
+        }
+        Update: {
+          ai_confidence?: number | null
+          ai_feedback_fr?: string | null
+          ai_score?: number | null
+          attempt_number?: number
+          audio_played_at?: string | null
+          audio_storage_path?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          intent_match?: Json | null
+          item_id?: string
+          session_id?: string
+          status?: string
+          superseded?: boolean
+          transcript?: string | null
+          understood_facts?: Json | null
+          used_for_scoring?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comprehension_recordings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_sessions"
             referencedColumns: ["id"]
           },
         ]
