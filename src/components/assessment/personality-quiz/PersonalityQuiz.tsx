@@ -234,6 +234,7 @@ export function PersonalityQuiz({ sessionId, onComplete, onSkip }: Props) {
         archetype={result.archetype}
         axes={result.axes}
         consistencyGap={result.consistencyGap}
+        sessionId={sessionId}
         onContinue={handleContinue}
       />
     );

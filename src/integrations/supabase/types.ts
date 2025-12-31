@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      archetype_feedback: {
+        Row: {
+          created_at: string
+          feedback_text: string
+          id: string
+          marketing_consent: boolean
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback_text: string
+          id?: string
+          marketing_consent?: boolean
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback_text?: string
+          id?: string
+          marketing_consent?: boolean
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "archetype_feedback_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessment_sessions: {
         Row: {
           age_band: Database["public"]["Enums"]["age_band_type"] | null

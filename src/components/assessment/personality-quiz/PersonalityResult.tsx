@@ -1,6 +1,7 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Archetype, AxisKey } from "./quizConfig";
-import { Share2, Download, Instagram, Facebook, MessageCircle, Link, Mic } from "lucide-react";
+import { Share2, Download, Instagram, Facebook, MessageCircle, Link, Mic, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { FeedbackDialog } from "./FeedbackDialog";
 
 interface AxisResult {
   raw: number;
@@ -24,6 +26,7 @@ interface Props {
     security_risk: AxisResult;
   };
   consistencyGap?: number;
+  sessionId?: string | null;
   onContinue: () => void;
 }
 
@@ -65,7 +68,22 @@ function AxisBar({ axisKey, result }: { axisKey: AxisKey; result: AxisResult }) 
   );
 }
 
-export function PersonalityResult({ archetype, axes, consistencyGap, onContinue }: Props) {
+export function PersonalityResult({ archetype, axes, consistencyGap, sessionId, onContinue }: Props) {
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
+  const [hasShownAutoPopup, setHasShownAutoPopup] = useState(false);
+
+  // Auto-show feedback popup after 20 seconds
+  useEffect(() => {
+    if (hasShownAutoPopup) return;
+    
+    const timer = setTimeout(() => {
+      setFeedbackDialogOpen(true);
+      setHasShownAutoPopup(true);
+    }, 20000);
+
+    return () => clearTimeout(timer);
+  }, [hasShownAutoPopup]);
+
   const showEncouragement = archetype.encouragement && 
     (axes.control_flow.normalized < 40 || axes.accuracy_expressiveness.normalized < 40 || axes.security_risk.normalized < 40);
   
@@ -277,7 +295,26 @@ Take the test: ${shareUrl}
               <Download className="h-4 w-4" />
               Export Results
             </Button>
+
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="gap-2" 
+              onClick={() => setFeedbackDialogOpen(true)}
+            >
+              <MessageSquare className="h-4 w-4" />
+              Share my feedback
+            </Button>
           </motion.div>
+
+          {/* Feedback Dialog */}
+          <FeedbackDialog
+            open={feedbackDialogOpen}
+            onOpenChange={setFeedbackDialogOpen}
+            sessionId={sessionId ?? null}
+            archetypeName={archetype.name}
+            archetypeEmoji={archetype.emoji}
+          />
 
           {/* CTA */}
           <motion.div
