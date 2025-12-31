@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Archetype, AxisKey } from "./quizConfig";
-import { Share2, Download, Instagram, Facebook, MessageCircle, Link, Mic, MessageSquare } from "lucide-react";
+import { Archetype, AxisKey, Badge, getEarnedBadges } from "./quizConfig";
+import { Share2, Download, Instagram, Facebook, MessageCircle, Link, Mic, MessageSquare, CheckCircle, AlertTriangle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -68,9 +68,32 @@ function AxisBar({ axisKey, result }: { axisKey: AxisKey; result: AxisResult }) 
   );
 }
 
+function BadgeCard({ badge }: { badge: Badge }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20"
+    >
+      <span className="text-2xl">{badge.icon}</span>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm">{badge.name}</p>
+        <p className="text-xs text-muted-foreground line-clamp-2">{badge.description}</p>
+      </div>
+    </motion.div>
+  );
+}
+
 export function PersonalityResult({ archetype, axes, consistencyGap, sessionId, onContinue }: Props) {
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [hasShownAutoPopup, setHasShownAutoPopup] = useState(false);
+
+  // Get earned badges based on normalized axis scores
+  const earnedBadges = getEarnedBadges({
+    control_flow: axes.control_flow.normalized,
+    accuracy_expressiveness: axes.accuracy_expressiveness.normalized,
+    security_risk: axes.security_risk.normalized,
+  });
 
   // Auto-show feedback popup after 20 seconds
   useEffect(() => {
@@ -98,7 +121,6 @@ export function PersonalityResult({ archetype, axes, consistencyGap, sessionId, 
   };
 
   const handleShareInstagram = () => {
-    // Instagram doesn't have a direct share URL, so we copy the text
     navigator.clipboard.writeText(`${shareText}\n\n${shareUrl}`);
     toast.success("Text copied! Paste it in your Instagram story or post.");
   };
@@ -114,18 +136,24 @@ export function PersonalityResult({ archetype, axes, consistencyGap, sessionId, 
   };
 
   const handleExportPDF = () => {
-    // Create a simple text-based "export" that could be printed/saved
     const content = `
 My French Learning Personality
 ==============================
 
 ${archetype.emoji} ${archetype.name}
+${archetype.signature}
 
 YOUR 3-AXIS PROFILE
 -------------------
 • Control ↔ Flow: ${axes.control_flow.label} (${Math.round(axes.control_flow.normalized)}%)
 • Accuracy ↔ Expressiveness: ${axes.accuracy_expressiveness.label} (${Math.round(axes.accuracy_expressiveness.normalized)}%)
 • Security ↔ Risk: ${axes.security_risk.label} (${Math.round(axes.security_risk.normalized)}%)
+
+${earnedBadges.length > 0 ? `BADGES EARNED\n-------------\n${earnedBadges.map(b => `${b.icon} ${b.name}: ${b.description}`).join('\n')}\n` : ''}
+
+ABOUT YOU
+---------
+${archetype.description}
 
 ✨ YOUR STRENGTHS
 ${archetype.strengths}
@@ -138,6 +166,17 @@ ${archetype.fastestPath}
 
 ⚠️ DANGER PATH
 ${archetype.dangerPath}
+
+RECOMMENDATIONS
+---------------
+✅ Keep doing:
+${archetype.recommendations.keep.map(k => `• ${k}`).join('\n')}
+
+➕ Add next:
+${archetype.recommendations.add.map(a => `• ${a}`).join('\n')}
+
+⚠️ Watch out for:
+${archetype.recommendations.watchOut}
 
 ${archetype.encouragement ? `💡 ${archetype.encouragement}` : ''}
 
@@ -177,7 +216,34 @@ Take the test: ${shareUrl}
             </motion.div>
             <h1 className="text-2xl font-bold mb-2">Your Learning Personality</h1>
             <h2 className="text-xl text-primary font-semibold">{archetype.name}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{archetype.signature}</p>
           </div>
+
+          {/* Earned Badges */}
+          {earnedBadges.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="space-y-3"
+            >
+              <h3 className="font-semibold text-center text-sm text-muted-foreground uppercase tracking-wide">
+                Badges Earned
+              </h3>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {earnedBadges.map((badge, i) => (
+                  <motion.div
+                    key={badge.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 + i * 0.1 }}
+                  >
+                    <BadgeCard badge={badge} />
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
 
           {/* Axis Bars */}
           <div className="p-6 rounded-2xl border border-border bg-card space-y-6">
@@ -187,7 +253,20 @@ Take the test: ${shareUrl}
             <AxisBar axisKey="security_risk" result={axes.security_risk} />
           </div>
 
-          {/* Archetype Card */}
+          {/* Long Description */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="p-6 rounded-2xl border border-border bg-card"
+          >
+            <h3 className="font-semibold mb-4">About You</h3>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {archetype.description}
+            </p>
+          </motion.div>
+
+          {/* Archetype Card - Strengths & Bottleneck */}
           <div className="grid gap-4 sm:grid-cols-2">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -230,6 +309,61 @@ Take the test: ${shareUrl}
             </motion.div>
           </div>
 
+          {/* Recommendations Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.65 }}
+            className="p-6 rounded-2xl border border-border bg-card space-y-5"
+          >
+            <h3 className="font-semibold text-center">Your Personalized Recommendations</h3>
+            
+            {/* Keep Doing */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                <CheckCircle className="h-4 w-4" />
+                <h4 className="font-medium text-sm">Keep doing</h4>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {archetype.recommendations.keep.map((item, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 rounded-full bg-green-500/10 text-green-700 dark:text-green-300 text-xs font-medium"
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Add Next */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                <Plus className="h-4 w-4" />
+                <h4 className="font-medium text-sm">Add next</h4>
+              </div>
+              <ul className="space-y-2">
+                {archetype.recommendations.add.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <span className="text-blue-500 mt-0.5">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Watch Out */}
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="font-medium text-sm text-amber-600 dark:text-amber-400">Watch out for</h4>
+                  <p className="text-sm text-muted-foreground mt-1">{archetype.recommendations.watchOut}</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
           {/* Encouragement Note */}
           {showEncouragement && archetype.encouragement && (
             <motion.div
@@ -247,7 +381,7 @@ Take the test: ${shareUrl}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
+              transition={{ delay: 0.75 }}
               className="p-4 rounded-xl bg-muted text-center"
             >
               <p className="text-sm text-muted-foreground">
@@ -261,7 +395,7 @@ Take the test: ${shareUrl}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.85 }}
+            transition={{ delay: 0.8 }}
             className="flex flex-wrap justify-center gap-3"
           >
             <DropdownMenu>
@@ -320,7 +454,7 @@ Take the test: ${shareUrl}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9 }}
+            transition={{ delay: 0.85 }}
             className="space-y-2"
           >
             <button

@@ -66,17 +66,17 @@ const DevPreview = () => {
   }
 
   if (activePage === 'personality-result') {
-    // Demo archetype data
+    // Demo archetype data - using extreme scores to show badges
     const demoArchetype = ARCHETYPES.conversation_surfer;
     const demoAxes = {
-      control_flow: { raw: 5, normalized: 72, label: 'Leaning Flow' },
-      accuracy_expressiveness: { raw: 4, normalized: 68, label: 'Leaning Expressiveness' },
-      security_risk: { raw: 3, normalized: 62, label: 'Leaning Risk' },
+      control_flow: { raw: 8, normalized: 85, label: 'Leaning Flow' }, // Will earn "The Improviser" badge
+      accuracy_expressiveness: { raw: 7, normalized: 82, label: 'Leaning Expressiveness' }, // Will earn "The Storyteller" badge
+      security_risk: { raw: 6, normalized: 78, label: 'Leaning Risk' },
     };
 
     return (
       <div className="relative">
-        <div className="fixed top-4 right-4 z-50">
+        <div className="fixed top-4 right-4 z-50 flex gap-2">
           <Button 
             variant="outline" 
             size="sm" 
@@ -90,6 +90,7 @@ const DevPreview = () => {
           archetype={demoArchetype}
           axes={demoAxes}
           sessionId="dev-session-123"
+          consistencyGap={0.4}
           onContinue={() => {
             console.log('Continue clicked');
             setActivePage('none');
