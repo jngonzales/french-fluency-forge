@@ -7,9 +7,9 @@ import ConsentForm from "@/components/assessment/ConsentForm";
 import PronunciationModule from "@/components/assessment/PronunciationModule";
 import { FluencyModule } from "@/components/assessment/fluency";
 import { PersonalityQuiz } from "@/components/assessment/personality-quiz";
+import { ProcessingView } from "@/components/assessment/ProcessingView";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type SessionStatus = Database["public"]["Enums"]["session_status"];
@@ -273,24 +273,11 @@ const Assessment = () => {
       };
 
       return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-4">
-          <div className="text-center max-w-md">
-            <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-6" />
-            <h1 className="text-2xl font-bold mb-4">Analyzing Your Results</h1>
-            <p className="text-muted-foreground mb-6">
-              We&apos;re processing your responses to generate your personalized diagnostic...
-            </p>
-            {/* Dev controls */}
-            <div className="flex flex-col gap-2">
-              <Button onClick={handleViewResults}>
-                Skip to Results (Dev)
-              </Button>
-              <Button variant="outline" onClick={handleStartFresh}>
-                Start Fresh Assessment
-              </Button>
-            </div>
-          </div>
-        </div>
+        <ProcessingView
+          sessionId={session.id}
+          onComplete={handleViewResults}
+          onStartFresh={handleStartFresh}
+        />
       );
 
     case "completed":
