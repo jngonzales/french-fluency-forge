@@ -18,22 +18,36 @@ function ThickAxisBar({
   label: string;
 }) {
   return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-base font-semibold opacity-90">
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 26, fontWeight: 600, opacity: 0.85, marginBottom: 12 }}>
         <span>{leftLabel}</span>
         <span>{rightLabel}</span>
       </div>
-      <div className="relative h-5 bg-white/20 rounded-full overflow-hidden">
+      <div style={{ position: 'relative', height: 28, background: 'rgba(255,255,255,0.15)', borderRadius: 14, overflow: 'hidden' }}>
         <div 
-          className="absolute h-full bg-white rounded-full transition-all"
-          style={{ width: `${normalized}%` }}
+          style={{ 
+            position: 'absolute',
+            height: '100%',
+            background: 'rgba(255,255,255,0.9)',
+            borderRadius: 14,
+            width: `${normalized}%`
+          }}
         />
         <div 
-          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-6 h-6 bg-white rounded-full shadow-lg border-2 border-white/50"
-          style={{ left: `${normalized}%` }}
+          style={{ 
+            position: 'absolute',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 36,
+            height: 36,
+            background: '#fff',
+            borderRadius: '50%',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            left: `${normalized}%`
+          }}
         />
       </div>
-      <p className="text-center text-sm font-medium opacity-80">{label}</p>
+      <p style={{ textAlign: 'center', fontSize: 22, fontWeight: 500, opacity: 0.7, marginTop: 10 }}>{label}</p>
     </div>
   );
 }
@@ -44,35 +58,38 @@ export function SocialSlide1({ data }: Props) {
 
   return (
     <div 
-      className="flex flex-col text-white overflow-hidden"
+      className="flex flex-col overflow-hidden"
       style={{ 
         width: 1080, 
         height: 1920,
-        background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #9333EA 100%)',
+        background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)',
         fontFamily: 'system-ui, -apple-system, sans-serif',
+        color: '#f8f8f8',
       }}
     >
       {/* Top spacing */}
-      <div style={{ height: 120 }} />
+      <div style={{ height: 100 }} />
 
       {/* Header */}
       <div className="text-center px-16">
-        <p className="text-xl uppercase tracking-[0.35em] opacity-70 mb-8">Your Learning Personality</p>
-        <div style={{ fontSize: 140 }} className="mb-6">
+        <p style={{ fontSize: 28, letterSpacing: '0.3em', opacity: 0.6, marginBottom: 40 }} className="uppercase">
+          Your Learning Personality
+        </p>
+        <div style={{ fontSize: 180, marginBottom: 32 }}>
           {data.archetype.emoji}
         </div>
-        <p className="text-2xl opacity-70 mb-2">You're the</p>
-        <h1 className="text-6xl font-bold leading-tight">
+        <p style={{ fontSize: 36, opacity: 0.7, marginBottom: 8 }}>You're the</p>
+        <h1 style={{ fontSize: 84, fontWeight: 700, lineHeight: 1.1, marginBottom: 16 }}>
           {data.archetype.name}
         </h1>
-        <p className="text-xl opacity-70 mt-4">
+        <p style={{ fontSize: 28, opacity: 0.6 }}>
           {data.archetype.signature}
         </p>
       </div>
 
       {/* Axis bars */}
-      <div className="px-20 mt-16">
-        <div className="space-y-8">
+      <div className="px-20 mt-20">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
           <ThickAxisBar 
             leftLabel="Control" 
             rightLabel="Flow" 
@@ -96,18 +113,28 @@ export function SocialSlide1({ data }: Props) {
 
       {/* Positive Badges only */}
       {positiveBadges.length > 0 && (
-        <div className="px-16 mt-16">
-          <p className="text-center text-sm uppercase tracking-wider opacity-60 mb-6">Your Superpowers</p>
-          <div className="flex flex-col gap-4">
+        <div className="px-16 mt-20">
+          <p style={{ fontSize: 22, letterSpacing: '0.15em', opacity: 0.5, marginBottom: 28, textAlign: 'center' }} className="uppercase">
+            Your Superpowers
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {positiveBadges.map((badge) => (
               <div 
                 key={badge.id} 
-                className="flex items-center gap-4 bg-white/15 backdrop-blur px-6 py-4 rounded-2xl"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 20,
+                  background: 'rgba(255,255,255,0.08)',
+                  backdropFilter: 'blur(10px)',
+                  padding: '24px 32px',
+                  borderRadius: 20,
+                }}
               >
-                <span className="text-4xl">{badge.icon}</span>
+                <span style={{ fontSize: 52 }}>{badge.icon}</span>
                 <div>
-                  <p className="text-xl font-bold">{badge.name}</p>
-                  <p className="text-base opacity-80">{badge.description}</p>
+                  <p style={{ fontSize: 28, fontWeight: 700 }}>{badge.name}</p>
+                  <p style={{ fontSize: 22, opacity: 0.75 }}>{badge.description}</p>
                 </div>
               </div>
             ))}
@@ -116,13 +143,13 @@ export function SocialSlide1({ data }: Props) {
       )}
 
       {/* Footer with QR */}
-      <div className="mt-auto px-16 pb-16 flex items-end justify-between">
+      <div style={{ marginTop: 'auto', padding: '0 64px 64px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div>
-          <p className="text-2xl font-bold">Take the full assessment</p>
-          <p className="text-lg opacity-70 mt-1">{data.shareUrl.replace('https://', '')}</p>
+          <p style={{ fontSize: 32, fontWeight: 700 }}>Take the full assessment</p>
+          <p style={{ fontSize: 24, opacity: 0.6, marginTop: 4 }}>{data.shareUrl.replace('https://', '')}</p>
         </div>
-        <div className="bg-white p-3 rounded-xl">
-          <QRCodeSVG value={data.shareUrl} size={100} />
+        <div style={{ background: '#fff', padding: 12, borderRadius: 16 }}>
+          <QRCodeSVG value={data.shareUrl} size={120} />
         </div>
       </div>
     </div>
