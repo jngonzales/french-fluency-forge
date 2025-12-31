@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.analyze-pronunciation]
 verify_jwt = false
+
+[functions.analyze-syntax]
+verify_jwt = false
