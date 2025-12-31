@@ -3,13 +3,14 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Wrench, Eye, FileText, Brain, Mic, BarChart3, CheckCircle } from "lucide-react";
+import { Wrench, Eye, FileText, Brain, Mic, BarChart3, CheckCircle, User } from "lucide-react";
 
 // Dev preview pages
-import { PersonalityQuiz } from "@/components/assessment/personality-quiz";
+import { PersonalityQuiz, PersonalityResult } from "@/components/assessment/personality-quiz";
+import { ARCHETYPES } from "@/components/assessment/personality-quiz/quizConfig";
 import Results from "./Results";
 
-type PreviewPage = 'none' | 'personality-quiz' | 'results';
+type PreviewPage = 'none' | 'personality-quiz' | 'personality-result' | 'results';
 
 const DevPreview = () => {
   const [activePage, setActivePage] = useState<PreviewPage>('none');
@@ -20,6 +21,12 @@ const DevPreview = () => {
       name: 'Personality Quiz', 
       icon: Brain,
       description: 'The 3-axis learner personality test'
+    },
+    { 
+      id: 'personality-result' as const, 
+      name: 'Personality Results', 
+      icon: User,
+      description: 'Demo results page with mock archetype data'
     },
     { 
       id: 'results' as const, 
@@ -51,6 +58,40 @@ const DevPreview = () => {
           }}
           onSkip={() => {
             console.log('Quiz skipped');
+            setActivePage('none');
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (activePage === 'personality-result') {
+    // Demo archetype data
+    const demoArchetype = ARCHETYPES.conversation_surfer;
+    const demoAxes = {
+      control_flow: { raw: 5, normalized: 72, label: 'Leaning Flow' },
+      accuracy_expressiveness: { raw: 4, normalized: 68, label: 'Leaning Expressiveness' },
+      security_risk: { raw: 3, normalized: 62, label: 'Leaning Risk' },
+    };
+
+    return (
+      <div className="relative">
+        <div className="fixed top-4 right-4 z-50">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setActivePage('none')}
+            className="bg-background/80 backdrop-blur-sm"
+          >
+            ← Back to Dev Menu
+          </Button>
+        </div>
+        <PersonalityResult
+          archetype={demoArchetype}
+          axes={demoAxes}
+          sessionId="dev-session-123"
+          onContinue={() => {
+            console.log('Continue clicked');
             setActivePage('none');
           }}
         />
