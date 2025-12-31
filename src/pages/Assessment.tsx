@@ -5,10 +5,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import IntakeForm from "@/components/assessment/IntakeForm";
 import ConsentForm from "@/components/assessment/ConsentForm";
 import PronunciationModule from "@/components/assessment/PronunciationModule";
-import FluencyModule from "@/components/assessment/FluencyModule";
+import { FluencyModule } from "@/components/assessment/fluency";
 import { PersonalityQuiz } from "@/components/assessment/personality-quiz";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type SessionStatus = Database["public"]["Enums"]["session_status"];
@@ -16,6 +17,7 @@ type SessionStatus = Database["public"]["Enums"]["session_status"];
 interface AssessmentSession {
   id: string;
   status: SessionStatus;
+  fluency_locked?: boolean;
 }
 
 const Assessment = () => {
@@ -25,6 +27,7 @@ const Assessment = () => {
   const [session, setSession] = useState<AssessmentSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [assessmentPhase, setAssessmentPhase] = useState<"pronunciation" | "fluency">("pronunciation");
+  const [fluencyLockedNotice, setFluencyLockedNotice] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -39,7 +42,7 @@ const Assessment = () => {
       // Check for existing in-progress session
       const { data: existingSession, error: fetchError } = await supabase
         .from("assessment_sessions")
-        .select("id, status")
+        .select("id, status, fluency_locked")
         .eq("user_id", user.id)
         .in("status", ["intake", "consent", "quiz", "mic_check", "assessment", "processing"])
         .order("created_at", { ascending: false })
@@ -50,6 +53,11 @@ const Assessment = () => {
 
       if (existingSession) {
         setSession(existingSession);
+        // Check if user is trying to access fluency but it's locked
+        if (existingSession.fluency_locked && existingSession.status === "assessment") {
+          // Skip fluency and move to processing if locked
+          setFluencyLockedNotice(true);
+        }
       } else {
         // Create new session starting at intake
         const { data: newSession, error: createError } = await supabase
@@ -77,7 +85,7 @@ const Assessment = () => {
 
     const { data, error } = await supabase
       .from("assessment_sessions")
-      .select("id, status")
+      .select("id, status, fluency_locked")
       .eq("id", session.id)
       .single();
 
@@ -199,8 +207,8 @@ const Assessment = () => {
         setAssessmentPhase("fluency");
       };
 
-      const handleFluencyComplete = async (results: any[]) => {
-        console.log("Fluency results:", results);
+      const handleFluencyComplete = async () => {
+        console.log("Fluency complete!");
         // Move to processing
         await supabase
           .from("assessment_sessions")

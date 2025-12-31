@@ -20,6 +20,8 @@ export type Database = {
           archetype: string | null
           completed_at: string | null
           created_at: string
+          fluency_locked: boolean
+          fluency_locked_at: string | null
           gender: Database["public"]["Enums"]["gender_type"] | null
           goals: string | null
           id: string
@@ -37,6 +39,8 @@ export type Database = {
           archetype?: string | null
           completed_at?: string | null
           created_at?: string
+          fluency_locked?: boolean
+          fluency_locked_at?: string | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
           goals?: string | null
           id?: string
@@ -54,6 +58,8 @@ export type Database = {
           archetype?: string | null
           completed_at?: string | null
           created_at?: string
+          fluency_locked?: boolean
+          fluency_locked_at?: string | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
           goals?: string | null
           id?: string
@@ -117,6 +123,132 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "consent_records_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fluency_events: {
+        Row: {
+          attempt_number: number | null
+          created_at: string
+          event_type: string
+          id: string
+          item_id: string | null
+          metadata: Json | null
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          attempt_number?: number | null
+          created_at?: string
+          event_type: string
+          id?: string
+          item_id?: string | null
+          metadata?: Json | null
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          attempt_number?: number | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          item_id?: string | null
+          metadata?: Json | null
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fluency_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluency_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fluency_recordings: {
+        Row: {
+          attempt_number: number
+          audio_storage_path: string | null
+          completed_at: string | null
+          created_at: string
+          duration_seconds: number | null
+          error_message: string | null
+          id: string
+          item_id: string
+          pause_count: number | null
+          session_id: string
+          status: string
+          superseded: boolean
+          total_pause_duration: number | null
+          transcript: string | null
+          used_for_scoring: boolean
+          user_id: string
+          word_count: number | null
+          wpm: number | null
+        }
+        Insert: {
+          attempt_number?: number
+          audio_storage_path?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          item_id: string
+          pause_count?: number | null
+          session_id: string
+          status?: string
+          superseded?: boolean
+          total_pause_duration?: number | null
+          transcript?: string | null
+          used_for_scoring?: boolean
+          user_id: string
+          word_count?: number | null
+          wpm?: number | null
+        }
+        Update: {
+          attempt_number?: number
+          audio_storage_path?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          item_id?: string
+          pause_count?: number | null
+          session_id?: string
+          status?: string
+          superseded?: boolean
+          total_pause_duration?: number | null
+          transcript?: string | null
+          used_for_scoring?: boolean
+          user_id?: string
+          word_count?: number | null
+          wpm?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fluency_recordings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fluency_recordings_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
