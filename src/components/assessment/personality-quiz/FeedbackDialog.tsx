@@ -51,8 +51,11 @@ export function FeedbackDialog({
     setIsSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      
+      // In dev mode (no user), skip DB save and proceed
       if (!user) {
-        toast.error("Please log in to submit feedback");
+        console.log("[DEV MODE] Skipping feedback save - no authenticated user");
+        setStep("marketing");
         return;
       }
 
@@ -90,6 +93,8 @@ export function FeedbackDialog({
             .update({ marketing_consent: true })
             .eq("user_id", user.id)
             .eq("session_id", sessionId);
+        } else {
+          console.log("[DEV MODE] Skipping marketing consent save - no authenticated user");
         }
       } catch (error) {
         console.error("Error updating marketing consent:", error);
