@@ -126,6 +126,95 @@ export function useSkillModule({ sessionId, moduleType, prompts, onComplete }: U
     }
   }, [user, currentPrompt, sessionId, moduleType, getAttemptCount, toast]);
 
+  // Dev mode: submit text directly (bypasses Whisper)
+  const handleTextSubmit = useCallback(async (text: string): Promise<SkillRecordingResult | null> => {
+    if (!user || !currentPrompt) return null;
+
+    setIsProcessing(true);
+    const itemId = currentPrompt.id;
+    const attemptNumber = getAttemptCount(itemId);
+
+    try {
+      // Mark previous attempts as superseded
+      if (attemptNumber > 1) {
+        await supabase
+          .from('skill_recordings')
+          .update({ superseded: true, used_for_scoring: false })
+          .eq('session_id', sessionId)
+          .eq('item_id', itemId)
+          .eq('module_type', moduleType);
+      }
+
+      // Create recording record
+      const { data: recording, error: insertError } = await supabase
+        .from('skill_recordings')
+        .insert({
+          session_id: sessionId,
+          user_id: user.id,
+          module_type: moduleType,
+          item_id: itemId,
+          attempt_number: attemptNumber,
+          duration_seconds: 0,
+          transcript: text,
+          status: 'processing'
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      // Call analyze-skill with text directly (skip Whisper)
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-skill`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            transcript: text, // Pass text directly instead of audio
+            moduleType,
+            itemId,
+            promptText: currentPrompt.text,
+            recordingId: recording.id
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Analysis failed');
+      }
+
+      const analysisResult = await response.json();
+
+      const result: SkillRecordingResult = {
+        id: recording.id,
+        transcript: text,
+        wordCount: text.split(/\s+/).filter(Boolean).length,
+        score: analysisResult.score,
+        feedback: analysisResult.feedback,
+        breakdown: analysisResult.breakdown
+      };
+
+      setResults(prev => ({ ...prev, [itemId]: result }));
+      setIsProcessing(false);
+
+      return result;
+
+    } catch (error) {
+      console.error('Text submission error:', error);
+      setIsProcessing(false);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to process text',
+        variant: 'destructive'
+      });
+      return null;
+    }
+  }, [user, currentPrompt, sessionId, moduleType, getAttemptCount, toast]);
+
   const handleNext = useCallback(() => {
     if (isLastPrompt) {
       onComplete();
@@ -156,6 +245,7 @@ export function useSkillModule({ sessionId, moduleType, prompts, onComplete }: U
     getAttemptCount,
     getResult: (itemId: string) => results[itemId],
     handleRecordingComplete,
+    handleTextSubmit,
     handleNext,
     handleRedo
   };

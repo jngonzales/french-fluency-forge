@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Mic, Square, RotateCcw, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Mic, Square, RotateCcw, ArrowRight, Loader2, CheckCircle2, Keyboard } from 'lucide-react';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { cn } from '@/lib/utils';
 import type { SkillPrompt, SkillRecordingState, SkillRecordingResult } from './types';
@@ -14,10 +15,12 @@ interface SkillRecordingCardProps {
   totalQuestions: number;
   moduleTitle: string;
   onRecordingComplete: (blob: Blob, duration: number) => Promise<SkillRecordingResult | null>;
+  onTextSubmit?: (text: string) => Promise<SkillRecordingResult | null>;
   onNext: () => void;
   onRedo: () => void;
   existingResult?: SkillRecordingResult;
   isLast: boolean;
+  devMode?: boolean;
 }
 
 export function SkillRecordingCard({
@@ -27,10 +30,12 @@ export function SkillRecordingCard({
   totalQuestions,
   moduleTitle,
   onRecordingComplete,
+  onTextSubmit,
   onNext,
   onRedo,
   existingResult,
-  isLast
+  isLast,
+  devMode = false
 }: SkillRecordingCardProps) {
   const [recordingState, setRecordingState] = useState<SkillRecordingState>(
     existingResult ? 'done' : 'ready'
@@ -38,6 +43,8 @@ export function SkillRecordingCard({
   const [countdown, setCountdown] = useState(3);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [result, setResult] = useState<SkillRecordingResult | null>(existingResult || null);
+  const [devText, setDevText] = useState('');
+  const [useTextInput, setUseTextInput] = useState(false);
 
   const { startRecording, stopRecording, isRecording, audioBlob, error: recorderError } = useAudioRecorder();
 
@@ -106,12 +113,26 @@ export function SkillRecordingCard({
     setRecordingState('ready');
     setResult(null);
     setElapsedTime(0);
+    setDevText('');
+    setUseTextInput(false);
     onRedo();
   };
 
   const handleTryAgain = () => {
     setRecordingState('ready');
     setElapsedTime(0);
+  };
+
+  const handleDevTextSubmit = async () => {
+    if (!devText.trim() || !onTextSubmit) return;
+    setRecordingState('processing');
+    const textResult = await onTextSubmit(devText.trim());
+    if (textResult) {
+      setResult(textResult);
+      setRecordingState('done');
+    } else {
+      setRecordingState('error');
+    }
   };
 
   const progressPercentage = (elapsedTime / prompt.duration) * 100;
@@ -166,7 +187,7 @@ export function SkillRecordingCard({
           )}
 
           {/* Ready State */}
-          {recordingState === 'ready' && (
+          {recordingState === 'ready' && !useTextInput && (
             <div className="text-center space-y-4">
               <p className="text-muted-foreground">
                 You have {prompt.duration} seconds to respond
@@ -178,6 +199,48 @@ export function SkillRecordingCard({
               >
                 <Mic className="h-5 w-5" />
                 Start Recording
+              </Button>
+              {devMode && onTextSubmit && (
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setUseTextInput(true)}
+                    className="gap-2 text-muted-foreground"
+                  >
+                    <Keyboard className="h-4 w-4" />
+                    Dev: Type instead
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Dev Text Input Mode */}
+          {recordingState === 'ready' && useTextInput && devMode && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-amber-500 font-medium">Dev Mode: Text Input</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setUseTextInput(false)}
+                >
+                  Use Mic
+                </Button>
+              </div>
+              <Textarea
+                value={devText}
+                onChange={(e) => setDevText(e.target.value)}
+                placeholder="Type your response here (bypasses Whisper transcription)..."
+                className="min-h-[100px]"
+              />
+              <Button
+                onClick={handleDevTextSubmit}
+                disabled={!devText.trim()}
+                className="w-full"
+              >
+                Submit Text
               </Button>
             </div>
           )}

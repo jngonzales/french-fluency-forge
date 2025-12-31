@@ -21,6 +21,7 @@ export function ConfidenceModule({ sessionId, onComplete }: ConfidenceModuleProp
     getAttemptCount,
     getResult,
     handleRecordingComplete,
+    handleTextSubmit,
     handleNext,
     handleRedo
   } = useSkillModule({
@@ -29,6 +30,9 @@ export function ConfidenceModule({ sessionId, onComplete }: ConfidenceModuleProp
     prompts: confidencePrompts,
     onComplete
   });
+
+  // Enable dev mode in development
+  const isDev = import.meta.env.DEV || window.location.pathname.startsWith('/dev');
 
   if (showIntro) {
     return (
@@ -86,10 +90,12 @@ export function ConfidenceModule({ sessionId, onComplete }: ConfidenceModuleProp
       totalQuestions={totalPrompts}
       moduleTitle={confidenceConfig.title}
       onRecordingComplete={handleRecordingComplete}
+      onTextSubmit={handleTextSubmit}
       onNext={handleNext}
       onRedo={handleRedo}
       existingResult={getResult(currentPrompt.id)}
       isLast={isLastPrompt}
+      devMode={isDev}
     />
   );
 }

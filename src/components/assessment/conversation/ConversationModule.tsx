@@ -21,6 +21,7 @@ export function ConversationModule({ sessionId, onComplete }: ConversationModule
     getAttemptCount,
     getResult,
     handleRecordingComplete,
+    handleTextSubmit,
     handleNext,
     handleRedo
   } = useSkillModule({
@@ -29,6 +30,8 @@ export function ConversationModule({ sessionId, onComplete }: ConversationModule
     prompts: conversationPrompts,
     onComplete
   });
+
+  const isDev = import.meta.env.DEV || window.location.pathname.startsWith('/dev');
 
   if (showIntro) {
     return (
@@ -92,10 +95,12 @@ export function ConversationModule({ sessionId, onComplete }: ConversationModule
       totalQuestions={totalPrompts}
       moduleTitle={conversationConfig.title}
       onRecordingComplete={handleRecordingComplete}
+      onTextSubmit={handleTextSubmit}
       onNext={handleNext}
       onRedo={handleRedo}
       existingResult={getResult(currentPrompt.id)}
       isLast={isLastPrompt}
+      devMode={isDev}
     />
   );
 }
