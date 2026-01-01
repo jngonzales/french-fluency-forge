@@ -605,6 +605,197 @@ export type Database = {
           },
         ]
       }
+      sales_calls: {
+        Row: {
+          answers: Json | null
+          created_at: string
+          created_by: string | null
+          follow_up_email: string | null
+          id: string
+          lead_id: string
+          outcome: Database["public"]["Enums"]["call_outcome"] | null
+          qualification_reason: string | null
+          qualification_score: number | null
+          stage: Database["public"]["Enums"]["call_stage"]
+          summary: string | null
+          tags: Json | null
+          transcript_notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          answers?: Json | null
+          created_at?: string
+          created_by?: string | null
+          follow_up_email?: string | null
+          id?: string
+          lead_id: string
+          outcome?: Database["public"]["Enums"]["call_outcome"] | null
+          qualification_reason?: string | null
+          qualification_score?: number | null
+          stage?: Database["public"]["Enums"]["call_stage"]
+          summary?: string | null
+          tags?: Json | null
+          transcript_notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          answers?: Json | null
+          created_at?: string
+          created_by?: string | null
+          follow_up_email?: string | null
+          id?: string
+          lead_id?: string
+          outcome?: Database["public"]["Enums"]["call_outcome"] | null
+          qualification_reason?: string | null
+          qualification_score?: number | null
+          stage?: Database["public"]["Enums"]["call_stage"]
+          summary?: string | null
+          tags?: Json | null
+          transcript_notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_calls_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "sales_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_leads: {
+        Row: {
+          biggest_blockers: string[] | null
+          budget_comfort: number | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          current_level: string | null
+          deadline_urgency: string | null
+          decision_maker: string | null
+          email: string | null
+          goal: string | null
+          id: string
+          linked_user_id: string | null
+          motivation: string | null
+          name: string | null
+          notes: string | null
+          past_methods_tried: string[] | null
+          time_available_per_week: number | null
+          timezone: string | null
+          updated_at: string
+          willingness_to_speak: number | null
+        }
+        Insert: {
+          biggest_blockers?: string[] | null
+          budget_comfort?: number | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_level?: string | null
+          deadline_urgency?: string | null
+          decision_maker?: string | null
+          email?: string | null
+          goal?: string | null
+          id?: string
+          linked_user_id?: string | null
+          motivation?: string | null
+          name?: string | null
+          notes?: string | null
+          past_methods_tried?: string[] | null
+          time_available_per_week?: number | null
+          timezone?: string | null
+          updated_at?: string
+          willingness_to_speak?: number | null
+        }
+        Update: {
+          biggest_blockers?: string[] | null
+          budget_comfort?: number | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_level?: string | null
+          deadline_urgency?: string | null
+          decision_maker?: string | null
+          email?: string | null
+          goal?: string | null
+          id?: string
+          linked_user_id?: string | null
+          motivation?: string | null
+          name?: string | null
+          notes?: string | null
+          past_methods_tried?: string[] | null
+          time_available_per_week?: number | null
+          timezone?: string | null
+          updated_at?: string
+          willingness_to_speak?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_leads_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_leads_linked_user_id_fkey"
+            columns: ["linked_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_playbook: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          playbook_data: Json
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          playbook_data: Json
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          playbook_data?: Json
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_playbook_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       skill_recordings: {
         Row: {
           ai_breakdown: Json | null
@@ -754,10 +945,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin_user: { Args: { user_email: string }; Returns: boolean }
     }
     Enums: {
       age_band_type: "18_24" | "25_34" | "35_44" | "45_54" | "55_64" | "65_plus"
+      call_outcome: "won" | "lost" | "follow_up" | "refer_out"
+      call_stage:
+        | "rapport"
+        | "diagnose"
+        | "qualify"
+        | "present"
+        | "objections"
+        | "close"
+        | "next_steps"
       gender_type: "male" | "female" | "non_binary" | "prefer_not"
       session_status:
         | "intake"
@@ -903,6 +1103,16 @@ export const Constants = {
   public: {
     Enums: {
       age_band_type: ["18_24", "25_34", "35_44", "45_54", "55_64", "65_plus"],
+      call_outcome: ["won", "lost", "follow_up", "refer_out"],
+      call_stage: [
+        "rapport",
+        "diagnose",
+        "qualify",
+        "present",
+        "objections",
+        "close",
+        "next_steps",
+      ],
       gender_type: ["male", "female", "non_binary", "prefer_not"],
       session_status: [
         "intake",

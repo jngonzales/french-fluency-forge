@@ -4,7 +4,33 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import type { Lead, Call, Playbook, AssessmentData } from './types';
+import type { Lead, Call, Playbook, PlaybookData, AssessmentData, Answer } from './types';
+import type { Json } from '@/integrations/supabase/types';
+
+// Helper to transform DB lead to typed Lead
+function transformLead(dbLead: Record<string, unknown>): Lead {
+  return {
+    ...dbLead,
+    decision_maker: dbLead.decision_maker as Lead['decision_maker'],
+  } as Lead;
+}
+
+// Helper to transform DB call to typed Call
+function transformCall(dbCall: Record<string, unknown>): Call {
+  return {
+    ...dbCall,
+    tags: (dbCall.tags as string[]) || [],
+    answers: (dbCall.answers as Answer[]) || [],
+  } as Call;
+}
+
+// Helper to transform DB playbook to typed Playbook
+function transformPlaybook(dbPlaybook: Record<string, unknown>): Playbook {
+  return {
+    ...dbPlaybook,
+    playbook_data: dbPlaybook.playbook_data as PlaybookData,
+  } as Playbook;
+}
 
 /**
  * Leads API
@@ -16,7 +42,7 @@ export async function fetchLeads(): Promise<Lead[]> {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data || []).map(transformLead);
 }
 
 export async function fetchLead(id: string): Promise<Lead | null> {
@@ -27,7 +53,7 @@ export async function fetchLead(id: string): Promise<Lead | null> {
     .single();
 
   if (error) throw error;
-  return data;
+  return data ? transformLead(data) : null;
 }
 
 export async function createLead(lead: Partial<Lead>, userId: string): Promise<Lead> {
@@ -41,7 +67,7 @@ export async function createLead(lead: Partial<Lead>, userId: string): Promise<L
     .single();
 
   if (error) throw error;
-  return data;
+  return transformLead(data);
 }
 
 export async function updateLead(id: string, updates: Partial<Lead>): Promise<Lead> {
@@ -53,7 +79,7 @@ export async function updateLead(id: string, updates: Partial<Lead>): Promise<Le
     .single();
 
   if (error) throw error;
-  return data;
+  return transformLead(data);
 }
 
 /**
@@ -67,7 +93,7 @@ export async function fetchCallsForLead(leadId: string): Promise<Call[]> {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data || []).map(transformCall);
 }
 
 export async function fetchCall(id: string): Promise<Call | null> {
@@ -78,36 +104,47 @@ export async function fetchCall(id: string): Promise<Call | null> {
     .single();
 
   if (error) throw error;
-  return data;
+  return data ? transformCall(data) : null;
 }
 
 export async function createCall(call: Partial<Call>, userId: string): Promise<Call> {
   const { data, error } = await supabase
     .from('sales_calls')
     .insert({
-      ...call,
-      created_by: userId,
-      tags: call.tags || [],
-      answers: call.answers || [],
+      lead_id: call.lead_id!,
+      stage: call.stage,
+      transcript_notes: call.transcript_notes,
+      outcome: call.outcome,
+      follow_up_email: call.follow_up_email,
+      summary: call.summary,
       qualification_score: call.qualification_score ?? 50,
+      qualification_reason: call.qualification_reason,
+      created_by: userId,
+      tags: (call.tags || []) as unknown as Json,
+      answers: (call.answers || []) as unknown as Json,
     })
     .select()
     .single();
 
   if (error) throw error;
-  return data;
+  return transformCall(data);
 }
 
 export async function updateCall(id: string, updates: Partial<Call>): Promise<Call> {
+  // Prepare the update object with proper typing
+  const dbUpdates: Record<string, unknown> = { ...updates };
+  if (updates.tags) dbUpdates.tags = updates.tags as unknown as Json;
+  if (updates.answers) dbUpdates.answers = updates.answers as unknown as Json;
+  
   const { data, error } = await supabase
     .from('sales_calls')
-    .update(updates)
+    .update(dbUpdates)
     .eq('id', id)
     .select()
     .single();
 
   if (error) throw error;
-  return data;
+  return transformCall(data);
 }
 
 /**
@@ -181,6 +218,6 @@ export async function fetchActivePlaybook(): Promise<Playbook | null> {
     .single();
 
   if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
-  return data || null;
+  return data ? transformPlaybook(data) : null;
 }
 
