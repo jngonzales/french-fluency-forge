@@ -20,6 +20,7 @@ import DevPronunciationTest from "./pages/DevPronunciationTest";
 import NotFound from "./pages/NotFound";
 import Activate from "./pages/Activate";
 import AdminProducts from "./pages/AdminProducts";
+import SalesCopilot from "./pages/admin/SalesCopilot";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <AdminProducts />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/sales-copilot" 
+              element={
+                <ProtectedRoute>
+                  <SalesCopilot />
                 </ProtectedRoute>
               } 
             />

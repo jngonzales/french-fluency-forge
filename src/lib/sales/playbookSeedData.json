@@ -1,0 +1,674 @@
+{
+  "meta": {
+    "playbookId": "solv-3090-v1",
+    "version": "1.0.0",
+    "name": "SOLV 30/90 Challenge — Sales Call Playbook (Seed)",
+    "updatedAt": "2026-01-01",
+    "offer": {
+      "offerName": "30/90 Challenge",
+      "oneLiner": "Conversation-first French coaching with an autonomy-first system (DRY Method).",
+      "pricing": {
+        "payInFull": 1497,
+        "payInFullCurrency": "EUR",
+        "paymentPlan": [
+          { "amount": 499, "currency": "EUR", "count": 3, "label": "3×499€" }
+        ]
+      },
+      "checkoutUrl": "https://www.solvlanguages.com/3090checkout"
+    },
+    "notes": [
+      "This is a seed playbook. Edit language to match your voice.",
+      "Avoid guarantees. Keep claims realistic and individualized."
+    ]
+  },
+  "tags": {
+    "qualification": [
+      "qualified_high",
+      "qualified_medium",
+      "not_qualified",
+      "authority_yes",
+      "authority_no",
+      "budget_ok",
+      "budget_tight",
+      "timing_now",
+      "timing_later",
+      "speaking_goal",
+      "non_speaking_goal",
+      "high_motivation",
+      "low_motivation",
+      "time_ok",
+      "time_low"
+    ],
+    "blockers": [
+      "fear_of_speaking",
+      "perfectionism",
+      "grammar_trap",
+      "vocab_overload",
+      "no_structure",
+      "no_feedback",
+      "inconsistent",
+      "low_time",
+      "low_confidence",
+      "bad_past_experience",
+      "travel_deadline",
+      "work_requirement",
+      "relationship_family",
+      "school_exam"
+    ],
+    "objections": [
+      "too_expensive",
+      "need_to_think",
+      "ask_partner",
+      "no_time",
+      "tried_everything",
+      "too_old_bad_at_languages",
+      "no_immersion",
+      "want_grammar_first",
+      "just_app_or_tutor"
+    ],
+    "outcomes": ["won", "lost", "follow_up", "refer_out"]
+  },
+  "stages": [
+    {
+      "id": "rapport",
+      "name": "Rapport & Frame",
+      "order": 1,
+      "goal": "Set expectations, confirm purpose, get the lead talking.",
+      "requiredCheckpoints": ["cp_agenda", "cp_goal_primary"]
+    },
+    {
+      "id": "diagnose",
+      "name": "Diagnose (SPIN)",
+      "order": 2,
+      "goal": "Understand situation, problems, implications, and desired outcome.",
+      "requiredCheckpoints": ["cp_situation", "cp_problem", "cp_implication", "cp_need_payoff"]
+    },
+    {
+      "id": "qualify",
+      "name": "Qualify (BANT-lite)",
+      "order": 3,
+      "goal": "Confirm fit, time, authority, budget, and urgency.",
+      "requiredCheckpoints": ["cp_time", "cp_authority", "cp_budget", "cp_timing"]
+    },
+    {
+      "id": "present",
+      "name": "Present the Plan",
+      "order": 4,
+      "goal": "Map their problems to your method and what happens next.",
+      "requiredCheckpoints": ["cp_plan_map", "cp_expectations"]
+    },
+    {
+      "id": "objections",
+      "name": "Handle Objections",
+      "order": 5,
+      "goal": "Diagnose, reframe, and resolve obstacles to decision.",
+      "requiredCheckpoints": []
+    },
+    {
+      "id": "close",
+      "name": "Close",
+      "order": 6,
+      "goal": "Ask for the decision, choose payment option, complete checkout.",
+      "requiredCheckpoints": ["cp_close_ask"]
+    },
+    {
+      "id": "next_steps",
+      "name": "Next Steps",
+      "order": 7,
+      "goal": "If not closing today: schedule concrete follow-up or refer out.",
+      "requiredCheckpoints": ["cp_next_step"]
+    }
+  ],
+  "checkpoints": [
+    { "id": "cp_agenda", "label": "Agenda set (time + structure + permission)" },
+    { "id": "cp_goal_primary", "label": "Primary goal clarified (speaking outcome)" },
+    { "id": "cp_situation", "label": "Current situation captured" },
+    { "id": "cp_problem", "label": "Main problems in real conversations identified" },
+    { "id": "cp_implication", "label": "Consequences of staying stuck explored" },
+    { "id": "cp_need_payoff", "label": "Desired outcome + confidence definition clarified" },
+    { "id": "cp_time", "label": "Time available confirmed" },
+    { "id": "cp_authority", "label": "Decision maker confirmed" },
+    { "id": "cp_budget", "label": "Budget comfort confirmed" },
+    { "id": "cp_timing", "label": "Timing/urgency confirmed" },
+    { "id": "cp_plan_map", "label": "Plan mapped to their blockers" },
+    { "id": "cp_expectations", "label": "Expectations aligned (effort, consistency, speaking)" },
+    { "id": "cp_close_ask", "label": "Clear close question asked" },
+    { "id": "cp_next_step", "label": "Concrete next step (date/time or referral) set" }
+  ],
+  "questionBank": [
+    {
+      "id": "q_agenda",
+      "stageId": "rapport",
+      "checkpointId": "cp_agenda",
+      "type": "script",
+      "text": "Quick plan: I'll ask a few questions about your French and your real-life situations, then I'll tell you honestly if this is a fit and what I'd recommend. If it is a fit, I'll show you how we'd get you to confident conversations. Sound good?",
+      "options": [
+        { "label": "Yes", "value": "yes", "tags": [], "scoreDelta": 0 },
+        { "label": "Concerns", "value": "concerns", "tags": [], "scoreDelta": 0 }
+      ]
+    },
+    {
+      "id": "q_goal_primary",
+      "stageId": "rapport",
+      "checkpointId": "cp_goal_primary",
+      "type": "free_text",
+      "text": "What would 'confident French conversations' look like for you in 90 days? Give me a real scene (who, where, what you want to say).",
+      "listenFor": ["specific scene", "emotion", "frequency", "stakes"],
+      "tagsOnAnswers": [
+        {
+          "when": { "containsAny": ["speak", "conversation", "talk", "chat", "meetings", "dates", "family"] },
+          "addTags": ["speaking_goal"],
+          "scoreDelta": 10
+        },
+        {
+          "when": { "containsAny": ["grammar", "writing", "reading", "exam only", "DELF", "DALF"] },
+          "addTags": ["non_speaking_goal"],
+          "scoreDelta": -10
+        }
+      ]
+    },
+    {
+      "id": "q_situation",
+      "stageId": "diagnose",
+      "checkpointId": "cp_situation",
+      "type": "multi_prompt",
+      "text": "Where are you at today? (1) How often do you speak French now? (2) What situations do you avoid? (3) What level do you think you are?",
+      "listenFor": ["avoidance", "lack of reps", "self-assessment mismatch"],
+      "defaultNext": ["q_problem_moments"]
+    },
+    {
+      "id": "q_problem_moments",
+      "stageId": "diagnose",
+      "checkpointId": "cp_problem",
+      "type": "free_text",
+      "text": "Tell me about the last time you tried to speak French and it went badly. What happened, step by step?",
+      "listenFor": ["freeze", "translation", "vocab gap", "fear", "speed"],
+      "tagsOnAnswers": [
+        { "when": { "containsAny": ["freeze", "panic", "blank"] }, "addTags": ["fear_of_speaking", "low_confidence"], "scoreDelta": 5 },
+        { "when": { "containsAny": ["grammar", "conjugation", "mistake"] }, "addTags": ["grammar_trap", "perfectionism"], "scoreDelta": 3 },
+        { "when": { "containsAny": ["vocabulary", "words", "can't find"] }, "addTags": ["vocab_overload"], "scoreDelta": 3 }
+      ],
+      "defaultNext": ["q_implication"]
+    },
+    {
+      "id": "q_implication",
+      "stageId": "diagnose",
+      "checkpointId": "cp_implication",
+      "type": "single_choice",
+      "text": "If nothing changes, what does this cost you over the next 6–12 months?",
+      "options": [
+        { "label": "Missed opportunities (work/travel/relationships)", "value": "opportunities", "tags": ["high_motivation"], "scoreDelta": 6 },
+        { "label": "Ongoing frustration / confidence hit", "value": "confidence", "tags": ["high_motivation"], "scoreDelta": 4 },
+        { "label": "Not a big deal", "value": "not_big_deal", "tags": ["low_motivation"], "scoreDelta": -8 }
+      ],
+      "followUp": "If you pick one, what's the most painful moment that keeps repeating?"
+    },
+    {
+      "id": "q_need_payoff",
+      "stageId": "diagnose",
+      "checkpointId": "cp_need_payoff",
+      "type": "free_text",
+      "text": "If we fast-forward 90 days and it worked — what are you doing differently in those conversations?",
+      "listenFor": ["behavior change", "fluency markers", "confidence markers"],
+      "defaultNext": ["q_time_available"]
+    },
+    {
+      "id": "q_time_available",
+      "stageId": "qualify",
+      "checkpointId": "cp_time",
+      "type": "number",
+      "text": "Realistically, how many hours per week can you commit to speaking-focused practice for the next 90 days?",
+      "constraints": { "min": 0, "max": 30, "unit": "hours/week" },
+      "scoringRules": [
+        { "when": { "op": ">=", "value": 5 }, "addTags": ["time_ok"], "scoreDelta": 10 },
+        { "when": { "op": ">=", "value": 3 }, "addTags": [], "scoreDelta": 5 },
+        { "when": { "op": "<", "value": 3 }, "addTags": ["time_low", "low_time"], "scoreDelta": -15 }
+      ],
+      "defaultNext": ["q_authority"]
+    },
+    {
+      "id": "q_authority",
+      "stageId": "qualify",
+      "checkpointId": "cp_authority",
+      "type": "single_choice",
+      "text": "If we decide it's a fit today, are you the one who can make the decision?",
+      "options": [
+        { "label": "Yes", "value": "yes", "tags": ["authority_yes"], "scoreDelta": 8 },
+        { "label": "No (someone else decides)", "value": "no", "tags": ["authority_no"], "scoreDelta": -12 },
+        { "label": "Not sure / need to discuss", "value": "unsure", "tags": ["authority_no"], "scoreDelta": -8 }
+      ],
+      "defaultNext": ["q_budget_comfort"]
+    },
+    {
+      "id": "q_budget_comfort",
+      "stageId": "qualify",
+      "checkpointId": "cp_budget",
+      "type": "scale",
+      "text": "On a scale of 1–5, how comfortable are you investing 1497€ (or 3×499€) if it solves this speaking problem?",
+      "constraints": { "min": 1, "max": 5 },
+      "scoringRules": [
+        { "when": { "op": ">=", "value": 4 }, "addTags": ["budget_ok"], "scoreDelta": 10 },
+        { "when": { "op": "==", "value": 3 }, "addTags": [], "scoreDelta": 3 },
+        { "when": { "op": "<=", "value": 2 }, "addTags": ["budget_tight"], "scoreDelta": -12 }
+      ],
+      "defaultNext": ["q_timing"]
+    },
+    {
+      "id": "q_timing",
+      "stageId": "qualify",
+      "checkpointId": "cp_timing",
+      "type": "single_choice",
+      "text": "When do you want to start fixing this — now, or later?",
+      "options": [
+        { "label": "Now (this week)", "value": "now", "tags": ["timing_now"], "scoreDelta": 8 },
+        { "label": "Soon (next month)", "value": "soon", "tags": ["timing_now"], "scoreDelta": 4 },
+        { "label": "Later / someday", "value": "later", "tags": ["timing_later", "low_motivation"], "scoreDelta": -10 }
+      ],
+      "defaultNext": ["q_present_transition"]
+    },
+    {
+      "id": "q_present_transition",
+      "stageId": "present",
+      "checkpointId": "cp_plan_map",
+      "type": "script",
+      "text": "Ok. Based on what you told me, here's what's actually blocking you — and how we'd fix it in a simple 90-day plan. I'll keep it concrete.",
+      "defaultNext": ["q_map_blockers"]
+    },
+    {
+      "id": "q_map_blockers",
+      "stageId": "present",
+      "checkpointId": "cp_plan_map",
+      "type": "free_text",
+      "text": "Before I map the plan: if you had to name ONE blocker that kills your conversations the most, what is it?",
+      "listenFor": ["primary constraint"],
+      "defaultNext": ["q_expectations_alignment"]
+    },
+    {
+      "id": "q_expectations_alignment",
+      "stageId": "present",
+      "checkpointId": "cp_expectations",
+      "type": "single_choice",
+      "text": "If the plan is speaking-first (not grammar-first) and we focus on real conversations from day 1, are you open to that approach?",
+      "options": [
+        { "label": "Yes", "value": "yes", "tags": [], "scoreDelta": 6 },
+        { "label": "Maybe / depends", "value": "maybe", "tags": [], "scoreDelta": 0 },
+        { "label": "No, I want grammar first", "value": "no_grammar_first", "tags": ["want_grammar_first"], "scoreDelta": -12 }
+      ],
+      "defaultNext": ["q_close_ask"]
+    },
+    {
+      "id": "q_close_ask",
+      "stageId": "close",
+      "checkpointId": "cp_close_ask",
+      "type": "script",
+      "text": "Based on everything we discussed, I think this IS / ISN'T a fit. If it is a fit: do you want to enroll now and start this week?",
+      "options": [
+        { "label": "Yes", "value": "yes", "tags": ["qualified_high"], "scoreDelta": 10 },
+        { "label": "Not yet — objection", "value": "objection", "tags": [], "scoreDelta": 0 },
+        { "label": "No", "value": "no", "tags": ["lost"], "scoreDelta": -20 }
+      ]
+    },
+    {
+      "id": "q_next_step",
+      "stageId": "next_steps",
+      "checkpointId": "cp_next_step",
+      "type": "script",
+      "text": "Cool — what's the exact next step? (1) Book a follow-up time now, or (2) If it's not a fit, I'll point you to the best alternative path.",
+      "options": [
+        { "label": "Schedule follow-up", "value": "follow_up", "tags": ["follow_up"], "scoreDelta": 0 },
+        { "label": "Refer out", "value": "refer_out", "tags": ["refer_out"], "scoreDelta": 0 }
+      ]
+    }
+  ],
+  "qualification": {
+    "score": {
+      "start": 50,
+      "clampMin": 0,
+      "clampMax": 100,
+      "bands": [
+        { "min": 0, "max": 39, "label": "Low", "suggestedOutcome": "refer_out" },
+        { "min": 40, "max": 69, "label": "Medium", "suggestedOutcome": "follow_up_or_objection_handling" },
+        { "min": 70, "max": 100, "label": "High", "suggestedOutcome": "close" }
+      ]
+    },
+    "hardDisqualifyRules": [
+      {
+        "id": "dq_non_speaking_goal",
+        "if": { "tagsAny": ["non_speaking_goal"], "tagsNone": ["speaking_goal"] },
+        "then": {
+          "action": "disqualify",
+          "reason": "Goal is not conversation-focused.",
+          "script": "Based on your goal, this program is designed for speaking and real conversations. I don't want you paying for the wrong tool. If you want, tell me your exact goal and I'll recommend a better path."
+        }
+      },
+      {
+        "id": "dq_time_too_low",
+        "if": { "tagsAny": ["time_low"] },
+        "then": {
+          "action": "soft_disqualify",
+          "reason": "Time available is very low for meaningful speaking reps.",
+          "script": "With less than ~3 hours/week, progress is usually slow because speaking needs reps. We can either (1) redesign your schedule to free time, or (2) pause until you can commit consistently."
+        }
+      },
+      {
+        "id": "dq_authority_no",
+        "if": { "tagsAny": ["authority_no"] },
+        "then": {
+          "action": "continue_with_condition",
+          "reason": "Not the decision maker.",
+          "script": "Totally fine. To respect everyone's time, let's make the next step a short call with the decision maker present — and I'll keep it simple."
+        }
+      }
+    ],
+    "closeRule": {
+      "when": { "scoreGte": 70, "tagsNone": ["time_low"], "checkpointIdsComplete": ["cp_budget", "cp_authority", "cp_time", "cp_timing"] },
+      "then": { "action": "prompt_close_now" }
+    },
+    "paymentRecommendation": [
+      {
+        "id": "pay_rec_plan_if_budget_tight",
+        "if": { "tagsAny": ["budget_tight"] },
+        "then": { "recommend": "payment_plan", "label": "3×499€", "reason": "Lower upfront cost." }
+      },
+      {
+        "id": "pay_rec_full_if_budget_ok",
+        "if": { "tagsAny": ["budget_ok"] },
+        "then": { "recommend": "pay_in_full", "label": "1497€", "reason": "Simplest option." }
+      }
+    ]
+  },
+  "objectionLibrary": [
+    {
+      "id": "too_expensive",
+      "label": "Too expensive",
+      "empathy": [
+        "Totally fair — it's a meaningful investment.",
+        "Thanks for being direct."
+      ],
+      "diagnosticQuestions": [
+        "Compared to what — what are you using as the reference point?",
+        "Is it that you can't afford it, or you're not sure it'll work for you?"
+      ],
+      "reframes": [
+        "What you're buying is speed + structure + feedback for speaking, not more content.",
+        "If we remove the biggest speaking blocker, that changes your daily life in the situations you described."
+      ],
+      "proofAngles": [
+        "Use a specific story/testimonial placeholder: [INSERT: student who started speaking after years stuck].",
+        "Use a process proof: consistent speaking reps + feedback beats passive studying."
+      ],
+      "closeQuestions": [
+        "If we can make the plan fit your budget (full vs 3×499€), are you ready to start?",
+        "What would need to be true for this to feel like a smart investment?"
+      ]
+    },
+    {
+      "id": "need_to_think",
+      "label": "Need to think",
+      "empathy": ["Makes sense — big decision."],
+      "diagnosticQuestions": [
+        "What part do you need to think about — fit, timing, budget, or something else?",
+        "If you had to guess, what's the real hesitation?"
+      ],
+      "reframes": [
+        "Thinking is good — I just want to make sure it's not uncertainty we can resolve in 2 minutes.",
+        "If it's a fit, delaying usually keeps the same problem running."
+      ],
+      "proofAngles": [
+        "Recap their stated consequences + urgency: [INSERT: their words]."
+      ],
+      "closeQuestions": [
+        "If we answer that one question right now, would you be comfortable deciding today?",
+        "If not today, when exactly will you decide?"
+      ]
+    },
+    {
+      "id": "ask_partner",
+      "label": "Need to ask partner",
+      "empathy": ["Totally reasonable — it affects both of you."],
+      "diagnosticQuestions": [
+        "What do you think your partner will care about most: money, time, or proof it works?",
+        "What's the decision process in your home — what do they need to hear?"
+      ],
+      "reframes": [
+        "Let's not leave it vague — we can set up a quick 10-minute call with both of you so I can answer questions directly.",
+        "If your partner's concern is risk, we can clarify expectations and whether you're a fit."
+      ],
+      "proofAngles": [
+        "Use clarity: structure, time commitment, and realistic outcomes."
+      ],
+      "closeQuestions": [
+        "Can we book a time with both of you now?",
+        "If your partner says yes, are you personally ready to start?"
+      ]
+    },
+    {
+      "id": "no_time",
+      "label": "No time",
+      "empathy": ["Yeah — life is busy. I get it."],
+      "diagnosticQuestions": [
+        "Is it truly no time, or no energy after work?",
+        "What's a realistic minimum you could commit to for 90 days?"
+      ],
+      "reframes": [
+        "Speaking improves with reps — we can design a plan around small daily reps rather than long sessions.",
+        "The goal is consistency, not perfection."
+      ],
+      "proofAngles": [
+        "Use process proof: small consistent reps compound."
+      ],
+      "closeQuestions": [
+        "If we design this around your schedule and keep it simple, are you in?",
+        "What would you need to change to free 3–5 hours/week?"
+      ]
+    },
+    {
+      "id": "tried_everything",
+      "label": "Tried everything already",
+      "empathy": ["That's frustrating — and honestly, common."],
+      "diagnosticQuestions": [
+        "When you say everything, what did you actually do that involved speaking every week?",
+        "What part failed: consistency, feedback, confidence, or structure?"
+      ],
+      "reframes": [
+        "Most methods are content-heavy and conversation-light. Speaking needs targeted reps + feedback.",
+        "Your problem isn't effort — it's the strategy."
+      ],
+      "proofAngles": [
+        "Use a story/testimonial placeholder: [INSERT: student stuck for years → started speaking]."
+      ],
+      "closeQuestions": [
+        "If the missing piece is structured speaking reps + feedback, would you try a 90-day plan?",
+        "What would make this attempt meaningfully different from the past?"
+      ]
+    },
+    {
+      "id": "too_old_bad_at_languages",
+      "label": "I'm too old / bad at languages",
+      "empathy": ["I hear you — that belief is powerful."],
+      "diagnosticQuestions": [
+        "What specifically happens when you try to speak — blank mind, anxiety, slow recall?",
+        "Have you ever improved a skill later in life with the right training?"
+      ],
+      "reframes": [
+        "Speaking confidence is trainable. The bottleneck is usually reps + feedback + fear, not age.",
+        "We focus on usable conversation patterns, not academic perfection."
+      ],
+      "proofAngles": [
+        "Process proof: practice conditions + feedback loops."
+      ],
+      "closeQuestions": [
+        "If we design the plan for your pace and confidence, are you willing to try 90 days?",
+        "What would 'progress' look like that would prove you wrong?"
+      ]
+    },
+    {
+      "id": "no_immersion",
+      "label": "I'm not in France / no immersion",
+      "empathy": ["Yep — immersion helps, but it's not required."],
+      "diagnosticQuestions": [
+        "How many real conversation opportunities do you have per week right now (even online)?",
+        "What situations do you want to handle — travel, work, friends?"
+      ],
+      "reframes": [
+        "We can create immersion-like reps through structured speaking sessions and real scenarios.",
+        "The key is consistent speaking under realistic constraints."
+      ],
+      "proofAngles": [
+        "Explain how structured reps simulate real conversations."
+      ],
+      "closeQuestions": [
+        "If we can create those reps without living in France, are you in?",
+        "Do you want to solve this now or keep waiting for the 'perfect' environment?"
+      ]
+    },
+    {
+      "id": "want_grammar_first",
+      "label": "I want grammar first",
+      "empathy": ["Totally common — grammar feels safer."],
+      "diagnosticQuestions": [
+        "When you studied grammar in the past, did it translate into speaking confidence?",
+        "What's the real fear — making mistakes out loud?"
+      ],
+      "reframes": [
+        "We don't ignore grammar — we use it as-needed, in context, so it supports speaking.",
+        "Speaking-first builds speed and confidence; then grammar locks in accuracy."
+      ],
+      "proofAngles": [
+        "Contrast: 'knowing rules' vs 'using language'."
+      ],
+      "closeQuestions": [
+        "If we do grammar only when it helps your speaking, would you try that approach?",
+        "If you keep doing grammar-first, what do you expect will change?"
+      ]
+    },
+    {
+      "id": "just_app_or_tutor",
+      "label": "I can just use an app / tutor",
+      "empathy": ["For sure — those can help."],
+      "diagnosticQuestions": [
+        "What's missing with apps/tutors you tried: structure, accountability, feedback, or real speaking reps?",
+        "Do you want random lessons, or a plan designed around your exact conversation goals?"
+      ],
+      "reframes": [
+        "Apps are great for input. Speaking confidence needs guided practice + feedback loops.",
+        "A tutor can be hit-or-miss; we're building a consistent system around your goal."
+      ],
+      "proofAngles": [
+        "Use process proof: system + reps + feedback."
+      ],
+      "closeQuestions": [
+        "If you had a clear 90-day speaking plan with accountability, would you prefer that over random lessons?",
+        "What would make you choose this instead of experimenting again?"
+      ]
+    }
+  ],
+  "scripts": {
+    "positioning": {
+      "oneSentence": "This is for adults who want confident French conversations — we focus on speaking first, with an autonomy-first system that creates consistent reps and feedback.",
+      "whatWeDontDo": [
+        "We don't do content-dumps.",
+        "We don't optimize for exams unless speaking is the goal.",
+        "We don't promise magic results — we build a repeatable speaking process."
+      ]
+    },
+    "presentPlanTemplate": [
+      "Here's what I heard: [RESTATE their goal in their words].",
+      "Your blockers are: [TOP 2–3 TAGS].",
+      "So the plan is: (1) speaking reps built around your real scenes, (2) feedback + correction in context, (3) a simple autonomy system so you don't depend on motivation.",
+      "If you do the reps consistently, you should notice: more speed, fewer freezes, more confidence in the exact situations you described."
+    ],
+    "closeNow": {
+      "ask": "Do you want to enroll now and start this week?",
+      "paymentOptionPrompt": "Do you prefer 1497€ pay-in-full, or the 3×499€ plan?",
+      "checkoutInstruction": "Awesome — I'll send you the checkout link now. When you've completed it, tell me and we'll confirm the next steps."
+    },
+    "disqualify": {
+      "kindNo": "I don't think this is the best fit for what you want. I'd rather be honest than sell you something misaligned.",
+      "redirectQuestion": "What is the real outcome you want (speaking, exam, writing, travel), and by when?",
+      "referOutGeneric": "Based on that, I'd recommend [INSERT: alternative path]. If you want, I can share a simple plan you can follow on your own."
+    },
+    "followUpIfNotToday": {
+      "clarify": "What exactly needs to happen before you can decide?",
+      "setDeadline": "When will you decide — and can we book a time now?",
+      "emailSummaryTemplate": "Recap: goal, blockers, plan, next step date/time."
+    }
+  },
+  "proofPlaceholders": {
+    "testimonials": [
+      {
+        "id": "t1",
+        "label": "Stuck for years → starts speaking",
+        "snippet": "[INSERT TESTIMONIAL]",
+        "useWhenTagsAny": ["tried_everything", "low_confidence", "fear_of_speaking"]
+      },
+      {
+        "id": "t2",
+        "label": "Busy schedule → consistent reps",
+        "snippet": "[INSERT TESTIMONIAL]",
+        "useWhenTagsAny": ["low_time", "time_low"]
+      },
+      {
+        "id": "t3",
+        "label": "Grammar-first → speaking-first breakthrough",
+        "snippet": "[INSERT TESTIMONIAL]",
+        "useWhenTagsAny": ["grammar_trap", "want_grammar_first", "perfectionism"]
+      }
+    ],
+    "processProof": [
+      "Speaking confidence requires reps under realistic constraints.",
+      "Feedback in context beats studying rules in isolation.",
+      "Consistency beats intensity."
+    ]
+  },
+  "decisionEngineHints": {
+    "stageProgression": [
+      {
+        "fromStageId": "rapport",
+        "toStageId": "diagnose",
+        "when": { "checkpointIdsComplete": ["cp_agenda", "cp_goal_primary"] }
+      },
+      {
+        "fromStageId": "diagnose",
+        "toStageId": "qualify",
+        "when": { "checkpointIdsComplete": ["cp_situation", "cp_problem", "cp_implication", "cp_need_payoff"] }
+      },
+      {
+        "fromStageId": "qualify",
+        "toStageId": "present",
+        "when": { "checkpointIdsComplete": ["cp_time", "cp_authority", "cp_budget", "cp_timing"] }
+      },
+      {
+        "fromStageId": "present",
+        "toStageId": "close",
+        "when": { "checkpointIdsComplete": ["cp_plan_map", "cp_expectations"] }
+      }
+    ],
+    "nextQuestionPriorityRules": [
+      {
+        "id": "prio_handle_authority",
+        "if": { "tagsAny": ["authority_no"] },
+        "then": { "suggestStageId": "next_steps", "suggestQuestionId": "q_next_step", "reason": "Need decision-maker alignment." }
+      },
+      {
+        "id": "prio_handle_time_low",
+        "if": { "tagsAny": ["time_low"] },
+        "then": {
+          "suggestStageId": "qualify",
+          "suggestQuestionId": "q_time_available",
+          "reason": "Time constraint can block results; redesign schedule or disqualify."
+        }
+      },
+      {
+        "id": "prio_handle_grammar_first",
+        "if": { "tagsAny": ["want_grammar_first"] },
+        "then": {
+          "suggestStageId": "present",
+          "suggestQuestionId": "q_expectations_alignment",
+          "reason": "Align on speaking-first approach before closing."
+        }
+      }
+    ]
+  }
+}
+

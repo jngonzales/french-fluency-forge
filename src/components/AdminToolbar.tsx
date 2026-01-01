@@ -11,7 +11,8 @@ import {
   RotateCcw,
   Database,
   ChevronDown,
-  Zap
+  Zap,
+  Phone
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -232,6 +233,17 @@ export function AdminToolbar() {
           >
             <RotateCcw className="h-3 w-3 mr-1" />
             New Session
+          </Button>
+
+          {/* Sales Copilot */}
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            className="h-7 text-xs bg-amber-700 hover:bg-amber-800"
+            onClick={() => navigate('/admin/sales-copilot')}
+          >
+            <Phone className="h-3 w-3 mr-1" />
+            Sales Copilot
           </Button>
 
           {/* Current Location */}
