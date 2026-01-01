@@ -45,7 +45,9 @@ interface ItemResult {
   itemId: string;
   section: Section;
   pronScore: number;
+  accuracyScore: number;
   words?: WordScore[];
+  attemptNumber: number;
 }
 
 interface PronunciationModuleProps {
@@ -72,11 +74,20 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastWordScores, setLastWordScores] = useState<WordScore[] | null>(null);
   
+  // Feedback state - NEW
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [currentResult, setCurrentResult] = useState<ItemResult | null>(null);
+  const [attemptCounts, setAttemptCounts] = useState<Record<string, number>>({});
+  
   // Debug state
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [showDebug, setShowDebug] = useState(false);
   
   const referenceAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Get attempt count for current item
+  const currentAttemptCount = attemptCounts[currentItem?.id] || 0;
+  const maxAttemptsReached = currentAttemptCount >= 2;
 
   const {
     isRecording,
@@ -169,6 +180,7 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
     
     setIsProcessing(true);
     setLastWordScores(null);
+    setShowFeedback(false); // Clear previous feedback
 
     try {
       // Convert blob to base64
@@ -228,20 +240,34 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
 
       setLastWordScores(wordScores);
 
+      // FIX: Use accuracyScore if pronScore is 0 (backend bug)
+      const finalScore = result.pronScore || result.accuracyScore || 0;
+
+      // Increment attempt count
+      const attemptNumber = (attemptCounts[currentItem.id] || 0) + 1;
+      setAttemptCounts(prev => ({ ...prev, [currentItem.id]: attemptNumber }));
+
       // Store result
       const itemResult: ItemResult = {
         itemId: currentItem.id,
         section: currentSection,
-        pronScore: result.pronScore || 0,
+        pronScore: finalScore,
+        accuracyScore: result.accuracyScore || 0,
         words: wordScores,
+        attemptNumber,
       };
 
-      setResults((prev) => [...prev, itemResult]);
+      setResults((prev) => {
+        // Replace previous attempt if exists, otherwise add
+        const filtered = prev.filter(r => r.itemId !== currentItem.id);
+        return [...filtered, itemResult];
+      });
       
-      // Don't auto-advance in debug mode
-      if (!showDebug) {
-        advanceToNext();
-      }
+      // Show feedback immediately on same page
+      setCurrentResult(itemResult);
+      setShowFeedback(true);
+      
+      // DON'T auto-advance - wait for user to click Continue
       
     } catch (error) {
       console.error("Pronunciation assessment error:", error);
@@ -276,6 +302,9 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
 
   const advanceToNext = () => {
     resetRecording();
+    setShowFeedback(false);
+    setCurrentResult(null);
+    setLastWordScores(null);
     
     if (currentIndex < currentItems.length - 1) {
       setCurrentIndex((prev) => prev + 1);
@@ -292,6 +321,13 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
         calculateAndComplete();
       }
     }
+  };
+
+  const handleTryAgain = () => {
+    resetRecording();
+    setShowFeedback(false);
+    setCurrentResult(null);
+    setLastWordScores(null);
   };
 
   const calculateAndComplete = () => {
@@ -413,25 +449,40 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
         {currentSection === "reading" && currentItem && (
           <Card className="mb-6">
             <CardHeader>
-              <div className="flex items-center gap-2 text-sm text-primary mb-2">
-                <span>Focus: {(currentItem as ReadingItem).focus.join(", ")}</span>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-sm text-primary">
+                  <span>Focus: {(currentItem as ReadingItem).focus.join(", ")}</span>
+                </div>
+                {currentAttemptCount > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    Attempt {currentAttemptCount}/2
+                  </Badge>
+                )}
               </div>
               <CardTitle className="text-xl leading-relaxed">
                 {(currentItem as ReadingItem).referenceText}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <RecordingControls
-                isRecording={isRecording}
-                isProcessing={isProcessing}
-                audioBlob={audioBlob}
-                recordingTime={recordingTime}
-                startRecording={startRecording}
-                stopRecording={stopRecording}
-                resetRecording={resetRecording}
-                onSubmit={handleRecordingSubmit}
-              />
-              {lastWordScores && <WordHeatmap words={lastWordScores} />}
+              {!showFeedback ? (
+                <RecordingControls
+                  isRecording={isRecording}
+                  isProcessing={isProcessing}
+                  audioBlob={audioBlob}
+                  recordingTime={recordingTime}
+                  startRecording={startRecording}
+                  stopRecording={stopRecording}
+                  resetRecording={resetRecording}
+                  onSubmit={handleRecordingSubmit}
+                />
+              ) : (
+                <FeedbackDisplay
+                  result={currentResult!}
+                  wordScores={lastWordScores}
+                  onContinue={advanceToNext}
+                  onTryAgain={maxAttemptsReached ? null : handleTryAgain}
+                />
+              )}
             </CardContent>
           </Card>
         )}
@@ -440,42 +491,61 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
         {currentSection === "repeat" && currentItem && (
           <Card className="mb-6">
             <CardHeader>
-              <div className="flex items-center gap-2 text-sm text-primary mb-2">
-                <span>Focus: {(currentItem as RepeatItem).focus.join(", ")}</span>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-sm text-primary">
+                  <span>Focus: {(currentItem as RepeatItem).focus.join(", ")}</span>
+                </div>
+                {currentAttemptCount > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    Attempt {currentAttemptCount}/2
+                  </Badge>
+                )}
               </div>
               <CardTitle className="text-lg">Listen, then repeat:</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Play button */}
-              <div className="flex justify-center">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={playReferenceAudio}
-                  disabled={!referenceAudioUrl || isLoadingReference}
-                  className="h-20 w-20 rounded-full"
-                >
-                  {isLoadingReference ? (
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                  ) : isPlayingReference ? (
-                    <Pause className="h-8 w-8" />
-                  ) : (
-                    <Volume2 className="h-8 w-8" />
-                  )}
-                </Button>
-              </div>
+              {!showFeedback && (
+                <>
+                  {/* Play button */}
+                  <div className="flex justify-center">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      onClick={playReferenceAudio}
+                      disabled={!referenceAudioUrl || isLoadingReference}
+                      className="h-20 w-20 rounded-full"
+                    >
+                      {isLoadingReference ? (
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                      ) : isPlayingReference ? (
+                        <Pause className="h-8 w-8" />
+                      ) : (
+                        <Volume2 className="h-8 w-8" />
+                      )}
+                    </Button>
+                  </div>
 
-              <RecordingControls
-                isRecording={isRecording}
-                isProcessing={isProcessing}
-                audioBlob={audioBlob}
-                recordingTime={recordingTime}
-                startRecording={startRecording}
-                stopRecording={stopRecording}
-                resetRecording={resetRecording}
-                onSubmit={handleRecordingSubmit}
-              />
-              {lastWordScores && <WordHeatmap words={lastWordScores} />}
+                  <RecordingControls
+                    isRecording={isRecording}
+                    isProcessing={isProcessing}
+                    audioBlob={audioBlob}
+                    recordingTime={recordingTime}
+                    startRecording={startRecording}
+                    stopRecording={stopRecording}
+                    resetRecording={resetRecording}
+                    onSubmit={handleRecordingSubmit}
+                  />
+                </>
+              )}
+              
+              {showFeedback && (
+                <FeedbackDisplay
+                  result={currentResult!}
+                  wordScores={lastWordScores}
+                  onContinue={advanceToNext}
+                  onTryAgain={maxAttemptsReached ? null : handleTryAgain}
+                />
+              )}
             </CardContent>
           </Card>
         )}
@@ -647,6 +717,90 @@ function WordHeatmap({ words }: { words: WordScore[] }) {
           </span>
         ))}
       </div>
+    </div>
+  );
+}
+
+// Feedback display component
+interface FeedbackDisplayProps {
+  result: ItemResult;
+  wordScores: WordScore[] | null;
+  onContinue: () => void;
+  onTryAgain: (() => void) | null;
+}
+
+function FeedbackDisplay({ result, wordScores, onContinue, onTryAgain }: FeedbackDisplayProps) {
+  const score = result.pronScore;
+  const isGood = score >= 75;
+  const isOk = score >= 50 && score < 75;
+  const needsWork = score < 50;
+
+  return (
+    <div className="space-y-6">
+      {/* Score Display */}
+      <div className={`p-6 rounded-xl text-center ${
+        isGood ? 'bg-green-500/10 border border-green-500/20' :
+        isOk ? 'bg-yellow-500/10 border border-yellow-500/20' :
+        'bg-red-500/10 border border-red-500/20'
+      }`}>
+        <div className="mb-4">
+          {isGood ? (
+            <Check className="h-12 w-12 text-green-500 mx-auto mb-2" />
+          ) : isOk ? (
+            <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-2" />
+          ) : (
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-2" />
+          )}
+          <h3 className="text-2xl font-bold mb-2">
+            {isGood ? 'Excellent!' : isOk ? 'Good effort!' : 'Keep practicing!'}
+          </h3>
+          <p className="text-4xl font-bold mb-2">
+            {Math.round(score)}<span className="text-2xl text-muted-foreground">/100</span>
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Accuracy: {Math.round(result.accuracyScore)}%
+          </p>
+        </div>
+
+        {/* Encouragement Message */}
+        <p className="text-sm">
+          {isGood && "Your pronunciation is spot on! Great job with those sounds."}
+          {isOk && "You're on the right track. A few sounds need fine-tuning."}
+          {needsWork && "Don't worry, pronunciation takes practice. Focus on the highlighted words."}
+        </p>
+      </div>
+
+      {/* Word Heatmap */}
+      {wordScores && wordScores.length > 0 && <WordHeatmap words={wordScores} />}
+
+      {/* Action Buttons */}
+      <div className="flex gap-3">
+        {onTryAgain && (
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={onTryAgain}
+            className="flex-1"
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Try Again {result.attemptNumber === 1 ? '(1 more chance)' : ''}
+          </Button>
+        )}
+        <Button
+          size="lg"
+          onClick={onContinue}
+          className="flex-1"
+        >
+          Continue
+          <ChevronRight className="h-4 w-4 ml-2" />
+        </Button>
+      </div>
+
+      {result.attemptNumber === 2 && (
+        <p className="text-xs text-center text-muted-foreground">
+          Maximum attempts reached. Moving forward helps get a complete assessment.
+        </p>
+      )}
     </div>
   );
 }
