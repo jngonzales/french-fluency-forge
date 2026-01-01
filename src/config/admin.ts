@@ -6,11 +6,7 @@
  */
 
 export const ADMIN_EMAILS = [
-  // Add your email(s) here
-  'tom@example.com',
-  'tomgauthier@gmail.com',
-  'admin@example.com',
-  // Add more admin emails as needed
+  'tom@solvlanguages.com',
 ];
 
 /**

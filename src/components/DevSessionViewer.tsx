@@ -42,10 +42,11 @@ interface FluencyEvent {
 interface SkillRecording {
   id: string;
   module_type: string;
-  prompt_id: string;
+  item_id: string;
   transcript: string | null;
   ai_score: number | null;
-  ai_feedback: unknown;
+  ai_breakdown: unknown;
+  ai_feedback: string | null;
   used_for_scoring: boolean;
   created_at: string;
 }
@@ -55,7 +56,7 @@ interface ComprehensionRecording {
   item_id: string;
   transcript: string | null;
   ai_score: number | null;
-  ai_feedback: unknown;
+  ai_feedback_fr: string | null;
   used_for_scoring: boolean;
   created_at: string;
 }
@@ -305,11 +306,11 @@ export function DevSessionViewer() {
                         <CardContent className="p-3 space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-[10px] h-5 capitalize">
+                            <Badge variant="outline" className="text-[10px] h-5 capitalize">
                                 {rec.module_type}
                               </Badge>
                               <Badge variant="outline" className="text-[10px] h-5">
-                                {rec.prompt_id}
+                                {rec.item_id}
                               </Badge>
                               {rec.used_for_scoring && (
                                 <Badge variant="secondary" className="text-[10px] h-5 bg-green-500/20 text-green-700">
@@ -391,13 +392,13 @@ export function DevSessionViewer() {
                             </div>
                           )}
                           
-                          {rec.ai_feedback && (
+                          {rec.ai_feedback_fr && (
                             <details className="text-[10px]">
                               <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
                                 AI Feedback
                               </summary>
                               <pre className="mt-1 bg-muted/50 p-2 rounded overflow-x-auto text-[9px]">
-                                {JSON.stringify(rec.ai_feedback, null, 2)}
+                                {rec.ai_feedback_fr}
                               </pre>
                             </details>
                           )}
