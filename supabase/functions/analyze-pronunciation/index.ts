@@ -57,6 +57,43 @@ interface PronunciationResult {
   rawResponse?: unknown;
 }
 
+// Calculate fluency score from word timing data
+function calculateFluencyFromTiming(words: Array<{ Offset?: number; Duration?: number; Word: string }>): number {
+  if (words.length < 2) return 80; // Default for single word
+  
+  let totalPauseDuration = 0;
+  let totalSpeechDuration = 0;
+  
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    const duration = word.Duration || 0;
+    totalSpeechDuration += duration;
+    
+    // Check gap to next word
+    if (i < words.length - 1) {
+      const nextWord = words[i + 1];
+      const currentEnd = (word.Offset || 0) + duration;
+      const nextStart = nextWord.Offset || 0;
+      const gap = nextStart - currentEnd;
+      
+      // Gaps longer than 300ms are considered pauses
+      if (gap > 3000000) { // Azure uses 100ns units
+        totalPauseDuration += gap;
+      }
+    }
+  }
+  
+  // Calculate fluency based on pause ratio
+  const totalTime = totalSpeechDuration + totalPauseDuration;
+  if (totalTime === 0) return 80;
+  
+  const pauseRatio = totalPauseDuration / totalTime;
+  // Lower pause ratio = higher fluency (0% pauses = 100, 50% pauses = 50)
+  const fluencyScore = Math.max(0, Math.min(100, 100 - (pauseRatio * 100)));
+  
+  return fluencyScore;
+}
+
 async function assessPronunciation(
   audioData: Uint8Array,
   referenceText: string,

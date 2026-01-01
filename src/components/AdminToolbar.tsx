@@ -56,8 +56,8 @@ export function AdminToolbar() {
   const location = useLocation();
   const [currentSession, setCurrentSession] = useState<any>(null);
 
-  // Show for admin or dev mode
-  if (!isAdmin && !isDev) return null;
+  // Determine visibility (calculated after all hooks)
+  const shouldShow = isAdmin || isDev;
 
   const jumpToStatus = async (status: SessionStatus) => {
     if (!user) {
@@ -164,6 +164,9 @@ export function AdminToolbar() {
       toast.error('Failed to reset session');
     }
   };
+
+  // Hide if not admin/dev
+  if (!shouldShow) return null;
 
   return (
     <div className="fixed top-0 left-0 right-0 z-[9997] bg-amber-600 text-white shadow-lg">

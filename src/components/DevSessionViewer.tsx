@@ -73,8 +73,8 @@ export function DevSessionViewer() {
   const [comprehensionRecordings, setComprehensionRecordings] = useState<ComprehensionRecording[]>([]);
   const [events, setEvents] = useState<FluencyEvent[]>([]);
 
-  // Show in development OR for admin users
-  if (!isDev && !isAdmin) return null;
+  // Determine visibility (calculated after all hooks)
+  const shouldShow = isDev || isAdmin;
 
   const loadSessions = async () => {
     if (!user) return;
@@ -155,6 +155,9 @@ export function DevSessionViewer() {
       second: "2-digit"
     });
   };
+
+  // Hide if not admin/dev
+  if (!shouldShow) return null;
 
   return (
     <>

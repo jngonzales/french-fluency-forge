@@ -124,8 +124,8 @@ export function DevNav() {
   const { user } = useAuth();
   const { isAdmin, isDev } = useAdminMode();
 
-  // Show in development OR for admin users
-  if (!isDev && !isAdmin) return null;
+  // Determine visibility (calculated after all hooks)
+  const shouldShow = isDev || isAdmin;
 
   const jumpToPhase = async (status: SessionStatus) => {
     if (!user) {
@@ -217,6 +217,9 @@ export function DevNav() {
       return next;
     });
   };
+
+  // Hide if not admin/dev
+  if (!shouldShow) return null;
 
   return (
     <>
