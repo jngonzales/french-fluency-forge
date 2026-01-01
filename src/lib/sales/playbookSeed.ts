@@ -5,6 +5,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import type { PlaybookData } from './types';
+import type { Json } from '@/integrations/supabase/types';
 // @ts-ignore - JSON import
 import playbookJson from './playbookSeedData.json';
 
@@ -36,9 +37,9 @@ export async function seedPlaybook(userId: string): Promise<string | null> {
     const { data, error } = await supabase
       .from('sales_playbook')
       .insert({
-        version: playbookJson.meta.version,
-        name: playbookJson.meta.name,
-        playbook_data: playbookJson as PlaybookData,
+        version: (playbookJson as PlaybookData).meta.version,
+        name: (playbookJson as PlaybookData).meta.name,
+        playbook_data: playbookJson as unknown as Json,
         is_active: true,
         created_by: userId,
       })
@@ -67,7 +68,7 @@ export async function getActivePlaybook(): Promise<PlaybookData | null> {
       .single();
 
     if (error) throw error;
-    return data?.playbook_data as PlaybookData;
+    return data?.playbook_data as unknown as PlaybookData;
   } catch (error) {
     console.error('Error fetching active playbook:', error);
     return null;
