@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { DevNav } from "@/components/DevNav";
 import { DevSessionViewer } from "@/components/DevSessionViewer";
+import { AdminToolbar } from "@/components/AdminToolbar";
 import Index from "./pages/Index";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
@@ -29,6 +30,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <AdminToolbar />
           <DevNav />
           <DevSessionViewer />
           <Routes>

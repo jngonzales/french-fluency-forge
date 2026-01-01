@@ -1,12 +1,14 @@
 import { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminMode } from "@/hooks/useAdminMode";
 import { Button } from "@/components/ui/button";
 import { LogOut, ArrowRight } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
   const { user, isLoading, signOut } = useAuth();
+  const { showDevTools } = useAdminMode();
 
   const handleSignOut = async () => {
     await signOut();
@@ -22,7 +24,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-background ${showDevTools ? 'pt-10' : ''}`}>
       {/* Header */}
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">

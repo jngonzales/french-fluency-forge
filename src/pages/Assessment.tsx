@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminMode } from "@/hooks/useAdminMode";
 import IntakeForm from "@/components/assessment/IntakeForm";
 import ConsentForm from "@/components/assessment/ConsentForm";
 import { PronunciationModule } from "@/components/assessment/pronunciation";
@@ -12,6 +13,7 @@ import { ConversationModule } from "@/components/assessment/conversation";
 import { ComprehensionModule } from "@/components/assessment/comprehension";
 import { PersonalityQuiz } from "@/components/assessment/personality-quiz";
 import { ProcessingView } from "@/components/assessment/ProcessingView";
+import { LiveDataViewer } from "@/components/LiveDataViewer";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
@@ -28,6 +30,7 @@ interface AssessmentSession {
 const Assessment = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
+  const { isAdmin, isDev } = useAdminMode();
   
   const [session, setSession] = useState<AssessmentSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -170,21 +173,29 @@ const Assessment = () => {
     case "assessment":
       const moduleProps = { sessionId: session.id, onComplete: advancePhase };
       
-      switch (assessmentPhase) {
-        case "pronunciation":
-          return <PronunciationModule {...moduleProps} onSkip={advancePhase} />;
-        case "fluency":
-          return <FluencyModule {...moduleProps} onSkip={advancePhase} />;
-        case "confidence":
-          return <ConfidenceModule {...moduleProps} />;
-        case "syntax":
-          return <SyntaxModule {...moduleProps} />;
-        case "conversation":
-          return <ConversationModule {...moduleProps} />;
-        case "comprehension":
-          return <ComprehensionModule {...moduleProps} />;
-      }
-      break;
+      const renderModule = () => {
+        switch (assessmentPhase) {
+          case "pronunciation":
+            return <PronunciationModule {...moduleProps} onSkip={advancePhase} />;
+          case "fluency":
+            return <FluencyModule {...moduleProps} onSkip={advancePhase} />;
+          case "confidence":
+            return <ConfidenceModule {...moduleProps} />;
+          case "syntax":
+            return <SyntaxModule {...moduleProps} />;
+          case "conversation":
+            return <ConversationModule {...moduleProps} />;
+          case "comprehension":
+            return <ComprehensionModule {...moduleProps} />;
+        }
+      };
+
+      return (
+        <>
+          {renderModule()}
+          {(isAdmin || isDev) && <LiveDataViewer sessionId={session.id} moduleType={assessmentPhase} />}
+        </>
+      );
 
     case "processing":
       return (

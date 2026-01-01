@@ -1,0 +1,65 @@
+═══════════════════════════════════════════════════════════════
+🎉 ADMIN MODE - QUICK START
+═══════════════════════════════════════════════════════════════
+
+✅ YOU NOW HAVE POWERFUL ADMIN/DEV TOOLS!
+
+═══════════════════════════════════════════════════════════════
+SETUP (30 seconds):
+═══════════════════════════════════════════════════════════════
+
+1. Edit: src/config/admin.ts
+2. Add your email to ADMIN_EMAILS array
+3. Sign in with that email
+4. See yellow admin toolbar appear!
+
+═══════════════════════════════════════════════════════════════
+WHAT YOU GET:
+═══════════════════════════════════════════════════════════════
+
+🎯 ADMIN TOOLBAR (Top - Yellow Bar)
+   - Jump to Stage: Skip to any form/stage
+   - Jump to Module: Go directly to any assessment module
+   - New Session: Reset instantly
+   
+📊 LIVE DATA VIEWER (Bottom Right)
+   - Transcriptions as they process
+   - Scores in real-time
+   - AI feedback
+   - Auto-refreshes every 3 seconds
+
+🗄️ SESSION DEBUGGER (Bottom Left - Blue Icon)
+   - All fluency recordings with WPM
+   - All skill recordings (confidence, syntax, conversation)
+   - All comprehension recordings
+   - Full session data
+
+🐛 DEV NAV (Bottom Right - Bug Icon)
+   - Quick page navigation
+   - Assessment phase jumping
+   - Dimension sidebar
+
+═══════════════════════════════════════════════════════════════
+USE CASES:
+═══════════════════════════════════════════════════════════════
+
+❌ OLD WAY: Fill forms → consent → 15-question quiz → Finally test
+   Time: 15-20 minutes
+
+✅ NEW WAY: Click "Jump to Module" → Select module → You're there!
+   Time: 5 seconds
+
+═══════════════════════════════════════════════════════════════
+KEY BENEFIT:
+═══════════════════════════════════════════════════════════════
+
+NO MORE FILLING OUT FORMS EVERY TIME!
+
+Just jump to what you need to test. See results immediately.
+
+═══════════════════════════════════════════════════════════════
+
+📖 Full docs: ADMIN_MODE_SETUP.md
+
+🚀 Ready to test? Add your email and sign in!
+

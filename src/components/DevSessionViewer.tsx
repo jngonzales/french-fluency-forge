@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminMode } from "@/hooks/useAdminMode";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X, RefreshCw, Database, Mic, MessageSquare, User } from "lucide-react";
+import { X, RefreshCw, Database, Mic, MessageSquare, User, Brain, BookOpen, Volume2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface SessionData {
@@ -38,17 +39,41 @@ interface FluencyEvent {
   metadata: unknown;
 }
 
+interface SkillRecording {
+  id: string;
+  module_type: string;
+  prompt_id: string;
+  transcript: string | null;
+  ai_score: number | null;
+  ai_feedback: unknown;
+  used_for_scoring: boolean;
+  created_at: string;
+}
+
+interface ComprehensionRecording {
+  id: string;
+  item_id: string;
+  transcript: string | null;
+  ai_score: number | null;
+  ai_feedback: unknown;
+  used_for_scoring: boolean;
+  created_at: string;
+}
+
 export function DevSessionViewer() {
   const { user } = useAuth();
+  const { isAdmin, isDev } = useAdminMode();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [recordings, setRecordings] = useState<FluencyRecording[]>([]);
+  const [skillRecordings, setSkillRecordings] = useState<SkillRecording[]>([]);
+  const [comprehensionRecordings, setComprehensionRecordings] = useState<ComprehensionRecording[]>([]);
   const [events, setEvents] = useState<FluencyEvent[]>([]);
 
-  // Only show in development
-  if (import.meta.env.PROD) return null;
+  // Show in development OR for admin users
+  if (!isDev && !isAdmin) return null;
 
   const loadSessions = async () => {
     if (!user) return;
@@ -71,7 +96,7 @@ export function DevSessionViewer() {
   const loadSessionDetails = async (sessionId: string) => {
     setLoading(true);
     
-    // Load recordings
+    // Load fluency recordings
     const { data: recordingsData } = await supabase
       .from("fluency_recordings")
       .select("*")
@@ -79,6 +104,24 @@ export function DevSessionViewer() {
       .order("created_at", { ascending: false });
 
     setRecordings(recordingsData || []);
+
+    // Load skill recordings (confidence, syntax, conversation)
+    const { data: skillData } = await supabase
+      .from("skill_recordings")
+      .select("*")
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: false });
+
+    setSkillRecordings(skillData || []);
+
+    // Load comprehension recordings
+    const { data: comprehensionData } = await supabase
+      .from("comprehension_recordings")
+      .select("*")
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: false });
+
+    setComprehensionRecordings(comprehensionData || []);
 
     // Load events
     const { data: eventsData } = await supabase
@@ -177,11 +220,19 @@ export function DevSessionViewer() {
             </div>
 
             {/* Content */}
-            <Tabs defaultValue="recordings" className="h-full">
-              <TabsList className="w-full justify-start rounded-none border-b h-9">
-                <TabsTrigger value="recordings" className="text-xs h-7">
-                  <Mic className="h-3 w-3 mr-1" />
-                  Recordings ({recordings.length})
+            <Tabs defaultValue="fluency" className="h-full">
+              <TabsList className="w-full justify-start rounded-none border-b h-9 flex-wrap">
+                <TabsTrigger value="fluency" className="text-xs h-7">
+                  <MessageSquare className="h-3 w-3 mr-1" />
+                  Fluency ({recordings.length})
+                </TabsTrigger>
+                <TabsTrigger value="skills" className="text-xs h-7">
+                  <Brain className="h-3 w-3 mr-1" />
+                  Skills ({skillRecordings.length})
+                </TabsTrigger>
+                <TabsTrigger value="comprehension" className="text-xs h-7">
+                  <Volume2 className="h-3 w-3 mr-1" />
+                  Listening ({comprehensionRecordings.length})
                 </TabsTrigger>
                 <TabsTrigger value="events" className="text-xs h-7">
                   <MessageSquare className="h-3 w-3 mr-1" />
@@ -194,7 +245,7 @@ export function DevSessionViewer() {
               </TabsList>
 
               <ScrollArea className="h-[350px]">
-                <TabsContent value="recordings" className="p-2 space-y-2 m-0">
+                <TabsContent value="fluency" className="p-2 space-y-2 m-0">
                   {recordings.length === 0 ? (
                     <p className="text-xs text-muted-foreground text-center py-4">No recordings yet</p>
                   ) : (
@@ -234,6 +285,121 @@ export function DevSessionViewer() {
                             <p className="text-[10px] text-muted-foreground bg-muted/30 p-2 rounded line-clamp-2">
                               {rec.transcript}
                             </p>
+                          )}
+                          
+                          <p className="text-[10px] text-muted-foreground/60">
+                            {formatTime(rec.created_at)}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </TabsContent>
+
+                <TabsContent value="skills" className="p-2 space-y-2 m-0">
+                  {skillRecordings.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">No skill recordings yet</p>
+                  ) : (
+                    skillRecordings.map((rec) => (
+                      <Card key={rec.id} className="border-border/50">
+                        <CardContent className="p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-[10px] h-5 capitalize">
+                                {rec.module_type}
+                              </Badge>
+                              <Badge variant="outline" className="text-[10px] h-5">
+                                {rec.prompt_id}
+                              </Badge>
+                              {rec.used_for_scoring && (
+                                <Badge variant="secondary" className="text-[10px] h-5 bg-green-500/20 text-green-700">
+                                  scoring
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {rec.ai_score !== null && (
+                            <div className="flex gap-3 text-xs">
+                              <span className="text-muted-foreground">
+                                Score: <strong className="text-foreground">{rec.ai_score}/100</strong>
+                              </span>
+                            </div>
+                          )}
+                          
+                          {rec.transcript && (
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-medium text-muted-foreground">Transcript:</p>
+                              <p className="text-[10px] text-foreground bg-muted/30 p-2 rounded max-h-20 overflow-y-auto">
+                                {rec.transcript}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {rec.ai_feedback && (
+                            <details className="text-[10px]">
+                              <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                                AI Feedback
+                              </summary>
+                              <pre className="mt-1 bg-muted/50 p-2 rounded overflow-x-auto text-[9px]">
+                                {JSON.stringify(rec.ai_feedback, null, 2)}
+                              </pre>
+                            </details>
+                          )}
+                          
+                          <p className="text-[10px] text-muted-foreground/60">
+                            {formatTime(rec.created_at)}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </TabsContent>
+
+                <TabsContent value="comprehension" className="p-2 space-y-2 m-0">
+                  {comprehensionRecordings.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">No comprehension recordings yet</p>
+                  ) : (
+                    comprehensionRecordings.map((rec) => (
+                      <Card key={rec.id} className="border-border/50">
+                        <CardContent className="p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-[10px] h-5">
+                              {rec.item_id}
+                            </Badge>
+                            {rec.used_for_scoring && (
+                              <Badge variant="secondary" className="text-[10px] h-5 bg-green-500/20 text-green-700">
+                                scoring
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          {rec.ai_score !== null && (
+                            <div className="flex gap-3 text-xs">
+                              <span className="text-muted-foreground">
+                                Score: <strong className="text-foreground">{rec.ai_score}/100</strong>
+                              </span>
+                            </div>
+                          )}
+                          
+                          {rec.transcript && (
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-medium text-muted-foreground">Transcript:</p>
+                              <p className="text-[10px] text-foreground bg-muted/30 p-2 rounded max-h-20 overflow-y-auto">
+                                {rec.transcript}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {rec.ai_feedback && (
+                            <details className="text-[10px]">
+                              <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                                AI Feedback
+                              </summary>
+                              <pre className="mt-1 bg-muted/50 p-2 rounded overflow-x-auto text-[9px]">
+                                {JSON.stringify(rec.ai_feedback, null, 2)}
+                              </pre>
+                            </details>
                           )}
                           
                           <p className="text-[10px] text-muted-foreground/60">

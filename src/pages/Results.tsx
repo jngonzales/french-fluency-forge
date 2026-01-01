@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAdminMode } from "@/hooks/useAdminMode";
 import { 
   Radar, 
   RadarChart, 
@@ -70,6 +71,7 @@ const aiScoreToScale = (score: number | null): number => {
 const Results = () => {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session");
+  const { showDevTools } = useAdminMode();
   
   const [loading, setLoading] = useState(true);
   const [sessionData, setSessionData] = useState<SessionData>({
@@ -266,7 +268,7 @@ const Results = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-background ${showDevTools ? 'pt-10' : ''}`}>
       {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-6">

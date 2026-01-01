@@ -4,6 +4,7 @@ import { Bug, X, ChevronRight, ChevronDown, Mic, MessageSquare, Brain, BookOpen,
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminMode } from "@/hooks/useAdminMode";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -121,9 +122,10 @@ export function DevNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isAdmin, isDev } = useAdminMode();
 
-  // Only show in development
-  if (import.meta.env.PROD) return null;
+  // Show in development OR for admin users
+  if (!isDev && !isAdmin) return null;
 
   const jumpToPhase = async (status: SessionStatus) => {
     if (!user) {
