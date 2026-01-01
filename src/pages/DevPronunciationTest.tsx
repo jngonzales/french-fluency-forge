@@ -38,33 +38,33 @@ export default function DevPronunciationTest() {
   const [isRunningAll, setIsRunningAll] = useState(false);
   const [currentTest, setCurrentTest] = useState<string | null>(null);
 
-  // Generate TTS audio
+  // Generate TTS audio in WAV format for Azure compatibility
   const generateTTSAudio = async (text: string): Promise<Blob> => {
-    const response = await supabase.functions.invoke('french-tts', {
-      body: { text, speed: 1.0, stability: 0.5 }
-    });
-
-    if (response.error) {
-      throw new Error(`TTS error: ${response.error.message}`);
-    }
-
-    // The function returns audio data
-    const audioData = response.data;
-    if (audioData instanceof Blob) {
-      return audioData;
-    }
-    
-    // If it's base64 or ArrayBuffer
-    if (typeof audioData === 'string') {
-      const binaryString = atob(audioData);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+    // Use raw fetch instead of supabase.functions.invoke for binary data
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/french-tts`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ 
+          text, 
+          speed: 1.0, 
+          stability: 0.5,
+          outputFormat: 'pcm_16000'  // WAV format for Azure pronunciation assessment
+        })
       }
-      return new Blob([bytes], { type: 'audio/mpeg' });
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`TTS error: ${response.status} - ${errorText}`);
     }
 
-    throw new Error('Unexpected audio data format');
+    return await response.blob();
   };
 
   // Analyze pronunciation
@@ -77,9 +77,10 @@ export default function DevPronunciationTest() {
 
     const response = await supabase.functions.invoke('analyze-pronunciation', {
       body: {
-        audioData: base64Audio,
+        audio: base64Audio,
         referenceText,
-        audioFormat: 'mp3'
+        audioFormat: 'audio/wav',  // WAV format for Azure
+        itemId: 'qa-test'
       }
     });
 

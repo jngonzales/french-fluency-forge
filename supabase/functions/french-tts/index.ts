@@ -5,6 +5,51 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper function to wrap raw PCM data in a WAV header
+function wrapPcmInWav(pcmData: Uint8Array, sampleRate: number): ArrayBuffer {
+  const numChannels = 1;
+  const bitsPerSample = 16;
+  const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+  const blockAlign = numChannels * (bitsPerSample / 8);
+  const dataSize = pcmData.length;
+  const headerSize = 44;
+  const totalSize = headerSize + dataSize;
+
+  const buffer = new ArrayBuffer(totalSize);
+  const view = new DataView(buffer);
+
+  // RIFF header
+  writeString(view, 0, 'RIFF');
+  view.setUint32(4, totalSize - 8, true); // File size - 8
+  writeString(view, 8, 'WAVE');
+
+  // fmt subchunk
+  writeString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true); // Subchunk size (16 for PCM)
+  view.setUint16(20, 1, true); // Audio format (1 = PCM)
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+
+  // data subchunk
+  writeString(view, 36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  // Copy PCM data
+  const wavData = new Uint8Array(buffer);
+  wavData.set(pcmData, headerSize);
+
+  return buffer;
+}
+
+function writeString(view: DataView, offset: number, str: string): void {
+  for (let i = 0; i < str.length; i++) {
+    view.setUint8(offset + i, str.charCodeAt(i));
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -12,7 +57,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voiceId, speed, stability } = await req.json();
+    const { text, voiceId, speed, stability, outputFormat } = await req.json();
 
     if (!text) {
       throw new Error("No text provided");
@@ -26,22 +71,31 @@ serve(async (req) => {
     }
 
     // Use a French voice - Laura is a good neutral French voice
-    // You can change this to another French voice ID
     const selectedVoiceId = voiceId || "FGY2WhTYpPnrIDTdsKH5"; // Laura - neutral French
 
-    // Speed parameter: default 0.9 for clarity, can be increased for fast speech
-    // Range: 0.7 - 1.2 (ElevenLabs supports up to 1.2)
+    // Speed parameter: default 0.9 for clarity
     const speechSpeed = speed ?? 0.9;
     
-    // Stability parameter: default 0.6, lower for more natural/messy variation
-    // Range: 0 - 1 (lower = more expressive/variable)
+    // Stability parameter: default 0.6
     const speechStability = stability ?? 0.6;
 
+    // Output format: 
+    // - mp3_44100_128 (default) for playback
+    // - pcm_16000 for Azure pronunciation assessment (raw 16kHz PCM)
+    // - pcm_22050, pcm_24000, pcm_44100 for other use cases
+    const selectedOutputFormat = outputFormat || "mp3_44100_128";
+    
+    // Determine content type based on output format
+    let contentType = "audio/mpeg";
+    if (selectedOutputFormat.startsWith("pcm_")) {
+      contentType = "audio/wav"; // We'll wrap PCM in WAV header
+    }
+
     console.log(`[TTS] Generating audio for text: "${text.substring(0, 50)}..."`);
-    console.log(`[TTS] Using voice ID: ${selectedVoiceId}, speed: ${speechSpeed}, stability: ${speechStability}`);
+    console.log(`[TTS] Using voice ID: ${selectedVoiceId}, speed: ${speechSpeed}, format: ${selectedOutputFormat}`);
 
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}?output_format=${selectedOutputFormat}`,
       {
         method: "POST",
         headers: {
@@ -51,7 +105,6 @@ serve(async (req) => {
         body: JSON.stringify({
           text,
           model_id: "eleven_multilingual_v2",
-          output_format: "mp3_44100_128",
           voice_settings: {
             stability: speechStability,
             similarity_boost: 0.75,
@@ -69,13 +122,20 @@ serve(async (req) => {
       throw new Error(`TTS generation failed: ${response.status}`);
     }
 
-    const audioBuffer = await response.arrayBuffer();
+    let audioBuffer = await response.arrayBuffer();
     console.log(`[TTS] Generated audio size: ${audioBuffer.byteLength} bytes`);
+
+    // If PCM format, wrap in WAV header for compatibility
+    if (selectedOutputFormat.startsWith("pcm_")) {
+      const sampleRate = parseInt(selectedOutputFormat.split("_")[1]) || 16000;
+      audioBuffer = wrapPcmInWav(new Uint8Array(audioBuffer), sampleRate);
+      console.log(`[TTS] Wrapped PCM in WAV header, final size: ${audioBuffer.byteLength} bytes`);
+    }
 
     return new Response(audioBuffer, {
       headers: {
         ...corsHeaders,
-        "Content-Type": "audio/mpeg",
+        "Content-Type": contentType,
       },
     });
   } catch (error: unknown) {
