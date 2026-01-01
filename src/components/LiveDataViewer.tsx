@@ -41,7 +41,7 @@ export function LiveDataViewer({ sessionId, moduleType }: LiveDataViewerProps) {
       if (!moduleType || moduleType === 'fluency') {
         const { data: fluencyData } = await supabase
           .from('fluency_recordings')
-          .select('id, transcript, wpm, score, created_at')
+          .select('id, transcript, wpm, created_at')
           .eq('session_id', sessionId)
           .order('created_at', { ascending: false })
           .limit(3);
@@ -51,7 +51,6 @@ export function LiveDataViewer({ sessionId, moduleType }: LiveDataViewerProps) {
             id: r.id,
             type: 'fluency' as const,
             transcript: r.transcript,
-            score: r.score,
             wpm: r.wpm,
             created_at: r.created_at,
           })));
