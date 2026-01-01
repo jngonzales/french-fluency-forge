@@ -1,6 +1,6 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -11,33 +11,34 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 209 40% 96%;
-    --foreground: 222 47% 11%;
+    /* SOLV Brand - Light Mode (Bone background) */
+    --background: 30 25% 95%;  /* Bone #F6F3EE */
+    --foreground: 213 21% 5%;  /* Carbon #0B0D10 */
 
-    --card: 210 40% 98%;
-    --card-foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 213 21% 5%;
 
-    --popover: 214 31% 91%;
-    --popover-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 213 21% 5%;
 
-    --primary: 200 98% 39%;
-    --primary-foreground: 204 100% 97%;
+    --primary: 12 100% 55%;  /* Signal Orange #FF4D1A */
+    --primary-foreground: 213 21% 5%;  /* Carbon text on orange */
 
-    --secondary: 215 24% 26%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 218 18% 13%;  /* Graphite #1B1F26 */
+    --secondary-foreground: 30 25% 95%;
 
-    --muted: 215 20% 65%;
-    --muted-foreground: 222 47% 11%;
+    --muted: 213 14% 68%;  /* Steel #A3ABB5 */
+    --muted-foreground: 213 21% 25%;
 
-    --accent: 210 40% 98%;
-    --accent-foreground: 215 19% 34%;
+    --accent: 12 100% 55%;  /* Orange */
+    --accent-foreground: 213 21% 5%;
 
-    --destructive: 0 72% 50%;
-    --destructive-foreground: 0 85% 97%;
+    --destructive: 335 100% 59%;  /* Magenta for destructive */
+    --destructive-foreground: 30 25% 95%;
 
-    --border: 212 26% 83%;
-    --input: 212 26% 83%;
-    --ring: 200 98% 39%;
+    --border: 213 14% 85%;
+    --input: 213 14% 88%;
+    --ring: 12 100% 55%;
 
     --radius: 0.5rem;
 
@@ -97,33 +98,34 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    /* SOLV Brand - Dark Mode (Carbon background) */
+    --background: 213 21% 5%;  /* Carbon #0B0D10 */
+    --foreground: 30 25% 95%;  /* Bone #F6F3EE */
 
-    --card: 217 32% 17%;
-    --card-foreground: 210 40% 98%;
+    --card: 218 18% 13%;  /* Graphite #1B1F26 */
+    --card-foreground: 30 25% 95%;
 
-    --popover: 215 24% 26%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 218 18% 16%;
+    --popover-foreground: 30 25% 95%;
 
-    --primary: 198 93% 59%;
-    --primary-foreground: 204 80% 15%;
+    --primary: 12 100% 55%;  /* Signal Orange #FF4D1A */
+    --primary-foreground: 213 21% 5%;  /* Carbon text on orange */
 
-    --secondary: 212 26% 83%;
-    --secondary-foreground: 228 84% 4%;
+    --secondary: 213 14% 68%;  /* Steel #A3ABB5 */
+    --secondary-foreground: 213 21% 5%;
 
-    --muted: 215 16% 46%;
-    --muted-foreground: 210 40% 98%;
+    --muted: 218 18% 20%;
+    --muted-foreground: 213 14% 68%;  /* Steel */
 
-    --accent: 228 84% 4%;
-    --accent-foreground: 215 20% 65%;
+    --accent: 260 100% 58%;  /* UV #7A2CFF for accents */
+    --accent-foreground: 30 25% 95%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 85% 97%;
+    --destructive: 335 100% 59%;  /* Magenta #FF2E88 */
+    --destructive-foreground: 30 25% 95%;
 
-    --border: 215 19% 34%;
-    --input: 215 19% 34%;
-    --ring: 198 93% 59%;
+    --border: 218 18% 25%;
+    --input: 218 18% 20%;
+    --ring: 12 100% 55%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 198 93% 59%;
@@ -156,5 +158,48 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    letter-spacing: -0.01em;
+  }
+
+  /* SOLV Brand Typography */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', Inter, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+
+  /* Add subtle grain texture (SOLV brand) */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: -40%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+    opacity: 0.09;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+    animation: drift 10s linear infinite;
+    z-index: 0;
+  }
+
+  @keyframes drift {
+    0% { transform: translate3d(0, 0, 0); }
+    100% { transform: translate3d(80px, 60px, 0); }
+  }
+
+  /* Radial gradient backgrounds (SOLV brand) */
+  body {
+    background: 
+      radial-gradient(1200px 800px at 15% 10%, hsl(260 100% 58% / 0.15) 0%, transparent 55%),
+      radial-gradient(900px 650px at 85% 20%, hsl(335 100% 59% / 0.12) 0%, transparent 60%),
+      radial-gradient(700px 520px at 65% 85%, hsl(12 100% 55% / 0.12) 0%, transparent 62%),
+      hsl(var(--background));
+  }
+
+  .dark body {
+    background:
+      radial-gradient(1200px 800px at 15% 10%, hsl(260 100% 58% / 0.22) 0%, transparent 55%),
+      radial-gradient(900px 650px at 85% 20%, hsl(335 100% 59% / 0.18) 0%, transparent 60%),
+      radial-gradient(700px 520px at 65% 85%, hsl(12 100% 55% / 0.18) 0%, transparent 62%),
+      hsl(var(--background));
   }
 }
