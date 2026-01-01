@@ -65,9 +65,18 @@ export function CallScreen({ call, lead, playbook, onCallUpdate }: CallScreenPro
           handleAnswer(nextQuestion.question.options[index].value);
         }
       }
-      // N for next (if no options)
-      if (e.key === 'n' && nextQuestion && !nextQuestion.question.options) {
-        handleFreeTextSubmit();
+      // N for next/continue
+      if (e.key === 'n' && nextQuestion) {
+        if (nextQuestion.question.type === 'free_text' && freeTextAnswer.trim()) {
+          handleFreeTextSubmit();
+        } else if (
+          !nextQuestion.question.options &&
+          nextQuestion.question.type !== 'free_text' &&
+          nextQuestion.question.type !== 'number' &&
+          nextQuestion.question.type !== 'scale'
+        ) {
+          handleContinue();
+        }
       }
       // O for objections (open panel)
       if (e.key === 'o') {
@@ -196,6 +205,50 @@ export function CallScreen({ call, lead, playbook, onCallUpdate }: CallScreenPro
 
     await handleAnswer(numberAnswer);
     setNumberAnswer('');
+  };
+
+  const handleContinue = async () => {
+    if (!nextQuestion || !user) return;
+
+    // For script/multi_prompt questions, we can advance without an answer
+    // Just mark the checkpoint as complete by adding a minimal answer
+    const question = nextQuestion.question;
+    
+    const newAnswer = {
+      questionId: question.id,
+      questionText: question.text,
+      selectedOption: undefined,
+      freeText: '[Continued]', // Mark that we continued without detailed answer
+      timestamp: new Date().toISOString(),
+    };
+
+    const updatedAnswers = [...call.answers, newAnswer];
+    const updatedCall: Call = {
+      ...call,
+      answers: updatedAnswers,
+    };
+
+    // Recalculate qualification
+    const newQual = calculateQualificationScore(playbook, updatedCall);
+
+    // Get next question
+    const next = getNextQuestion(playbook, updatedCall);
+
+    try {
+      const saved = await updateCall(call.id, {
+        answers: updatedAnswers,
+        tags: updatedCall.tags,
+        qualification_score: newQual.score,
+        qualification_reason: newQual.reason,
+      });
+      onCallUpdate(saved);
+      setNextQuestion(next);
+      setQualification(newQual);
+      setTags(updatedCall.tags);
+    } catch (error) {
+      console.error('Error saving answer:', error);
+      toast.error('Failed to save answer');
+    }
   };
 
   const handleNotesUpdate = async (newNotes: string) => {
@@ -363,6 +416,21 @@ Tags: ${tags.join(', ')}
                     </Button>
                   </div>
                 )}
+
+                {/* Continue Button for script/multi_prompt questions without options/inputs */}
+                {!nextQuestion.question.options &&
+                  nextQuestion.question.type !== 'free_text' &&
+                  nextQuestion.question.type !== 'number' &&
+                  nextQuestion.question.type !== 'scale' && (
+                    <div className="space-y-2">
+                      <Button onClick={handleContinue} className="w-full">
+                        Continue (N)
+                      </Button>
+                      <p className="text-xs text-muted-foreground text-center">
+                        Take notes in the right panel, then continue when ready
+                      </p>
+                    </div>
+                  )}
               </CardContent>
             </Card>
           ) : (
