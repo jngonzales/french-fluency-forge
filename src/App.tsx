@@ -15,6 +15,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Assessment from "./pages/Assessment";
 import Results from "./pages/Results";
 import DevPreview from "./pages/DevPreview";
+import DevPronunciationTest from "./pages/DevPronunciationTest";
 import NotFound from "./pages/NotFound";
 import Activate from "./pages/Activate";
 import AdminProducts from "./pages/AdminProducts";
@@ -55,6 +56,7 @@ const App = () => (
               } 
             />
             <Route path="/dev" element={<DevPreview />} />
+            <Route path="/dev/pronunciation-test" element={<DevPronunciationTest />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
