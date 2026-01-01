@@ -79,12 +79,16 @@ async function assessPronunciation(
   console.log('[Pronunciation] Audio format from client:', audioFormat);
 
   // Determine content type based on audio format
-  // Browser MediaRecorder typically outputs webm/opus
+  // Azure Pronunciation Assessment requires specific formats
   let contentType = 'audio/webm; codecs=opus';
-  if (audioFormat?.includes('wav')) {
-    contentType = 'audio/wav; codecs=audio/pcm; samplerate=16000';
+  if (audioFormat?.includes('wav') || audioFormat?.includes('pcm')) {
+    // WAV format - best for pronunciation assessment
+    contentType = 'audio/wav';
   } else if (audioFormat?.includes('ogg')) {
     contentType = 'audio/ogg; codecs=opus';
+  } else if (audioFormat?.includes('mp3') || audioFormat?.includes('mpeg')) {
+    // Note: MP3 may not work well with pronunciation assessment
+    contentType = 'audio/mpeg';
   }
   
   console.log('[Pronunciation] Using Content-Type:', contentType);
