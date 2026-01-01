@@ -167,19 +167,57 @@ async function assessPronunciation(
     }
   }
 
+  // Get top-level scores
+  let pronScore = assessment.PronScore ?? nBest.PronScore ?? 0;
+  let accuracyScore = assessment.AccuracyScore ?? nBest.AccuracyScore ?? 0;
+  let fluencyScore = assessment.FluencyScore ?? nBest.FluencyScore ?? 0;
+  let completenessScore = assessment.CompletenessScore ?? nBest.CompletenessScore ?? 0;
+
+  // FALLBACK: Calculate scores from word-level data when top-level is missing/zero
+  if (pronScore === 0 && words.length > 0) {
+    console.log('[Pronunciation] Top-level PronScore is 0, calculating from word-level data...');
+    
+    // Calculate accuracy from word scores
+    const wordScores = words.map(w => w.accuracyScore);
+    accuracyScore = wordScores.reduce((a, b) => a + b, 0) / wordScores.length;
+    
+    // Estimate fluency from timing (if available)
+    if (fluencyScore === 0 && nBest.Words) {
+      fluencyScore = calculateFluencyFromTiming(nBest.Words);
+    }
+    
+    // Calculate completeness (words spoken / words expected)
+    const referenceWords = referenceText.split(/\s+/).filter(w => w.length > 0);
+    const spokenWords = words.filter(w => w.errorType !== 'Omission');
+    completenessScore = Math.min(100, (spokenWords.length / referenceWords.length) * 100);
+    
+    // PronScore is weighted combination (Azure's standard formula)
+    // 60% accuracy, 20% fluency, 20% completeness
+    pronScore = accuracyScore * 0.6 + fluencyScore * 0.2 + completenessScore * 0.2;
+    
+    console.log('[Pronunciation] Calculated scores:', {
+      accuracyScore: Math.round(accuracyScore),
+      fluencyScore: Math.round(fluencyScore),
+      completenessScore: Math.round(completenessScore),
+      pronScore: Math.round(pronScore),
+    });
+  }
+
   const resultData = {
-    pronScore: assessment.PronScore ?? nBest.PronScore ?? 0,
-    accuracyScore: assessment.AccuracyScore ?? nBest.AccuracyScore ?? 0,
-    fluencyScore: assessment.FluencyScore ?? nBest.FluencyScore ?? 0,
-    completenessScore: assessment.CompletenessScore ?? nBest.CompletenessScore ?? 0,
+    pronScore: Math.round(pronScore),
+    accuracyScore: Math.round(accuracyScore),
+    fluencyScore: Math.round(fluencyScore),
+    completenessScore: Math.round(completenessScore),
     words,
     phonemes,
     rawResponse: result,
   };
   
-  console.log('[Pronunciation] Parsed result:', JSON.stringify({
+  console.log('[Pronunciation] Final result:', JSON.stringify({
     pronScore: resultData.pronScore,
     accuracyScore: resultData.accuracyScore,
+    fluencyScore: resultData.fluencyScore,
+    completenessScore: resultData.completenessScore,
     wordCount: resultData.words.length,
     phonemeCount: resultData.phonemes.length,
     firstWordScore: resultData.words[0]?.accuracyScore

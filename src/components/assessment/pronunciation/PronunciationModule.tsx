@@ -19,6 +19,7 @@ import {
   Repeat,
   Gamepad2
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import SkipButton from "../SkipButton";
 import { 
   READING_ITEMS, 
@@ -85,10 +86,6 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
   
   const referenceAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Get attempt count for current item
-  const currentAttemptCount = attemptCounts[currentItem?.id] || 0;
-  const maxAttemptsReached = currentAttemptCount >= 2;
-
   const {
     isRecording,
     recordingTime,
@@ -110,6 +107,10 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
 
   const currentItems = getCurrentItems();
   const currentItem = currentItems[currentIndex];
+  
+  // Get attempt count for current item (AFTER currentItem is defined)
+  const currentAttemptCount = attemptCounts[currentItem?.id] || 0;
+  const maxAttemptsReached = currentAttemptCount >= 2;
   
   // Calculate overall progress
   const totalItems = READING_ITEMS.length + REPEAT_ITEMS.length + minimalPairItems.length;
@@ -284,13 +285,22 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
     const correct = option === (currentItem as MinimalPairItem).target;
     const score = correct ? 100 : 0;
 
+    // Increment attempt count
+    const attemptNumber = (attemptCounts[currentItem.id] || 0) + 1;
+    setAttemptCounts(prev => ({ ...prev, [currentItem.id]: attemptNumber }));
+
     const itemResult: ItemResult = {
       itemId: currentItem.id,
       section: "minimalPairs",
       pronScore: score,
+      accuracyScore: score,
+      attemptNumber,
     };
 
-    setResults((prev) => [...prev, itemResult]);
+    setResults((prev) => {
+      const filtered = prev.filter(r => r.itemId !== currentItem.id);
+      return [...filtered, itemResult];
+    });
 
     // Auto-advance after 1.5s
     setTimeout(() => {
