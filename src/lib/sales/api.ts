@@ -215,9 +215,10 @@ export async function fetchActivePlaybook(): Promise<Playbook | null> {
     .from('sales_playbook')
     .select('*')
     .eq('is_active', true)
-    .single();
+    .order('created_at', { ascending: false })
+    .limit(1);
 
-  if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
-  return data ? transformPlaybook(data) : null;
+  if (error) throw error;
+  return data && data.length > 0 ? transformPlaybook(data[0]) : null;
 }
 
