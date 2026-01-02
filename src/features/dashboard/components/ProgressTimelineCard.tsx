@@ -58,6 +58,35 @@ export function ProgressTimelineCard({
 }: ProgressTimelineCardProps) {
   const selectedGoal = goals.find((g) => g.id === selectedGoalId);
 
+  // Generate dummy data if no assessments
+  const useDummyData = assessments.length === 0;
+  let dummyAssessments: AssessmentSnapshot[] = [];
+  
+  if (useDummyData) {
+    // Generate dummy data for the last 30 days
+    const today = new Date();
+    for (let i = 29; i >= 0; i -= 3) { // Every 3 days
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const baseScore = 45 + (29 - i) * 0.8 + Math.random() * 5; // Gradual improvement with noise
+      dummyAssessments.push({
+        sessionId: `dummy-${i}`,
+        date: date.toISOString().split('T')[0],
+        overall: Math.round(Math.min(100, baseScore)),
+        dimensions: {
+          pronunciation: Math.round(Math.min(100, baseScore + Math.random() * 10 - 5)),
+          fluency: Math.round(Math.min(100, baseScore + Math.random() * 10 - 5)),
+          confidence: Math.round(Math.min(100, baseScore + Math.random() * 10 - 5)),
+          syntax: Math.round(Math.min(100, baseScore + Math.random() * 10 - 5)),
+          conversation: Math.round(Math.min(100, baseScore + Math.random() * 10 - 5)),
+          comprehension: Math.round(Math.min(100, baseScore + Math.random() * 10 - 5)),
+        },
+      });
+    }
+  }
+  
+  const assessmentsToUse = useDummyData ? dummyAssessments : assessments;
+
   // Generate timeline data for selected metric
   const daysCount = selectedRange === '7d' ? 7 : selectedRange === '30d' ? 30 : 90;
   const timelineSeries = generateTimelineSeries(assessmentsToUse, selectedMetric, daysCount);
@@ -119,35 +148,6 @@ export function ProgressTimelineCard({
     // Re-sort
     chartData.sort((a, b) => a.date.localeCompare(b.date));
   }
-
-  // Generate dummy data if no assessments
-  const useDummyData = assessments.length === 0;
-  let dummyAssessments: AssessmentSnapshot[] = [];
-  
-  if (useDummyData) {
-    // Generate dummy data for the last 30 days
-    const today = new Date();
-    for (let i = 29; i >= 0; i -= 3) { // Every 3 days
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const baseScore = 45 + (29 - i) * 0.8 + Math.random() * 5; // Gradual improvement with noise
-      dummyAssessments.push({
-        sessionId: `dummy-${i}`,
-        date: date.toISOString().split('T')[0],
-        overall: Math.round(Math.min(100, baseScore)),
-        dimensions: {
-          pronunciation: Math.round(Math.min(100, baseScore + Math.random() * 10 - 5)),
-          fluency: Math.round(Math.min(100, baseScore + Math.random() * 10 - 5)),
-          confidence: Math.round(Math.min(100, baseScore + Math.random() * 10 - 5)),
-          syntax: Math.round(Math.min(100, baseScore + Math.random() * 10 - 5)),
-          conversation: Math.round(Math.min(100, baseScore + Math.random() * 10 - 5)),
-          comprehension: Math.round(Math.min(100, baseScore + Math.random() * 10 - 5)),
-        },
-      });
-    }
-  }
-  
-  const assessmentsToUse = useDummyData ? dummyAssessments : assessments;
 
   const metricLabels: Record<MetricKey, string> = {
     overall: 'Overall Progress',
