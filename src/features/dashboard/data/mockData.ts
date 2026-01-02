@@ -59,6 +59,49 @@ export function generateMockAssessmentHistory(): AssessmentSnapshot[] {
 }
 
 /**
+ * Generate mock assessment history (from Nov 1st to today)
+ */
+export function generateMockAssessmentHistory(): AssessmentSnapshot[] {
+  const assessments: AssessmentSnapshot[] = [];
+  const today = new Date();
+  const startDate = new Date('2025-11-01');
+  const diffTime = Math.abs(today.getTime() - startDate.getTime());
+  const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  for (let i = 0; i <= totalDays; i += 4) { // Every 4 days
+    const date = new Date(startDate);
+    date.setDate(date.getDate() + i);
+    const dateStr = date.toISOString().split('T')[0];
+    
+    // S-curve base: 1 / (1 + exp(-k * (t - t0)))
+    const t = i / totalDays;
+    const sCurve = 1 / (1 + Math.exp(-8 * (t - 0.5)));
+    
+    // Add non-linear variation (sine waves + noise)
+    const variation = Math.sin(i * 0.5) * 3 + (Math.random() * 4 - 2);
+    
+    // Start baseline around 30-40, end around 75-85
+    const baseScore = 35 + (sCurve * 45) + variation;
+    
+    assessments.push({
+      sessionId: `dummy-${i}`,
+      date: dateStr,
+      overall: Math.round(Math.min(100, baseScore)),
+      dimensions: {
+        pronunciation: Math.round(Math.min(100, baseScore - 5 + Math.random() * 10)),
+        fluency: Math.round(Math.min(100, baseScore - 8 + Math.random() * 12)),
+        confidence: Math.round(Math.min(100, baseScore - 15 + (sCurve * 10) + Math.random() * 10)),
+        syntax: Math.round(Math.min(100, baseScore - 2 + Math.random() * 6)),
+        conversation: Math.round(Math.min(100, baseScore - 20 + (sCurve * 25) + Math.random() * 8)),
+        comprehension: Math.round(Math.min(100, baseScore + 2 + Math.random() * 5)),
+      },
+    });
+  }
+
+  return assessments;
+}
+
+/**
  * Generate mock habits
  */
 export function generateMockHabits(): Habit[] {
@@ -88,30 +131,38 @@ export function generateMockHabits(): Habit[] {
 }
 
 /**
- * Generate mock habit grid (last 30 days)
+ * Generate mock habit grid (from Nov 1st to today)
  */
 export function generateMockHabitGrid(habits: Habit[]): HabitCell[] {
   const cells: HabitCell[] = [];
   const today = new Date();
+  const startDate = new Date('2025-11-01');
+  
+  // Calculate days between Nov 1st and today
+  const diffTime = Math.abs(today.getTime() - startDate.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-  for (let i = 29; i >= 0; i--) {
+  for (let i = diffDays; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().split('T')[0];
 
     habits.forEach((habit) => {
       // Generate realistic pattern
-      const random = Math.random();
+      const isFuture = date > today;
       let status: HabitCell['status'];
 
-      if (i === 0) {
-        status = 'future'; // Today
-      } else if (random > 0.7) {
-        status = 'done';
-      } else if (random > 0.5) {
-        status = 'missed';
+      if (isFuture) {
+        status = 'future';
       } else {
-        status = 'na';
+        const random = Math.random();
+        if (random > 0.4) {
+          status = 'done';
+        } else if (random > 0.2) {
+          status = 'missed';
+        } else {
+          status = 'na';
+        }
       }
 
       cells.push({

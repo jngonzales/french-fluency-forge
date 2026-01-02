@@ -25,7 +25,7 @@ export function PhraseStatsCard({ phrases }: PhraseStatsCardProps) {
         {/* Recall (Active) */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-orange-100 text-orange-600">
+            <div className="p-1.5 rounded-md bg-destructive/10 text-destructive">
               <Mic2 className="w-4 h-4" />
             </div>
             <h4 className="font-bold text-sm uppercase tracking-wider">Recall (Active Production)</h4>
@@ -36,8 +36,8 @@ export function PhraseStatsCard({ phrases }: PhraseStatsCardProps) {
               <p className="text-2xl font-black text-foreground">{phrases.recall.new}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase text-orange-500">Learning</p>
-              <p className="text-2xl font-black text-orange-500">{phrases.recall.learning}</p>
+              <p className="text-[10px] font-bold uppercase text-destructive">Learning</p>
+              <p className="text-2xl font-black text-destructive">{phrases.recall.learning}</p>
             </div>
             <div className="space-y-1">
               <p className="text-[10px] font-bold uppercase text-green-600">Known</p>
@@ -57,7 +57,7 @@ export function PhraseStatsCard({ phrases }: PhraseStatsCardProps) {
         {/* Recognition (Passive) */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-blue-100 text-blue-600">
+            <div className="p-1.5 rounded-md bg-accent/10 text-accent">
               <Headphones className="w-4 h-4" />
             </div>
             <h4 className="font-bold text-sm uppercase tracking-wider">Recognition (Passive Understanding)</h4>
@@ -68,8 +68,8 @@ export function PhraseStatsCard({ phrases }: PhraseStatsCardProps) {
               <p className="text-2xl font-black text-foreground">{phrases.recognition.new}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase text-orange-500">Learning</p>
-              <p className="text-2xl font-black text-orange-500">{phrases.recognition.learning}</p>
+              <p className="text-[10px] font-bold uppercase text-destructive">Learning</p>
+              <p className="text-2xl font-black text-destructive">{phrases.recognition.learning}</p>
             </div>
             <div className="space-y-1">
               <p className="text-[10px] font-bold uppercase text-green-600">Known</p>

@@ -161,19 +161,24 @@ export function useDashboardData(viewingUserId?: string) {
   const addHabit = (habit: Habit) => {
     setHabits((prev) => [...prev, habit]);
     
-    // Generate grid cells for this habit
+    // Generate grid cells for this habit starting from Nov 1st
     const today = new Date();
+    const startDate = new Date('2025-11-01');
+    const diffTime = Math.abs(today.getTime() - startDate.getTime());
+    const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
     const newCells: HabitCell[] = [];
     
-    for (let i = 29; i >= 0; i--) {
+    for (let i = totalDays; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
+      const isFuture = date > today;
       
       newCells.push({
         habitId: habit.id,
         date: dateStr,
-        status: i === 0 ? 'future' : 'na',
+        status: isFuture ? 'future' : 'na',
       });
     }
     

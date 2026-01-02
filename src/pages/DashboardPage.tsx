@@ -114,13 +114,46 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Left Sidebar */}
-            <aside className="w-full lg:w-72 flex-shrink-0">
+            <aside className="w-full lg:w-80 flex-shrink-0 space-y-8">
               <PlanSidebar plan={data.member.plan} features={data.member.features} />
+              
+              {/* Skill Profile */}
+              <RadarCard
+                baseline={data.assessments.baseline}
+                current={data.assessments.current}
+              />
+
+              {/* Outcome Goals */}
+              <GoalsCard
+                goals={goals}
+                onAddGoal={actions.addGoal}
+                onUpdateGoal={actions.updateGoal}
+                onGoalSelect={setSelectedGoalId}
+                selectedGoalId={selectedGoalId}
+              />
+
+              {/* Achievements */}
+              <BadgesCard
+                badges={badges}
+                points={data.points}
+                onUnlock={actions.unlockBadge}
+                isAdmin={isAdmin}
+              />
             </aside>
 
             {/* Main Content */}
             <main className="flex-1 min-w-0 space-y-8">
-              {/* Progress Timeline */}
+              {/* Daily Momentum */}
+              <HabitGridCard
+                habits={habits}
+                habitGrid={habitGrid}
+                range={selectedRange}
+                onCellToggle={actions.updateHabitCell}
+                onAddHabit={actions.addHabit}
+                onBadgeUnlock={actions.unlockBadge}
+              />
+
+              {/* Progress Journey */}
               <ProgressTimelineCard
                 timeline={data.timeline}
                 selectedMetric={selectedMetric}
@@ -133,44 +166,8 @@ export default function DashboardPage() {
                 assessments={data.assessments.history}
               />
 
-              {/* Habit Grid */}
-              <HabitGridCard
-                habits={habits}
-                habitGrid={habitGrid}
-                range={selectedRange}
-                onCellToggle={actions.updateHabitCell}
-                onAddHabit={actions.addHabit}
-                onBadgeUnlock={actions.unlockBadge}
-              />
-
-              {/* Two Column Layout for Smaller Cards */}
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                {/* Radar Chart */}
-                <RadarCard
-                  baseline={data.assessments.baseline}
-                  current={data.assessments.current}
-                />
-
-                {/* Phrase Stats */}
-                <PhraseStatsCard phrases={data.phrases} />
-              </div>
-
-              {/* Goals */}
-              <GoalsCard
-                goals={goals}
-                onAddGoal={actions.addGoal}
-                onUpdateGoal={actions.updateGoal}
-                onGoalSelect={setSelectedGoalId}
-                selectedGoalId={selectedGoalId}
-              />
-
-              {/* Badges & Points */}
-              <BadgesCard
-                badges={badges}
-                points={data.points}
-                onUnlock={actions.unlockBadge}
-                isAdmin={isAdmin}
-              />
+              {/* Phrase Stats */}
+              <PhraseStatsCard phrases={data.phrases} />
             </main>
           </div>
         </div>

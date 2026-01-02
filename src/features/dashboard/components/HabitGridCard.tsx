@@ -74,11 +74,12 @@ export function HabitGridCard({
   }
 
   const handleCellClick = (habitId: string, date: string, currentStatus: HabitCellStatus) => {
-    const isToday = date === today.toISOString().split('T')[0];
-    const isFuture = new Date(date) > today;
+    const todayStr = today.toISOString().split('T')[0];
+    const isFuture = date > todayStr;
 
-    if (isFuture && !isToday) {
-      return; // Can't toggle future dates
+    if (isFuture) {
+      toast.error("You can't track future progress yet!");
+      return;
     }
 
     // Cycle through states: na → done → missed → na
@@ -104,25 +105,48 @@ export function HabitGridCard({
 
     onCellToggle(habitId, date, newStatus, intensity);
 
-    // Check for streak milestones
-    const streak = calculateCurrentStreak(
-      habitGrid.map((cell) =>
-        cell.habitId === habitId && cell.date === date
-          ? { ...cell, status: newStatus, intensity }
-          : cell
-      )
-    );
+    // Life Demonstration Feature: Logic for 3-day streak unlock
+    if (newStatus === 'done') {
+      // Find the habit grid cells for this habit
+      const habitCells = habitGrid
+        .filter(c => c.habitId === habitId)
+        .sort((a, b) => b.date.localeCompare(a.date));
+      
+      // Update the current cell status in our local copy for checking
+      const updatedCells = habitCells.map(c => 
+        c.date === date ? { ...c, status: newStatus } : c
+      );
 
-    if (streak === 7) {
-      onBadgeUnlock('badge-streak-7');
-      toast.success('🎉 Badge Unlocked: 7-Day Streak!', {
-        description: '+150 points',
-      });
-    } else if (streak === 3) {
-      onBadgeUnlock('badge-streak-3');
-      toast.success('🎉 Badge Unlocked: 3-Day Streak!', {
-        description: '+50 points',
-      });
+      // Check for 3 days in a row (including today/the clicked day)
+      let streakCount = 0;
+      let hasThreeDayStreak = false;
+      
+      // Sort all "done" cells by date
+      const doneDates = updatedCells
+        .filter(c => c.status === 'done')
+        .map(c => c.date)
+        .sort((a, b) => b.localeCompare(a));
+
+      for (let i = 0; i < doneDates.length - 2; i++) {
+        const d1 = new Date(doneDates[i]);
+        const d2 = new Date(doneDates[i+1]);
+        const d3 = new Date(doneDates[i+2]);
+        
+        const diff1 = Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+        const diff2 = Math.round((d3.getTime() - d2.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (diff1 === 1 && diff2 === 1) {
+          hasThreeDayStreak = true;
+          break;
+        }
+      }
+
+      if (hasThreeDayStreak) {
+        onBadgeUnlock('badge-streak-3');
+        toast.success('🎉 3-Day Streak Unlock!', {
+          description: "You've been consistent for 3 days! Momentum is building.",
+        });
+      }
     }
   };
 
@@ -138,12 +162,11 @@ export function HabitGridCard({
     };
 
     onAddHabit(newHabit);
-    onBadgeUnlock('badge-habit-created');
     setDialogOpen(false);
     setNewHabitName('');
     setNewHabitFrequency('daily');
     
-    toast.success('Habit added!');
+    toast.success('Practice added to your momentum tracker!');
   };
 
   const getCellColor = (status: HabitCellStatus, intensity?: number) => {

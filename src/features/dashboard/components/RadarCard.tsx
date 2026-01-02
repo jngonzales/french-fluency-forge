@@ -98,15 +98,15 @@ export function RadarCard({ baseline, current }: RadarCardProps) {
                 dataKey="baseline"
                 stroke="#94a3b8"
                 fill="#94a3b8"
-                fillOpacity={0.3}
+                fillOpacity={0.2}
               />
             )}
             <Radar
               name="Current"
               dataKey="current"
-              stroke="hsl(var(--primary))"
-              fill="hsl(var(--primary))"
-              fillOpacity={0.5}
+              stroke="#8b5cf6"
+              fill="#8b5cf6"
+              fillOpacity={0.4}
             />
             <Legend />
           </RadarChart>

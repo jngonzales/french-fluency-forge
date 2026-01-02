@@ -123,7 +123,7 @@ export function BadgesCard({ badges, points, onUnlock, isAdmin }: BadgesCardProp
                 transition={{ duration: 0.5 }}
                 className={`group relative flex flex-col items-center gap-3 p-4 rounded-xl border transition-all duration-300 ${
                   badge.unlocked
-                    ? 'border-primary/20 bg-primary/[0.02] shadow-sm hover:shadow-md'
+                    ? 'border-magenta/20 bg-magenta/[0.02] shadow-sm hover:shadow-md'
                     : 'border-border/40 bg-muted/20 opacity-60'
                 }`}
               >
