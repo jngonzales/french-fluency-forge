@@ -22,6 +22,11 @@ import Activate from "./pages/Activate";
 import AdminProducts from "./pages/AdminProducts";
 import SalesCopilot from "./pages/admin/SalesCopilot";
 import DashboardPage from "./pages/DashboardPage";
+import PhrasesLandingPage from "./pages/PhrasesLandingPage";
+import PhrasesSessionPage from "./pages/PhrasesSessionPage";
+import PhrasesLibraryPage from "./pages/PhrasesLibraryPage";
+import PhrasesSettingsPage from "./pages/PhrasesSettingsPage";
+import PhrasesCoachPage from "./pages/PhrasesCoachPage";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +77,46 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <SalesCopilot />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/phrases" 
+              element={
+                <ProtectedRoute>
+                  <PhrasesLandingPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/phrases/session" 
+              element={
+                <ProtectedRoute>
+                  <PhrasesSessionPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/phrases/library" 
+              element={
+                <ProtectedRoute>
+                  <PhrasesLibraryPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/phrases/settings" 
+              element={
+                <ProtectedRoute>
+                  <PhrasesSettingsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/phrases/coach" 
+              element={
+                <ProtectedRoute>
+                  <PhrasesCoachPage />
                 </ProtectedRoute>
               } 
             />

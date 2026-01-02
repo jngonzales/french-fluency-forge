@@ -3,6 +3,7 @@
  * Shows plan-gated features with lock icons
  */
 
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Lock, BookOpen, Mic2, MessageSquare, Users, GraduationCap, UserCircle } from 'lucide-react';
@@ -24,6 +25,8 @@ const FEATURE_LIST = [
 ] as const;
 
 export function PlanSidebar({ plan, features }: PlanSidebarProps) {
+  const navigate = useNavigate();
+  
   const planNames: Record<PlanKey, string> = {
     '3090': '30/90 Challenge',
     'continuity': 'Continuity',
@@ -48,8 +51,12 @@ export function PlanSidebar({ plan, features }: PlanSidebarProps) {
                 disabled={!isUnlocked}
                 onClick={() => {
                   if (isUnlocked) {
-                    // TODO: Navigate to feature page
-                    console.log(`Navigate to ${feature.key}`);
+                    if (feature.key === 'phrases') {
+                      navigate('/phrases');
+                    } else {
+                      // TODO: Implement other feature navigation
+                      console.log(`Navigate to ${feature.key}`);
+                    }
                   }
                 }}
                 className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group ${
