@@ -42,7 +42,8 @@ export function PlanSidebar({ plan, features }: PlanSidebarProps) {
         </CardHeader>
         <CardContent className="space-y-1 px-2">
           {FEATURE_LIST.map((feature) => {
-            const isUnlocked = features[feature.key as keyof PlanFeatures];
+            // For v0, phrases is always accessible regardless of plan
+            const isUnlocked = feature.key === 'phrases' ? true : features[feature.key as keyof PlanFeatures];
             const Icon = feature.icon;
             
             return (
