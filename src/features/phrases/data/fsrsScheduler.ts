@@ -3,7 +3,7 @@
  * Uses ts-fsrs library for state-of-the-art spaced repetition
  */
 
-import { fsrs, Rating, State, type Card, type CardInput, type FSRSParameters } from 'ts-fsrs';
+import { fsrs, Rating, State, type Card, type CardInput, type FSRSParameters, type Grade } from 'ts-fsrs';
 import type { MemberPhraseCard, Rating as SolvRating, PhraseSettings } from '../types';
 
 // Map SOLV ratings to FSRS ratings
@@ -74,18 +74,24 @@ function createFSRS(config: FSRSConfig = DEFAULT_CONFIG): ReturnType<typeof fsrs
 
 // Convert SOLV card to FSRS card input
 function solvCardToFSRS(card: MemberPhraseCard, now: Date): CardInput {
+  const lastReviewDate = card.scheduler.last_reviewed_at 
+    ? new Date(card.scheduler.last_reviewed_at)
+    : now;
+  
+  // Calculate elapsed_days since last review
+  const elapsedDays = Math.floor((now.getTime() - lastReviewDate.getTime()) / (1000 * 60 * 60 * 24));
+  
   const cardInput: CardInput = {
     due: new Date(card.scheduler.due_at),
     stability: card.scheduler.stability ?? 0,
     difficulty: card.scheduler.difficulty ?? 0,
+    elapsed_days: Math.max(0, elapsedDays),
     scheduled_days: card.scheduler.interval_days || 0,
     learning_steps: 0,
     reps: card.scheduler.repetitions || 0,
     lapses: card.lapses,
     state: solvStateToFSRSState(card.scheduler.state),
-    last_review: card.scheduler.last_reviewed_at 
-      ? new Date(card.scheduler.last_reviewed_at)
-      : now,
+    last_review: lastReviewDate,
   };
   
   return cardInput;
@@ -149,7 +155,7 @@ export function calculateNextReviewFSRS(
   
   const fsrsInstance = createFSRS(fullConfig);
   const fsrsCard = solvCardToFSRS(card, now);
-  const fsrsRating = RATING_MAP[rating];
+  const fsrsRating = RATING_MAP[rating] as Grade;
   
   // Review the card with FSRS
   const result = fsrsInstance.next(fsrsCard, now, fsrsRating);
