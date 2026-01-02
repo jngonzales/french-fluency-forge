@@ -16,49 +16,6 @@ import type {
 } from '../types';
 
 /**
- * Generate dummy assessment history for progression
- */
-export function generateMockAssessmentHistory(): AssessmentSnapshot[] {
-  const history: AssessmentSnapshot[] = [];
-  const today = new Date();
-  
-  // Create 4 assessments over the last 90 days
-  const intervals = [90, 60, 30, 0];
-  const baselines = {
-    pronunciation: 65,
-    fluency: 58,
-    confidence: 45,
-    syntax: 52,
-    conversation: 40,
-    comprehension: 60,
-  };
-
-  intervals.forEach((daysAgo, index) => {
-    const date = new Date(today);
-    date.setDate(date.getDate() - daysAgo);
-    
-    // Gradual improvement
-    const multiplier = 1 + (index * 0.12); // ~12% improvement each time
-    
-    history.push({
-      sessionId: `session-${index}`,
-      date: date.toISOString().split('T')[0],
-      overall: Math.round(53 * multiplier),
-      dimensions: {
-        pronunciation: Math.min(100, Math.round(baselines.pronunciation * multiplier)),
-        fluency: Math.min(100, Math.round(baselines.fluency * multiplier)),
-        confidence: Math.min(100, Math.round(baselines.confidence * multiplier)),
-        syntax: Math.min(100, Math.round(baselines.syntax * multiplier)),
-        conversation: Math.min(100, Math.round(baselines.conversation * multiplier)),
-        comprehension: Math.min(100, Math.round(baselines.comprehension * multiplier)),
-      },
-    });
-  });
-
-  return history;
-}
-
-/**
  * Generate mock assessment history (from Nov 1st to today)
  */
 export function generateMockAssessmentHistory(): AssessmentSnapshot[] {
