@@ -12,7 +12,8 @@ import {
   Database,
   ChevronDown,
   Zap,
-  Phone
+  Phone,
+  LayoutDashboard
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -244,6 +245,17 @@ export function AdminToolbar() {
           >
             <Phone className="h-3 w-3 mr-1" />
             Sales Copilot
+          </Button>
+
+          {/* Dashboard */}
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            className="h-7 text-xs bg-amber-700 hover:bg-amber-800"
+            onClick={() => navigate('/dashboard')}
+          >
+            <LayoutDashboard className="h-3 w-3 mr-1" />
+            Dashboard
           </Button>
 
           {/* Current Location */}

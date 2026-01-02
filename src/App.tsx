@@ -21,6 +21,7 @@ import NotFound from "./pages/NotFound";
 import Activate from "./pages/Activate";
 import AdminProducts from "./pages/AdminProducts";
 import SalesCopilot from "./pages/admin/SalesCopilot";
+import DashboardPage from "./pages/DashboardPage";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,14 @@ const App = () => (
             />
             <Route path="/results" element={<Results />} />
             <Route path="/activate" element={<Activate />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              } 
+            />
             <Route 
               path="/admin/systemeio-products" 
               element={
