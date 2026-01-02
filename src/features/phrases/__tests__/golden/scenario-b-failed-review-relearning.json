@@ -1,0 +1,52 @@
+{
+  "name": "Scenario B - Failed review uses relearning",
+  "description": "Tests that Again on Review card uses relearning steps (~10m), not 1 day",
+  "testVector": {
+    "card": {
+      "id": "card-golden-b",
+      "member_id": "test-user",
+      "phrase_id": "phrase-001",
+      "status": "active",
+      "priority": 0,
+      "scheduler": {
+        "algorithm": "fsrs",
+        "state": "review",
+        "due_at": "2026-01-02T12:00:00Z",
+        "last_reviewed_at": "2025-12-26T12:00:00Z",
+        "stability": 7.0,
+        "difficulty": 5.0,
+        "repetitions": 5,
+        "interval_days": 7
+      },
+      "lapses": 0,
+      "reviews": 5,
+      "created_at": "2025-12-01T12:00:00Z",
+      "updated_at": "2025-12-26T12:00:00Z"
+    },
+    "now": "2026-01-02T12:00:00Z",
+    "settings": {
+      "member_id": "test-user",
+      "new_per_day": 20,
+      "reviews_per_day": 100,
+      "target_retention": 0.90,
+      "speech_feedback_enabled": false,
+      "auto_assess_enabled": false,
+      "recognition_shadow_default": false,
+      "show_time_to_recall": true
+    },
+    "events": [
+      {
+        "timeOffset": "0m",
+        "rating": "again",
+        "expectedIntervalMs": 600000,
+        "expectedState": "relearning",
+        "toleranceMs": 60000,
+        "mustNotBe": {
+          "intervalDays": 1,
+          "reason": "Should use relearning steps, not default to 1 day"
+        }
+      }
+    ]
+  }
+}
+

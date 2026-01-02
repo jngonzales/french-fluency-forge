@@ -7,7 +7,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import type { MemberPhraseCard, Rating, PhraseReviewLog, SessionState } from '../types';
 import { getPhraseById } from '../data/mockPhrasesData';
-import { calculateNextReview, buildSessionQueue, previewIntervals } from '../data/schedulerMock';
+import { buildSessionQueue } from '../data/schedulerMock';
+import { 
+  calculateNextReviewFSRS, 
+  previewAllIntervalsFSRS,
+  formatIntervalFSRS 
+} from '../data/fsrsScheduler';
 import { usePhrasesSettings } from './usePhrasesSettings';
 
 export function usePhrasesSession() {
@@ -104,16 +109,33 @@ export function usePhrasesSession() {
   const rateCard = useCallback((rating: Rating) => {
     if (!sessionState || !currentCard || !currentPhrase) return;
 
+    const now = new Date();
     const responseTime = sessionState.revealTime && sessionState.startTime
       ? sessionState.revealTime - sessionState.startTime
       : undefined;
 
-    // Update card with new scheduling
-    const updatedCard = calculateNextReview(currentCard, rating);
+    // Calculate overdue metrics
+    const lastReviewedAt = currentCard.scheduler.last_reviewed_at 
+      ? new Date(currentCard.scheduler.last_reviewed_at)
+      : now;
+    const dueAt = new Date(currentCard.scheduler.due_at);
+    const elapsedMs = now.getTime() - lastReviewedAt.getTime();
+    const wasOverdue = dueAt < now;
+    const overdueMs = wasOverdue ? now.getTime() - dueAt.getTime() : 0;
+
+    // Store before state
+    const stateBefore = currentCard.scheduler.state;
+    const dueBefore = currentCard.scheduler.due_at;
+    const intervalBeforeMs = currentCard.scheduler.interval_ms;
+    const stabilityBefore = currentCard.scheduler.stability;
+    const difficultyBefore = currentCard.scheduler.difficulty;
+
+    // Update card with new scheduling using FSRS
+    const updatedCard = calculateNextReviewFSRS(currentCard, rating, settings, now);
     const updatedCards = cards.map((c) => c.id === updatedCard.id ? updatedCard : c);
     saveCards(updatedCards);
 
-    // Log the review
+    // Enhanced review log with all FSRS fields
     const log: PhraseReviewLog = {
       id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       member_id: memberId,
@@ -121,10 +143,36 @@ export function usePhrasesSession() {
       card_id: currentCard.id,
       started_at: new Date(sessionState.startTime || Date.now()).toISOString(),
       revealed_at: sessionState.revealTime ? new Date(sessionState.revealTime).toISOString() : undefined,
-      rated_at: new Date().toISOString(),
+      rated_at: now.toISOString(),
       rating,
       response_time_ms: responseTime,
       mode: currentPhrase.mode,
+      
+      // FSRS scheduling data
+      state_before: stateBefore,
+      state_after: updatedCard.scheduler.state,
+      due_before: dueBefore,
+      due_after: updatedCard.scheduler.due_at,
+      interval_before_ms: intervalBeforeMs,
+      interval_after_ms: updatedCard.scheduler.interval_ms || 0,
+      stability_before: stabilityBefore,
+      stability_after: updatedCard.scheduler.stability,
+      difficulty_before: difficultyBefore,
+      difficulty_after: updatedCard.scheduler.difficulty,
+      elapsed_ms: elapsedMs,
+      was_overdue: wasOverdue,
+      overdue_ms: overdueMs > 0 ? overdueMs : undefined,
+      
+      // Config snapshot
+      config_snapshot: {
+        fsrs_version: 6,
+        request_retention: settings.target_retention,
+        learning_steps: ['1m', '10m'], // TODO: get from settings if we add this
+        relearning_steps: ['10m'],
+        enable_fuzz: false,
+      },
+      
+      // Speech (optional, mock for v0)
       speech_used: false,
     };
     saveLogs([...reviewLogs, log]);
@@ -249,8 +297,28 @@ export function usePhrasesSession() {
     saveCards(updatedCards);
   }, [currentCard, cards, saveCards]);
 
-  // Get interval previews for current card
-  const intervals = currentCard ? previewIntervals(currentCard) : null;
+  // Get interval previews for current card (using FSRS)
+  const intervalPreviews = currentCard 
+    ? previewAllIntervalsFSRS(currentCard, settings)
+    : null;
+  
+  const intervals = intervalPreviews
+    ? {
+        again: formatIntervalFSRS(intervalPreviews.again.intervalMs),
+        hard: formatIntervalFSRS(intervalPreviews.hard.intervalMs),
+        good: formatIntervalFSRS(intervalPreviews.good.intervalMs),
+        easy: formatIntervalFSRS(intervalPreviews.easy.intervalMs),
+      }
+    : null;
+  
+  const exactDueDates = intervalPreviews
+    ? {
+        again: intervalPreviews.again.dueAt,
+        hard: intervalPreviews.hard.dueAt,
+        good: intervalPreviews.good.dueAt,
+        easy: intervalPreviews.easy.dueAt,
+      }
+    : null;
 
   // Calculate time left in session (estimate 20s per card)
   const estimatedTimeLeft = sessionState
@@ -275,6 +343,7 @@ export function usePhrasesSession() {
     isComplete,
     estimatedTimeLeft,
     intervals,
+    exactDueDates,
     actions: {
       startSession,
       revealCard,

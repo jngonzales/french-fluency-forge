@@ -50,6 +50,7 @@ export interface MemberPhraseCard {
     // FSRS fields
     stability?: number; // days
     difficulty?: number; // 1..10
+    interval_ms?: number; // precise interval in milliseconds (for short-term steps)
     
     // SM-2 fields
     repetitions?: number;
@@ -66,7 +67,7 @@ export interface MemberPhraseCard {
   updated_at: string;
 }
 
-// Review Log (analytics)
+// Review Log (analytics) - Enhanced with FSRS fields
 export interface PhraseReviewLog {
   id: string;
   member_id: string;
@@ -80,6 +81,32 @@ export interface PhraseReviewLog {
   rating: Rating;
   response_time_ms?: number; // reveal - start
   mode: PhraseMode;
+  
+  // FSRS scheduling data
+  state_before: SchedulerState;
+  state_after: SchedulerState;
+  due_before: string; // ISO timestamp
+  due_after: string; // ISO timestamp
+  interval_before_ms?: number; // milliseconds
+  interval_after_ms: number; // milliseconds
+  stability_before?: number;
+  stability_after?: number;
+  difficulty_before?: number;
+  difficulty_after?: number;
+  elapsed_ms?: number; // now - last_reviewed_at
+  was_overdue: boolean;
+  overdue_ms?: number; // if overdue, how many ms
+  
+  // Config snapshot (for debugging and optimization)
+  config_snapshot?: {
+    fsrs_version: number; // 6
+    request_retention: number;
+    learning_steps: string[];
+    relearning_steps: string[];
+    enable_fuzz: boolean;
+    seed_strategy?: string;
+    weights_hash?: string; // parameter vector hash
+  };
   
   // Speech (optional, mock for v0)
   speech_used: boolean;

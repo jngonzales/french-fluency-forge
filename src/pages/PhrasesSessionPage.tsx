@@ -33,6 +33,7 @@ export default function PhrasesSessionPage() {
     isComplete,
     estimatedTimeLeft,
     intervals,
+    exactDueDates,
     actions,
   } = usePhrasesSession();
 
@@ -221,6 +222,7 @@ export default function PhrasesSessionPage() {
                 <RatingButtons
                   onRate={handleRate}
                   intervals={intervals || undefined}
+                  exactDueDates={exactDueDates || undefined}
                 />
               </div>
             )}

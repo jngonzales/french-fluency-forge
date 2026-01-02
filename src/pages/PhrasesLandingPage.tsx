@@ -205,7 +205,7 @@ export default function PhrasesLandingPage() {
                 </Card>
 
                 {/* Secondary actions */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/phrases/library')}>
                     <CardHeader>
                       <div className="flex items-center gap-3">
@@ -234,6 +234,22 @@ export default function PhrasesLandingPage() {
                     <CardContent>
                       <CardDescription>
                         Configure daily limits and preferences
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/phrases/logs')}>
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-md bg-primary/10">
+                          <Library className="w-5 h-5 text-primary" />
+                        </div>
+                        <CardTitle className="text-lg">Review Logs</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription>
+                        View complete review history and scheduling data
                       </CardDescription>
                     </CardContent>
                   </Card>

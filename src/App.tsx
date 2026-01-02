@@ -27,6 +27,8 @@ import PhrasesSessionPage from "./pages/PhrasesSessionPage";
 import PhrasesLibraryPage from "./pages/PhrasesLibraryPage";
 import PhrasesSettingsPage from "./pages/PhrasesSettingsPage";
 import PhrasesCoachPage from "./pages/PhrasesCoachPage";
+import PhrasesReviewLogsPage from "./pages/phrases/PhrasesReviewLogsPage";
+import SRSLabPage from "./pages/admin/SRSLabPage";
 
 const queryClient = new QueryClient();
 
@@ -117,6 +119,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <PhrasesCoachPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/phrases/logs" 
+              element={
+                <ProtectedRoute>
+                  <PhrasesReviewLogsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/srs-lab" 
+              element={
+                <ProtectedRoute>
+                  <SRSLabPage />
                 </ProtectedRoute>
               } 
             />

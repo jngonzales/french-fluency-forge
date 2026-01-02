@@ -10,10 +10,21 @@ import type { Rating } from '../types';
 interface RatingButtonsProps {
   onRate: (rating: Rating) => void;
   intervals?: Record<Rating, string>;
+  exactDueDates?: Record<Rating, Date>; // For tooltips with exact timestamps
   disabled?: boolean;
 }
 
-export function RatingButtons({ onRate, intervals, disabled }: RatingButtonsProps) {
+export function RatingButtons({ onRate, intervals, exactDueDates, disabled }: RatingButtonsProps) {
+  // Format exact due date for tooltip
+  const formatExactDueDate = (date: Date): string => {
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
   const buttons: Array<{
     rating: Rating;
     label: string;
@@ -68,13 +79,19 @@ export function RatingButtons({ onRate, intervals, disabled }: RatingButtonsProp
         );
 
         if (intervals) {
+          const intervalText = intervals[button.rating];
+          const exactDate = exactDueDates?.[button.rating];
+          const tooltipText = exactDate 
+            ? `Next review: ${intervalText}\nExact time: ${formatExactDueDate(exactDate)}`
+            : `Next review: ${intervalText}`;
+          
           return (
             <Tooltip key={button.rating}>
               <TooltipTrigger asChild>
                 {ButtonComponent}
               </TooltipTrigger>
               <TooltipContent>
-                <p>Next review: {intervals[button.rating]}</p>
+                <p className="whitespace-pre-line">{tooltipText}</p>
               </TooltipContent>
             </Tooltip>
           );

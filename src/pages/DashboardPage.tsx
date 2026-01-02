@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminMode } from '@/hooks/useAdminMode';
 import { useDashboardData } from '@/features/dashboard/hooks/useDashboardData';
@@ -53,6 +53,7 @@ const planNames: Record<PlanKey, string> = {
 export default function DashboardPage() {
   const { user } = useAuth();
   const { isAdmin } = useAdminMode();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const viewingMemberId = searchParams.get('memberId') || undefined;
 
@@ -125,8 +126,26 @@ export default function DashboardPage() {
                     </SheetHeader>
                     <div className="space-y-1">
                       {FEATURE_LIST.map((feature) => {
-                        const isUnlocked = data.member.features[feature.key as keyof PlanFeatures];
+                        // For v0, phrases is always accessible regardless of plan
+                        const isUnlocked = feature.key === 'phrases' ? true : data.member.features[feature.key as keyof PlanFeatures];
                         const Icon = feature.icon;
+                        
+                        // Use Link for phrases, button for others
+                        if (feature.key === 'phrases' && isUnlocked) {
+                          return (
+                            <Link
+                              key={feature.key}
+                              to="/phrases"
+                              onClick={() => setResourcesOpen(false)}
+                              className="w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group hover:bg-primary/5 text-foreground cursor-pointer hover:translate-x-1"
+                            >
+                              <div className="p-2 rounded-md flex-shrink-0 bg-primary/10 text-primary">
+                                <Icon className="w-4 h-4" />
+                              </div>
+                              <span className="text-sm font-medium text-left flex-1">{feature.label}</span>
+                            </Link>
+                          );
+                        }
                         
                         return (
                           <button
@@ -134,6 +153,7 @@ export default function DashboardPage() {
                             disabled={!isUnlocked}
                             onClick={() => {
                               if (isUnlocked) {
+                                // TODO: Implement other feature navigation
                                 console.log(`Navigate to ${feature.key}`);
                                 setResourcesOpen(false);
                               }

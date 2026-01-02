@@ -1,0 +1,54 @@
+{
+  "name": "Scenario A - New card immediate retry",
+  "description": "Tests that new cards with Again rating return ~1 minute, then Good returns ~10 minutes",
+  "testVector": {
+    "card": {
+      "id": "card-golden-a",
+      "member_id": "test-user",
+      "phrase_id": "phrase-001",
+      "status": "active",
+      "priority": 0,
+      "scheduler": {
+        "algorithm": "fsrs",
+        "state": "new",
+        "due_at": "2026-01-02T12:00:00Z",
+        "stability": 0,
+        "difficulty": 0,
+        "repetitions": 0,
+        "interval_days": 0
+      },
+      "lapses": 0,
+      "reviews": 0,
+      "created_at": "2026-01-02T12:00:00Z",
+      "updated_at": "2026-01-02T12:00:00Z"
+    },
+    "now": "2026-01-02T12:00:00Z",
+    "settings": {
+      "member_id": "test-user",
+      "new_per_day": 20,
+      "reviews_per_day": 100,
+      "target_retention": 0.90,
+      "speech_feedback_enabled": false,
+      "auto_assess_enabled": false,
+      "recognition_shadow_default": false,
+      "show_time_to_recall": true
+    },
+    "events": [
+      {
+        "timeOffset": "0m",
+        "rating": "again",
+        "expectedIntervalMs": 60000,
+        "expectedState": "learning",
+        "toleranceMs": 10000
+      },
+      {
+        "timeOffset": "1m",
+        "rating": "good",
+        "expectedIntervalMs": 600000,
+        "expectedState": "learning",
+        "toleranceMs": 60000
+      }
+    ]
+  }
+}
+
