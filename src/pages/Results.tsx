@@ -73,6 +73,19 @@ const Results = () => {
   const sessionId = searchParams.get("session");
   const { showDevTools } = useAdminMode();
   
+  // Dummy data for demo/preview mode
+  const DUMMY_DATA: SessionData = {
+    fluencyWpm: 95,
+    pronunciationScore: 72,
+    confidenceScore: 65,
+    confidenceQuestionnaireScore: 70,
+    confidenceHonestyFlag: true,
+    syntaxScore: 58,
+    conversationScore: 48,
+    comprehensionScore: 81,
+    archetype: "Le Perfectionniste"
+  };
+
   const [loading, setLoading] = useState(true);
   const [sessionData, setSessionData] = useState<SessionData>({
     fluencyWpm: null,
@@ -85,10 +98,14 @@ const Results = () => {
     comprehensionScore: null,
     archetype: null
   });
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   useEffect(() => {
     const fetchResults = async () => {
+      // If no session, use dummy data for demo
       if (!sessionId) {
+        setSessionData(DUMMY_DATA);
+        setIsDemoMode(true);
         setLoading(false);
         return;
       }
@@ -276,7 +293,14 @@ const Results = () => {
             <div>
               <h1 className="font-serif text-2xl font-bold text-foreground">Your French Diagnostic</h1>
               <p className="text-muted-foreground">
-                {sessionId ? "Results from your assessment" : "No session selected"}
+                {isDemoMode ? (
+                  <span className="flex items-center gap-2">
+                    Demo Mode — Sample Results
+                    <Badge variant="secondary" className="text-xs">Preview</Badge>
+                  </span>
+                ) : (
+                  "Results from your assessment"
+                )}
               </p>
             </div>
             <div className="flex gap-2">
