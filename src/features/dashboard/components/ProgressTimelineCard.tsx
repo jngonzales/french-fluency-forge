@@ -153,9 +153,12 @@ export function ProgressTimelineCard({
       });
       if (assessment.overall < minHistoricalValue) minHistoricalValue = assessment.overall;
     } else {
-      const val = selectedMetric === 'overall' ? assessment.overall : 
-                 dimensions.includes(selectedMetric as any) ? assessment.dimensions[selectedMetric as keyof AssessmentSnapshot['dimensions']] : 
-                 (timelineSeries.actual.find(p => p.date === assessment.date)?.value || 0);
+      let val: number;
+      if (dimensions.includes(selectedMetric as any)) {
+        val = assessment.dimensions[selectedMetric as keyof AssessmentSnapshot['dimensions']];
+      } else {
+        val = timelineSeries.actual.find(p => p.date === assessment.date)?.value || 0;
+      }
       point.actual = val;
       if (val < minHistoricalValue) minHistoricalValue = val;
     }

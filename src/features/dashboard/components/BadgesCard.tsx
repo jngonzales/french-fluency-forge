@@ -65,48 +65,46 @@ export function BadgesCard({ badges, points, onUnlock, isAdmin }: BadgesCardProp
   return (
     <Card className="border-border bg-card shadow-sm">
       <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-2xl font-serif">Achievements</CardTitle>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-3 flex-wrap">
+              <CardTitle className="text-2xl font-serif">Achievements</CardTitle>
+              <p className="text-2xl sm:text-3xl font-black text-primary leading-none">{points}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total Points</p>
+            </div>
             <p className="text-sm text-muted-foreground mt-1">
               {unlockedCount} of {badges.length} badges earned
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-4xl font-black text-primary leading-none">{points}</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">Total Points</p>
-            </div>
-            {isAdmin && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10">
-                    <Settings className="w-4 h-4 text-muted-foreground" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem disabled className="text-xs font-bold uppercase tracking-widest">
-                    Demo Tools
-                  </DropdownMenuItem>
-                  {badges
-                    .filter((b) => !b.unlocked)
-                    .map((badge) => (
-                      <DropdownMenuItem
-                        key={badge.id}
-                        onClick={() => handleDemoUnlock(badge.id)}
-                        className="text-xs"
-                      >
-                        Unlock {badge.name}
-                      </DropdownMenuItem>
-                    ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
+          {isAdmin && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10 shrink-0">
+                  <Settings className="w-4 h-4 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-popover">
+                <DropdownMenuItem disabled className="text-xs font-bold uppercase tracking-widest">
+                  Demo Tools
+                </DropdownMenuItem>
+                {badges
+                  .filter((b) => !b.unlocked)
+                  .map((badge) => (
+                    <DropdownMenuItem
+                      key={badge.id}
+                      onClick={() => handleDemoUnlock(badge.id)}
+                      className="text-xs"
+                    >
+                      Unlock {badge.name}
+                    </DropdownMenuItem>
+                  ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4">
           {badges.map((badge) => {
             const iconConfig = ICON_MAP[badge.icon] || { icon: Lock, bgColor: 'bg-muted', iconColor: 'text-muted-foreground' };
             const IconComponent = iconConfig.icon;
@@ -137,11 +135,11 @@ export function BadgesCard({ badges, points, onUnlock, isAdmin }: BadgesCardProp
                   <IconComponent className={`w-8 h-8 ${badge.unlocked ? 'drop-shadow-md' : ''}`} />
                 </div>
                 
-                <div className="text-center space-y-1.5 w-full">
-                  <p className={`text-xs font-bold ${badge.unlocked ? 'text-foreground' : 'text-muted-foreground'}`}>
+                <div className="text-center space-y-1 w-full min-w-0">
+                  <p className={`text-[11px] sm:text-xs font-bold truncate ${badge.unlocked ? 'text-foreground' : 'text-muted-foreground'}`}>
                     {badge.name}
                   </p>
-                  <p className="text-[10px] font-semibold text-muted-foreground/80">
+                  <p className="text-[9px] sm:text-[10px] font-semibold text-muted-foreground/80">
                     {badge.points} pts
                   </p>
                   {badge.unlocked && badge.unlockedAt && (
