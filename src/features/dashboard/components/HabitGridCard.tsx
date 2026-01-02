@@ -164,44 +164,49 @@ export function HabitGridCard({
 
   return (
     <>
-      <Card>
-        <CardHeader>
+      <Card className="border-border bg-card shadow-sm overflow-hidden w-full">
+        <CardHeader className="pb-4 bg-muted/30 border-b border-border/50">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Habit Tracker</CardTitle>
+              <CardTitle className="text-xl font-serif">Daily Momentum</CardTitle>
               <div className="flex items-center gap-2 mt-1">
-                <Flame className="w-4 h-4 text-orange-500" />
-                <p className="text-sm text-muted-foreground">
-                  {currentStreak} day streak
-                </p>
+                <div className="flex items-center gap-1 bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+                  <Flame className="w-3 h-3 fill-orange-500" />
+                  <span className="text-xs font-bold uppercase tracking-tight">
+                    {currentStreak} day streak
+                  </span>
+                </div>
               </div>
             </div>
-            <Button onClick={() => setDialogOpen(true)} size="sm">
+            <Button onClick={() => setDialogOpen(true)} size="sm" variant="ghost" className="hover:bg-primary/10 hover:text-primary">
               <Plus className="w-4 h-4 mr-2" />
-              Add Habit
+              Add Practice
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {habits.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>Add your first habit and start stacking wins</p>
+            <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">
+              <p className="font-medium">Build consistency by tracking your daily practices</p>
               <Button variant="outline" onClick={() => setDialogOpen(true)} className="mt-4">
-                Add First Habit
+                Set Your First Habit
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <div className="inline-block min-w-full">
+            <div className="overflow-x-auto pb-4 custom-scrollbar">
+              <div className="inline-block min-w-full px-1">
                 {/* Day Headers */}
-                <div className="flex mb-2">
-                  <div className="w-40 flex-shrink-0" /> {/* Habit name column */}
+                <div className="flex mb-3">
+                  <div className="w-48 flex-shrink-0" />
                   {dates.map((date) => {
                     const d = new Date(date);
+                    const isToday = date === today.toISOString().split('T')[0];
                     return (
                       <div
                         key={date}
-                        className="w-8 text-center text-xs text-muted-foreground flex-shrink-0"
+                        className={`w-6 text-center text-[10px] font-bold uppercase tracking-tighter flex-shrink-0 ${
+                          isToday ? 'text-primary' : 'text-muted-foreground/60'
+                        }`}
                       >
                         {d.getDate()}
                       </div>
@@ -211,35 +216,39 @@ export function HabitGridCard({
 
                 {/* Habit Rows */}
                 {habits.map((habit) => (
-                  <div key={habit.id} className="flex items-center mb-1">
-                    <div className="w-40 flex-shrink-0 pr-2">
-                      <p className="text-sm font-medium truncate">{habit.name}</p>
-                      <Badge variant="outline" className="text-[10px]">
+                  <div key={habit.id} className="flex items-center mb-3 group">
+                    <div className="w-52 flex-shrink-0 pr-4">
+                      <p className="text-sm font-medium text-foreground leading-tight truncate" title={habit.name}>
+                        {habit.name}
+                      </p>
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 mt-1 h-4">
                         {habit.frequency}
                       </Badge>
                     </div>
-                    {dates.map((date) => {
-                      const cell = habitGrid.find(
-                        (c) => c.habitId === habit.id && c.date === date
-                      );
-                      const status = cell?.status || 'na';
+                    <div className="flex gap-1">
+                      {dates.map((date) => {
+                        const cell = habitGrid.find(
+                          (c) => c.habitId === habit.id && c.date === date
+                        );
+                        const status = cell?.status || 'na';
 
-                      return (
-                        <div
-                          key={date}
-                          className="w-8 h-8 flex-shrink-0 cursor-pointer"
-                          onClick={() => handleCellClick(habit.id, date, status)}
-                          title={`${date}: ${status}`}
-                        >
+                        return (
                           <div
-                            className="w-full h-full rounded border border-border hover:border-primary"
-                            style={{
-                              backgroundColor: getCellColor(status, cell?.intensity),
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
+                            key={date}
+                            className="w-5 h-5 flex-shrink-0 cursor-pointer transition-all hover:scale-125 hover:z-10"
+                            onClick={() => handleCellClick(habit.id, date, status)}
+                            title={`${date}: ${status}`}
+                          >
+                            <div
+                              className="w-full h-full rounded-sm border border-border/30 transition-all duration-150 hover:border-border"
+                              style={{
+                                backgroundColor: getCellColor(status, cell?.intensity),
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 ))}
               </div>

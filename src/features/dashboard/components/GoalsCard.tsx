@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { GoalDialog } from './GoalDialog';
-import { Plus, Lock, Target, TrendingUp, FileText } from 'lucide-react';
+import { Plus, Lock, Target, TrendingUp, FileText, Settings } from 'lucide-react';
 import type { Goal } from '../types';
 
 interface GoalsCardProps {
@@ -62,26 +62,29 @@ export function GoalsCard({
 
   return (
     <>
-      <Card>
-        <CardHeader>
+      <Card className="border-border bg-card shadow-sm overflow-hidden w-full">
+        <CardHeader className="pb-4 bg-muted/30 border-b border-border/50">
           <div className="flex items-center justify-between">
-            <CardTitle>Goals</CardTitle>
-            <Button onClick={handleCreate} size="sm">
+            <div>
+              <CardTitle className="text-xl font-serif">Outcome Goals</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">Real-world milestones you're working towards</p>
+            </div>
+            <Button onClick={handleCreate} size="sm" variant="ghost" className="hover:bg-primary/10 hover:text-primary">
               <Plus className="w-4 h-4 mr-2" />
-              Create Goal
+              Lock-in New Goal
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {goals.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>Pick a real-world outcome and lock it in</p>
+            <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-xl border border-dashed border-border">
+              <p className="font-medium">Define a clear real-world outcome to maintain momentum</p>
               <Button variant="outline" onClick={handleCreate} className="mt-4">
-                Create Your First Goal
+                Set Your First Goal
               </Button>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {goals.map((goal) => {
                 const isSelected = selectedGoalId === goal.id;
                 const daysUntilDeadline = Math.ceil(
@@ -92,56 +95,56 @@ export function GoalsCard({
                 return (
                   <div
                     key={goal.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      isSelected ? 'border-primary bg-primary/5' : 'border-border hover:bg-accent'
+                    className={`p-5 border rounded-2xl cursor-pointer transition-all duration-300 relative group ${
+                      isSelected 
+                        ? 'border-primary bg-primary/[0.03] shadow-md ring-1 ring-primary/20' 
+                        : 'border-border/60 hover:border-primary/40 hover:bg-muted/30'
                     }`}
                     onClick={() => onGoalSelect(isSelected ? null : goal.id)}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          {getGoalIcon(goal.type)}
-                          <h4 className="font-medium">{goal.name}</h4>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <div className={`p-2 rounded-lg ${isSelected ? 'bg-primary text-white' : 'bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors'}`}>
+                            {getGoalIcon(goal.type)}
+                          </div>
+                          <h4 className="font-bold text-base leading-tight">{goal.name}</h4>
                           {goal.locked && (
-                            <Lock className="w-3 h-3 text-muted-foreground" />
+                            <Lock className="w-3.5 h-3.5 text-muted-foreground/60" />
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">
+                        
+                        <p className="text-sm text-muted-foreground/80 leading-relaxed line-clamp-2">
                           {goal.description}
                         </p>
-                        <div className="flex flex-wrap gap-2">
-                          <Badge variant="secondary" className="text-xs">
-                            {goal.type}
-                          </Badge>
+                        
+                        <div className="flex flex-wrap gap-2 pt-1">
                           {goal.type === 'skill' && goal.dimension && (
-                            <Badge variant="outline" className="text-xs">
-                              {goal.dimension}: {goal.targetScore}/100
-                            </Badge>
-                          )}
-                          {goal.type === 'volume' && goal.metric && (
-                            <Badge variant="outline" className="text-xs">
-                              {goal.metric}: {goal.targetValue}
+                            <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider bg-white/50 border-primary/20 text-primary">
+                              {goal.dimension} {goal.targetScore}%
                             </Badge>
                           )}
                           <Badge
                             variant={daysUntilDeadline < 7 ? 'destructive' : 'secondary'}
-                            className="text-xs"
+                            className="text-[10px] font-bold uppercase tracking-wider"
                           >
                             {daysUntilDeadline > 0
-                              ? `${daysUntilDeadline} days left`
-                              : 'Overdue'}
+                              ? `${daysUntilDeadline} days to go`
+                              : 'Final deadline'}
                           </Badge>
                         </div>
                       </div>
+                      
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="h-8 w-8 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleEdit(goal);
                         }}
                       >
-                        {goal.locked ? 'View' : 'Edit'}
+                        <Settings className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>

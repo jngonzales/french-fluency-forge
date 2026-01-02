@@ -27,11 +27,54 @@ export function generateTimelineSeries(
     }
   });
 
-  // If less than 2 points, can't project
-  if (actualPoints.length < 2) {
+  // If no points, return empty
+  if (actualPoints.length === 0) {
     return {
       actual: actualPoints,
       projected: { mid: [], low: [], high: [] },
+    };
+  }
+
+  // If only 1 point, create a simple projection from that point
+  if (actualPoints.length === 1) {
+    const singlePoint = actualPoints[0];
+    const lastDate = new Date(singlePoint.date);
+    const projectedPoints: { mid: TimelinePoint[]; low: TimelinePoint[]; high: TimelinePoint[] } = {
+      mid: [],
+      low: [],
+      high: [],
+    };
+
+    // Project forward with slight upward trend
+    for (let i = 7; i <= daysForward; i += 7) {
+      const futureDate = new Date(lastDate);
+      futureDate.setDate(futureDate.getDate() + i);
+      const dateStr = futureDate.toISOString().split('T')[0];
+      const projectedValue = Math.min(100, singlePoint.value + (i / 30) * 5); // Small upward trend
+      const uncertainty = 5;
+
+      projectedPoints.mid.push({
+        date: dateStr,
+        value: projectedValue,
+        type: 'projected',
+      });
+
+      projectedPoints.low.push({
+        date: dateStr,
+        value: Math.max(0, projectedValue - uncertainty),
+        type: 'projected',
+      });
+
+      projectedPoints.high.push({
+        date: dateStr,
+        value: Math.min(100, projectedValue + uncertainty),
+        type: 'projected',
+      });
+    }
+
+    return {
+      actual: actualPoints,
+      projected: projectedPoints,
     };
   }
 

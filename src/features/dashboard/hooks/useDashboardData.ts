@@ -64,7 +64,14 @@ export function useDashboardData(viewingUserId?: string) {
       setLoading({ ...loading, assessments: true });
 
       // Fetch real assessment data
-      const assessments = await fetchUserAssessments(targetUserId);
+      let assessments = await fetchUserAssessments(targetUserId);
+      
+      // IF NO REAL ASSESSMENTS, USE MOCK HISTORY FOR DEMO
+      if (assessments.length === 0) {
+        const { generateMockAssessmentHistory } = await import('../data/mockData');
+        assessments = generateMockAssessmentHistory();
+      }
+      
       const { baseline, current } = getBaselineAndCurrent(assessments);
 
       // Initialize mock data

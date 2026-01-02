@@ -79,10 +79,10 @@ export default function DashboardPage() {
 
   return (
     <AdminPadding>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background overflow-x-hidden">
         {/* Top Header */}
-        <header className="border-b border-border bg-card">
-          <div className="container mx-auto px-6 py-4">
+        <header className="border-b border-border bg-card sticky top-0 z-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold">Progress Hub</h1>
@@ -111,66 +111,68 @@ export default function DashboardPage() {
         </header>
 
         {/* Main Layout */}
-        <div className="container mx-auto px-6 py-6 flex gap-6">
-          {/* Left Sidebar */}
-          <aside className="w-64 flex-shrink-0">
-            <PlanSidebar plan={data.member.plan} features={data.member.features} />
-          </aside>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Left Sidebar */}
+            <aside className="w-full lg:w-72 flex-shrink-0">
+              <PlanSidebar plan={data.member.plan} features={data.member.features} />
+            </aside>
 
-          {/* Main Content */}
-          <main className="flex-1 space-y-6">
-            {/* Progress Timeline */}
-            <ProgressTimelineCard
-              timeline={data.timeline}
-              selectedMetric={selectedMetric}
-              selectedRange={selectedRange}
-              selectedGoalId={selectedGoalId}
-              goals={goals}
-              onMetricChange={setSelectedMetric}
-              onRangeChange={setSelectedRange}
-              onGoalChange={setSelectedGoalId}
-              assessments={data.assessments.history}
-            />
-
-            {/* Habit Grid */}
-            <HabitGridCard
-              habits={habits}
-              habitGrid={habitGrid}
-              range={selectedRange}
-              onCellToggle={actions.updateHabitCell}
-              onAddHabit={actions.addHabit}
-              onBadgeUnlock={actions.unlockBadge}
-            />
-
-            {/* Goals */}
-            <GoalsCard
-              goals={goals}
-              onAddGoal={actions.addGoal}
-              onUpdateGoal={actions.updateGoal}
-              onGoalSelect={setSelectedGoalId}
-              selectedGoalId={selectedGoalId}
-            />
-
-            {/* Two Column Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Radar Chart */}
-              <RadarCard
-                baseline={data.assessments.baseline}
-                current={data.assessments.current}
+            {/* Main Content */}
+            <main className="flex-1 min-w-0 space-y-8">
+              {/* Progress Timeline */}
+              <ProgressTimelineCard
+                timeline={data.timeline}
+                selectedMetric={selectedMetric}
+                selectedRange={selectedRange}
+                selectedGoalId={selectedGoalId}
+                goals={goals}
+                onMetricChange={setSelectedMetric}
+                onRangeChange={setSelectedRange}
+                onGoalChange={setSelectedGoalId}
+                assessments={data.assessments.history}
               />
 
-              {/* Phrase Stats */}
-              <PhraseStatsCard phrases={data.phrases} />
-            </div>
+              {/* Habit Grid */}
+              <HabitGridCard
+                habits={habits}
+                habitGrid={habitGrid}
+                range={selectedRange}
+                onCellToggle={actions.updateHabitCell}
+                onAddHabit={actions.addHabit}
+                onBadgeUnlock={actions.unlockBadge}
+              />
 
-            {/* Badges & Points */}
-            <BadgesCard
-              badges={badges}
-              points={data.points}
-              onUnlock={actions.unlockBadge}
-              isAdmin={isAdmin}
-            />
-          </main>
+              {/* Two Column Layout for Smaller Cards */}
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                {/* Radar Chart */}
+                <RadarCard
+                  baseline={data.assessments.baseline}
+                  current={data.assessments.current}
+                />
+
+                {/* Phrase Stats */}
+                <PhraseStatsCard phrases={data.phrases} />
+              </div>
+
+              {/* Goals */}
+              <GoalsCard
+                goals={goals}
+                onAddGoal={actions.addGoal}
+                onUpdateGoal={actions.updateGoal}
+                onGoalSelect={setSelectedGoalId}
+                selectedGoalId={selectedGoalId}
+              />
+
+              {/* Badges & Points */}
+              <BadgesCard
+                badges={badges}
+                points={data.points}
+                onUnlock={actions.unlockBadge}
+                isAdmin={isAdmin}
+              />
+            </main>
+          </div>
         </div>
       </div>
     </AdminPadding>
