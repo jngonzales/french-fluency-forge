@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Lock } from 'lucide-react';
 import type { Goal, GoalType, DimensionKey, MetricKey } from '../types';
 
 interface GoalDialogProps {
