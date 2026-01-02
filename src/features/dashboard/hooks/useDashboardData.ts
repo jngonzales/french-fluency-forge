@@ -8,7 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   fetchUserAssessments,
   getBaselineAndCurrent,
-  calculateTotalPoints,
 } from '../data/assessmentData';
 import {
   generateMockHabits,
@@ -18,6 +17,7 @@ import {
   generateMockAIMetrics,
   generateMockBadges,
   getPlanFeatures,
+  calculateTotalPoints,
 } from '../data/mockData';
 import { generateTimelineSeries } from '../data/projections';
 import type {
