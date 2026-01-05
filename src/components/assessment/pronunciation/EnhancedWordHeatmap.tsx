@@ -32,20 +32,32 @@ interface EnhancedWordHeatmapProps {
 export function EnhancedWordHeatmap({ words }: EnhancedWordHeatmapProps) {
   const [selectedWord, setSelectedWord] = useState<WordAnalysis | null>(null);
 
+  // Handle empty or invalid words array
+  if (!words || !Array.isArray(words) || words.length === 0) {
+    return (
+      <div className="text-center text-muted-foreground p-4 text-sm">
+        No word data available
+      </div>
+    );
+  }
+
   const getWordColor = (word: WordAnalysis) => {
-    if (word.status === 'omitted') {
+    // Safe access to word properties
+    const wordScore = word.score ?? word.accuracyScore ?? 0;
+    const wordStatus = word.status ?? 'correct';
+    if (wordStatus === 'omitted') {
       return 'bg-gray-500/20 border-gray-500 text-gray-700 dark:text-gray-400';
     }
-    if (word.status === 'inserted') {
+    if (wordStatus === 'inserted') {
       return 'bg-purple-500/20 border-purple-500 text-purple-700 dark:text-purple-400';
     }
-    if (word.score >= 90) {
+    if (wordScore >= 90) {
       return 'bg-green-500/20 border-green-500 text-green-700 dark:text-green-400';
     }
-    if (word.score >= 75) {
+    if (wordScore >= 75) {
       return 'bg-blue-500/20 border-blue-500 text-blue-700 dark:text-blue-400';
     }
-    if (word.score >= 50) {
+    if (wordScore >= 50) {
       return 'bg-yellow-500/20 border-yellow-500 text-yellow-700 dark:text-yellow-400';
     }
     return 'bg-red-500/20 border-red-500 text-red-700 dark:text-red-400';
@@ -73,7 +85,7 @@ export function EnhancedWordHeatmap({ words }: EnhancedWordHeatmapProps) {
             >
               <div className="flex flex-col items-center">
                 <span>{word.word}</span>
-                <span className="text-[10px] font-bold mt-1">{word.score}%</span>
+                <span className="text-[10px] font-bold mt-1">{word.score ?? word.accuracyScore ?? 0}%</span>
               </div>
             </button>
           ))}
@@ -87,8 +99,8 @@ export function EnhancedWordHeatmap({ words }: EnhancedWordHeatmapProps) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold">"{selectedWord.word}"</h3>
-                <Badge variant={selectedWord.score >= 75 ? 'default' : 'destructive'} className="text-base">
-                  {selectedWord.score}/100
+                <Badge variant={(selectedWord.score ?? selectedWord.accuracyScore ?? 0) >= 75 ? 'default' : 'destructive'} className="text-base">
+                  {selectedWord.score ?? selectedWord.accuracyScore ?? 0}/100
                 </Badge>
               </div>
 
@@ -100,6 +112,7 @@ export function EnhancedWordHeatmap({ words }: EnhancedWordHeatmapProps) {
               )}
 
               {/* Phoneme breakdown */}
+              {selectedWord.phonemes && selectedWord.phonemes.length > 0 ? (
               <div>
                 <div className="text-sm font-medium text-muted-foreground mb-2">
                   Phoneme breakdown ({selectedWord.phonemes.length} sounds):
@@ -150,6 +163,11 @@ export function EnhancedWordHeatmap({ words }: EnhancedWordHeatmapProps) {
                   ))}
                 </div>
               </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  Phoneme data not available for this word
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
