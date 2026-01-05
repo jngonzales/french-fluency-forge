@@ -389,11 +389,11 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-2xl font-bold">⚠️ OLD VERSION - Pronunciation</h1>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">Pronunciation Test</h1>
               {/* Dev Mode Toggle - only visible to admins */}
               {(isAdmin || isDev) && (
-                <div className="flex items-center gap-2 border rounded-lg px-3 py-1.5 bg-muted/50">
+                <div className="flex items-center gap-2 border rounded-lg px-2 py-1 bg-muted/50">
                   <Switch
                     id="dev-mode"
                     checked={devModeEnabled}
@@ -401,7 +401,7 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
                     className="scale-75"
                   />
                   <Label htmlFor="dev-mode" className="text-xs font-medium cursor-pointer">
-                    Dev Mode
+                    Dev
                   </Label>
                 </div>
               )}
@@ -415,10 +415,10 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
                   {showDebug ? 'Hide Debug' : 'Debug'}
                 </Button>
               )}
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                {getSectionIcon(currentSection)}
-                <span>{getSectionTitle(currentSection)}</span>
-              </div>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {getSectionIcon(currentSection)}
+              <span>{getSectionTitle(currentSection)}</span>
             </div>
           </div>
           <Progress value={progress} className="h-2" />
