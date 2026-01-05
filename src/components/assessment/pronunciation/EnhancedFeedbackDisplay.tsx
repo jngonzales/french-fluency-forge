@@ -37,16 +37,12 @@ export function EnhancedFeedbackDisplay({
   const [showPhonemes, setShowPhonemes] = useState(false);
   const [showPractice, setShowPractice] = useState(false);
 
-  // Guard against undefined scores
-  if (!result?.scores) {
-    return (
-      <div className="text-center text-muted-foreground p-4">
-        Loading results...
-      </div>
-    );
-  }
-
-  const score = result.scores.overall ?? 0;
+  // Extract scores - handle both unified format and old Azure format
+  const score = result.scores?.overall ?? result.pronScore ?? result.accuracyScore ?? 0;
+  const accuracyScore = result.scores?.accuracy ?? result.accuracyScore ?? 0;
+  const fluencyScore = result.scores?.fluency ?? result.fluencyScore ?? 80;
+  const completenessScore = result.scores?.completeness ?? result.completenessScore ?? 0;
+  
   const isExcellent = score >= 85;
   const isGood = score >= 70 && score < 85;
   const isOk = score >= 50 && score < 70;
