@@ -31,11 +31,22 @@ export function PronunciationDebugPanel({ result, isOpen: initialIsOpen = false 
   const [isOpen, setIsOpen] = useState(initialIsOpen);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['recording']));
 
-  if (!result || !result.debug) {
+  if (!result) {
     return null;
   }
 
-  const { debug } = result;
+  // Create debug object with safe defaults if not present
+  const debug = result.debug || {
+    recordingStatus: 'unknown',
+    audioSize: 0,
+    audioFormat: 'unknown',
+    uploadStatus: 'unknown',
+    apiProvider: result.provider || 'azure',
+    apiCallStatus: 'unknown',
+    recognitionStatus: 'unknown',
+    timestamp: new Date().toISOString(),
+    processingSteps: [],
+  };
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => {
