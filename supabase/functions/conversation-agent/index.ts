@@ -38,12 +38,14 @@ interface EnhancedScenarioConfig {
   context?: string;
 }
 
-interface UniversalRulesState {
+// Use 'any' to avoid type mismatch with frontend types
+// The repair_events_introduced is string[] here but RepairEventType[] in frontend
+type LocalUniversalRulesState = {
   silent_turns_count: number;
   hint_given: boolean;
   off_topic_redirect_used: boolean;
   repair_events_introduced: string[];
-}
+};
 
 interface AgentTurnResponse {
   agentResponse: string;
@@ -102,7 +104,7 @@ async function getEnhancedAgentResponse(
   conversationHistory: ConversationMessage[],
   scenario: EnhancedScenarioConfig,
   turnNumber: number,
-  rulesState: UniversalRulesState,
+  rulesState: LocalUniversalRulesState,
   maxTurns: number = 10
 ): Promise<AgentTurnResponse> {
   console.log(`Getting agent response for turn ${turnNumber}...`);
@@ -146,7 +148,7 @@ async function getEnhancedAgentResponse(
     .slice(-2)
     .map(m => m.content);
     
-  if (shouldGiveAntiStallHint(rulesState, recentUserTurns)) {
+  if (shouldGiveAntiStallHint(rulesState as any, recentUserTurns)) {
     systemPrompt = addAntiStallHintInstruction(systemPrompt, scenario.slots);
     hint_given = true;
   }
@@ -398,7 +400,7 @@ serve(async (req) => {
       }
 
       // Initialize rules state if not provided
-      const currentRulesState: UniversalRulesState = rulesState || {
+      const currentRulesState: LocalUniversalRulesState = rulesState || {
         silent_turns_count: 0,
         hint_given: false,
         off_topic_redirect_used: false,

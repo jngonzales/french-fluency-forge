@@ -375,7 +375,7 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
           </div>
 
           {/* Multi-select options */}
-          {(itemPhase === 'answering' || itemPhase === 'complete') && hasPlayed && (
+          {(itemPhase === 'answering' || itemPhase === 'processing' || itemPhase === 'complete') && hasPlayed && (
             <div className="space-y-4">
               <div className="text-center text-sm text-muted-foreground">
                 Select all statements that are true. You can select multiple options.
@@ -393,18 +393,18 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
                     {option.fr}
                   </Button>
                 ))}
-                </div>
+              </div>
               
               {itemPhase !== 'complete' && (
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-sm text-muted-foreground">
                     {selectedCount} option{selectedCount !== 1 ? 's' : ''} selected
                   </span>
-                    <Button 
+                  <Button 
                     onClick={handleSubmit}
                     disabled={selectedCount === 0 || itemPhase === 'processing'}
-                      className="gap-2"
-                    >
+                    className="gap-2"
+                  >
                     {itemPhase === 'processing' ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -416,7 +416,7 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
                         <Check className="h-4 w-4" />
                       </>
                     )}
-                      </Button>
+                  </Button>
                 </div>
               )}
             </div>
