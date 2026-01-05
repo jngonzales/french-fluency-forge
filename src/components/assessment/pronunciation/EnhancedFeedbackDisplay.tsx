@@ -104,8 +104,8 @@ export function EnhancedFeedbackDisplay({
         </CardContent>
       </Card>
 
-      {/* What You Said vs Expected - Only show if we have unified format */}
-      {result.recognizedText && result.expectedText && (
+      {/* What You Said vs Expected - Only show in dev/admin mode */}
+      {showScores && result.recognizedText && result.expectedText && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
