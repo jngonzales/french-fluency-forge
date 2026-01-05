@@ -214,17 +214,35 @@ const PronunciationModuleEnhanced = ({ sessionId, onComplete, onSkip }: Pronunci
       );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Assessment failed');
+        const errorText = await response.text();
+        console.error('[Pronunciation] API error:', response.status, errorText);
+        
+        let errorData: any = {};
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        
+        throw new Error(errorData.error || `API error: ${response.status}`);
       }
 
       setProcessingStatus('analyzed');
       const result = await response.json();
       
       console.log('[Pronunciation] Full result:', result);
+      console.log('[Pronunciation] Result keys:', Object.keys(result));
+      console.log('[Pronunciation] Has scores?', !!result.scores);
+      console.log('[Pronunciation] Has words?', !!result.words);
+      console.log('[Pronunciation] Has debug?', !!result.debug);
+      
+      // Validate result has required fields
+      if (!result.success) {
+        throw new Error(result.error || 'Assessment failed - no success flag');
+      }
       
       // Set provider from result
-      setCurrentProvider(result.provider);
+      setCurrentProvider(result.provider || 'azure');
       
       toast.success(`Analysis complete (${result.provider === 'speechsuper' ? 'SpeechSuper' : 'Azure'})`);
 
@@ -232,12 +250,25 @@ const PronunciationModuleEnhanced = ({ sessionId, onComplete, onSkip }: Pronunci
       const attemptNumber = (attemptCounts[currentItem.id] || 0) + 1;
       setAttemptCounts(prev => ({ ...prev, [currentItem.id]: attemptNumber }));
 
-      // Store result
+      // Store result with safe defaults
       const itemResult = {
         ...result,
         itemId: currentItem.id,
         section: currentSection,
         attemptNumber,
+        // Ensure scores object exists
+        scores: result.scores || {
+          overall: result.pronScore || result.accuracyScore || 0,
+          accuracy: result.accuracyScore || 0,
+          fluency: result.fluencyScore || 80,
+          completeness: result.completenessScore || 0,
+        },
+        // Ensure arrays exist
+        words: result.words || [],
+        allPhonemes: result.allPhonemes || [],
+        strengths: result.strengths || [],
+        improvements: result.improvements || [],
+        practiceSuggestions: result.practiceSuggestions || [],
       };
 
       setResults((prev) => {

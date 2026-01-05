@@ -499,6 +499,7 @@ function getExampleWords(phoneme: string): string[] {
 
 /**
  * Try SpeechSuper first, fallback to Azure
+ * ALWAYS uses Azure if SpeechSuper not available
  */
 async function assessPronunciation(
   audioData: Uint8Array,
@@ -506,6 +507,14 @@ async function assessPronunciation(
   audioFormat: string
 ): Promise<UnifiedPronunciationResult> {
   const startTime = Date.now();
+  
+  // Check Azure credentials first (required fallback)
+  const azureKey = Deno.env.get('AZURE_SPEECH_KEY');
+  const azureRegion = Deno.env.get('AZURE_SPEECH_REGION');
+
+  if (!azureKey || !azureRegion) {
+    throw new Error('Azure Speech credentials not configured (required for pronunciation assessment)');
+  }
   
   // Try SpeechSuper first if API key available
   const speechSuperKey = Deno.env.get('SPEECHSUPER_API_KEY');
@@ -532,24 +541,20 @@ async function assessPronunciation(
         console.log('[Provider] SpeechSuper succeeded');
         return result as UnifiedPronunciationResult;
       } else {
-        console.warn('[Provider] SpeechSuper failed, falling back to Azure');
+        const errorText = await response.text();
+        console.warn('[Provider] SpeechSuper failed:', response.status, errorText);
+        console.log('[Provider] Falling back to Azure...');
       }
     } catch (error) {
-      console.warn('[Provider] SpeechSuper error, falling back to Azure:', error);
+      console.warn('[Provider] SpeechSuper error:', error);
+      console.log('[Provider] Falling back to Azure...');
     }
   } else {
-    console.log('[Provider] SpeechSuper API key not available, using Azure');
+    console.log('[Provider] SpeechSuper API key not configured, using Azure');
   }
 
-  // Fallback to Azure
-  console.log('[Provider] Using Azure Speech (fallback)...');
-  const azureKey = Deno.env.get('AZURE_SPEECH_KEY');
-  const azureRegion = Deno.env.get('AZURE_SPEECH_REGION');
-
-  if (!azureKey || !azureRegion) {
-    throw new Error('No pronunciation assessment provider available (Azure credentials missing)');
-  }
-
+  // Use Azure (always available)
+  console.log('[Provider] Using Azure Speech...');
   return await assessWithAzure(audioData, referenceText, azureKey, azureRegion, audioFormat);
 }
 

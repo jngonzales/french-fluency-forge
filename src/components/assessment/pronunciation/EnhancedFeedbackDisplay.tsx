@@ -88,11 +88,11 @@ export function EnhancedFeedbackDisplay({
                 <span className="text-2xl text-muted-foreground">/100</span>
               </div>
               <div className="text-sm text-muted-foreground space-x-3">
-                <span>Accuracy: {result.scores.accuracy}%</span>
+                <span>Accuracy: {accuracyScore}%</span>
                 <span>•</span>
-                <span>Fluency: {result.scores.fluency}%</span>
+                <span>Fluency: {fluencyScore}%</span>
                 <span>•</span>
-                <span>Complete: {result.scores.completeness}%</span>
+                <span>Complete: {completenessScore}%</span>
               </div>
             </div>
 
@@ -106,45 +106,49 @@ export function EnhancedFeedbackDisplay({
         </CardContent>
       </Card>
 
-      {/* What You Said vs Expected */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            Recognition Results
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">What API understood:</div>
-            <div className="p-3 bg-muted rounded-lg font-semibold">
-              "{result.recognizedText}"
+      {/* What You Said vs Expected - Only show if we have unified format */}
+      {result.recognizedText && result.expectedText && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              Recognition Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">What API understood:</div>
+              <div className="p-3 bg-muted rounded-lg font-semibold">
+                "{result.recognizedText}"
+              </div>
             </div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">Expected:</div>
-            <div className="p-3 bg-muted rounded-lg">
-              "{result.expectedText}"
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Expected:</div>
+              <div className="p-3 bg-muted rounded-lg">
+                "{result.expectedText}"
+              </div>
             </div>
-          </div>
-          <div className="flex items-center justify-between pt-2 border-t">
-            <span className="text-sm text-muted-foreground">Text match:</span>
-            <Badge variant={result.textMatch >= 90 ? 'default' : 'secondary'}>
-              {result.textMatch}%
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="flex items-center justify-between pt-2 border-t">
+              <span className="text-sm text-muted-foreground">Text match:</span>
+              <Badge variant={result.textMatch >= 90 ? 'default' : 'secondary'}>
+                {result.textMatch}%
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Word-Level Analysis */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Word-by-Word Analysis</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EnhancedWordHeatmap words={result.words} />
-        </CardContent>
-      </Card>
+      {/* Word-Level Analysis - Handle both old and new formats */}
+      {result.words && result.words.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Word-by-Word Analysis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EnhancedWordHeatmap words={result.words} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Phoneme Visualization */}
       {result.allPhonemes && result.allPhonemes.length > 0 && (
@@ -172,8 +176,8 @@ export function EnhancedFeedbackDisplay({
         </Card>
       )}
 
-      {/* Strengths */}
-      {result.strengths && result.strengths.length > 0 && (
+      {/* Strengths - Only show if available */}
+      {result.strengths && Array.isArray(result.strengths) && result.strengths.length > 0 && (
         <Alert className="border-green-500/30 bg-green-500/5">
           <Check className="h-4 w-4 text-green-500" />
           <AlertDescription>
@@ -187,8 +191,8 @@ export function EnhancedFeedbackDisplay({
         </Alert>
       )}
 
-      {/* Improvements */}
-      {result.improvements && result.improvements.length > 0 && (
+      {/* Improvements - Only show if available */}
+      {result.improvements && Array.isArray(result.improvements) && result.improvements.length > 0 && (
         <Alert className="border-yellow-500/30 bg-yellow-500/5">
           <AlertCircle className="h-4 w-4 text-yellow-500" />
           <AlertDescription>
@@ -202,8 +206,8 @@ export function EnhancedFeedbackDisplay({
         </Alert>
       )}
 
-      {/* Practice Suggestions */}
-      {result.practiceSuggestions && result.practiceSuggestions.length > 0 && (
+      {/* Practice Suggestions - Only show if available */}
+      {result.practiceSuggestions && Array.isArray(result.practiceSuggestions) && result.practiceSuggestions.length > 0 && (
         <Card>
           <CardHeader>
             <button
