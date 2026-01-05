@@ -93,7 +93,10 @@ async function assessPronunciation(
     phonemeAlphabet: "IPA"
   };
 
-  const pronunciationConfigBase64 = btoa(JSON.stringify(pronunciationConfig));
+  // Encode to UTF-8 first, then to base64 (handles French accents)
+  const encoder = new TextEncoder();
+  const utf8Bytes = encoder.encode(JSON.stringify(pronunciationConfig));
+  const pronunciationConfigBase64 = btoa(String.fromCharCode(...utf8Bytes));
   
   console.log('[Azure] Config:', JSON.stringify(pronunciationConfig));
 
