@@ -1,6 +1,7 @@
 /**
  * Score Gauge Component
  * A circular speedometer-style gauge with gradient from red to green
+ * Includes 5-level feedback text based on score
  */
 
 interface ScoreGaugeProps {
@@ -8,9 +9,18 @@ interface ScoreGaugeProps {
   size?: number;
 }
 
+// Get feedback text based on score (5 levels)
+function getFeedbackText(score: number): { text: string; emoji: string } {
+  if (score <= 20) return { text: "Keep practicing", emoji: "💪" };
+  if (score <= 40) return { text: "Getting there", emoji: "🎯" };
+  if (score <= 60) return { text: "Good effort", emoji: "👍" };
+  if (score <= 80) return { text: "Well done!", emoji: "🌟" };
+  return { text: "Excellent!", emoji: "🎉" };
+}
+
 export function ScoreGauge({ score, size = 180 }: ScoreGaugeProps) {
   // Normalize score to 0-100
-  const normalizedScore = Math.max(0, Math.min(100, score));
+  const normalizedScore = Math.max(0, Math.min(100, Math.round(score)));
   
   // SVG parameters
   const strokeWidth = 12;
@@ -42,62 +52,63 @@ export function ScoreGauge({ score, size = 180 }: ScoreGaugeProps) {
   };
   
   const strokeColor = getGradientColor(normalizedScore);
+  const feedback = getFeedbackText(normalizedScore);
   
   return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        className="transform rotate-[135deg]"
-      >
-        {/* Background track */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="hsl(var(--muted))"
-          strokeWidth={strokeWidth}
-          strokeDasharray={`${arcLength} ${circumference}`}
-          strokeLinecap="round"
-        />
+    <div className="flex flex-col items-center">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+          className="transform rotate-[135deg]"
+        >
+          {/* Background track */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="hsl(var(--muted))"
+            strokeWidth={strokeWidth}
+            strokeDasharray={`${arcLength} ${circumference}`}
+            strokeLinecap="round"
+          />
+          
+          {/* Progress arc */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={strokeColor}
+            strokeWidth={strokeWidth}
+            strokeDasharray={`${arcLength} ${circumference}`}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            className="transition-all duration-700 ease-out"
+          />
+        </svg>
         
-        {/* Gradient definition for the arc */}
-        <defs>
-          <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#ef4444" />
-            <stop offset="50%" stopColor="#eab308" />
-            <stop offset="100%" stopColor="#22c55e" />
-          </linearGradient>
-        </defs>
-        
-        {/* Progress arc */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth={strokeWidth}
-          strokeDasharray={`${arcLength} ${circumference}`}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          className="transition-all duration-700 ease-out"
-        />
-      </svg>
-      
-      {/* Score text in center */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-center mt-4">
-          <span 
-            className="text-5xl font-bold transition-colors duration-500"
-            style={{ color: strokeColor }}
-          >
-            {normalizedScore}
-          </span>
-          <span className="text-xl text-muted-foreground">%</span>
+        {/* Score text in center - properly centered */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <span 
+              className="text-5xl font-bold transition-colors duration-500"
+              style={{ color: strokeColor }}
+            >
+              {normalizedScore}
+            </span>
+            <span className="text-xl text-muted-foreground">%</span>
+          </div>
         </div>
+      </div>
+      
+      {/* Feedback text below gauge */}
+      <div className="mt-2 text-center">
+        <span className="text-lg font-medium" style={{ color: strokeColor }}>
+          {feedback.emoji} {feedback.text}
+        </span>
       </div>
     </div>
   );
