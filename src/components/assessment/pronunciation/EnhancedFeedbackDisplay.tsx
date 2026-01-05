@@ -144,20 +144,6 @@ export function EnhancedFeedbackDisplay({
         </Card>
       )}
 
-      {/* Strengths - Only show if available */}
-      {result.strengths && Array.isArray(result.strengths) && result.strengths.length > 0 && (
-        <Alert className="border-green-500/30 bg-green-500/5">
-          <Check className="h-4 w-4 text-green-500" />
-          <AlertDescription>
-            <div className="font-semibold mb-1">What you're doing well:</div>
-            <ul className="list-disc list-inside space-y-1 text-sm">
-              {result.strengths.map((strength: string, idx: number) => (
-                <li key={idx}>{strength}</li>
-              ))}
-            </ul>
-          </AlertDescription>
-        </Alert>
-      )}
 
       {/* Improvements - Only show if available */}
       {result.improvements && Array.isArray(result.improvements) && result.improvements.length > 0 && (
