@@ -337,7 +337,7 @@ const PronunciationModuleEnhanced = ({ sessionId, onComplete, onSkip }: Pronunci
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold">Pronunciation Assessment</h1>
+            <h1 className="text-3xl font-bold">🎯 Pronunciation Assessment 2.0</h1>
             <div className="flex items-center gap-2">
               {getSectionIcon(currentSection)}
               <span className="text-sm font-medium">{getSectionTitle(currentSection)}</span>
@@ -398,7 +398,7 @@ const PronunciationModuleEnhanced = ({ sessionId, onComplete, onSkip }: Pronunci
               <CardTitle className="text-2xl leading-relaxed">
                 {(currentItem as ReadingItem).referenceText}
               </CardTitle>
-              <p className="text-sm text-muted-foreground">Read this text aloud clearly</p>
+              <p className="text-sm text-muted-foreground">📢 Read this text aloud clearly (Enhanced Debug Mode Active)</p>
             </CardHeader>
             <CardContent>
               <RecordingControls
