@@ -20,28 +20,23 @@ function PDFAxisBar({
   normalized: number;
   label: string;
 }) {
+  // Clamp position between 8% and 92% for visual buffer
+  const clampedPosition = Math.max(8, Math.min(92, normalized));
+  
   return (
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 500, color: '#6b7280', marginBottom: 4 }}>
         <span>{leftLabel}</span>
         <span>{rightLabel}</span>
       </div>
-      <div style={{ position: 'relative', height: 12, backgroundColor: '#e5e7eb', borderRadius: 9999, overflow: 'hidden' }}>
-        <div 
-          style={{ 
-            position: 'absolute', 
-            height: '100%', 
-            backgroundColor: '#6366f1', 
-            borderRadius: 9999,
-            width: `${normalized}%`
-          }}
-        />
+      <div style={{ position: 'relative', height: 12, borderRadius: 9999, background: 'linear-gradient(to right, rgba(99,102,241,0.15), #e5e7eb, rgba(99,102,241,0.15))' }}>
+        {/* Position marker only - no fill bar */}
         <div 
           style={{ 
             position: 'absolute', 
             top: '50%', 
             transform: 'translate(-50%, -50%)',
-            left: `${normalized}%`,
+            left: `${clampedPosition}%`,
             width: 16, 
             height: 16, 
             backgroundColor: '#4f46e5', 
@@ -51,9 +46,8 @@ function PDFAxisBar({
           }}
         />
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
         <span style={{ fontSize: 11, color: '#9ca3af' }}>{label}</span>
-        <span style={{ fontSize: 11, fontWeight: 600, color: '#6366f1' }}>{Math.round(normalized)}%</span>
       </div>
     </div>
   );
@@ -146,9 +140,21 @@ export function PDFPage1({ data }: Props) {
           <span style={{ width: 4, height: 24, backgroundColor: '#a855f7', borderRadius: 4 }}></span>
           About You
         </h2>
-        <p style={{ fontSize: 13, lineHeight: 1.7, color: '#374151' }}>
-          {data.archetype.description}
-        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {data.archetype.description.split('. ').reduce((acc: string[][], sentence, i, arr) => {
+            const lastGroup = acc[acc.length - 1];
+            if (!lastGroup || lastGroup.length >= 2) {
+              acc.push([sentence + (i < arr.length - 1 ? '.' : '')]);
+            } else {
+              lastGroup.push(sentence + (i < arr.length - 1 ? '.' : ''));
+            }
+            return acc;
+          }, []).map((sentences, i) => (
+            <p key={i} style={{ fontSize: 13, lineHeight: 1.7, color: '#374151', margin: 0 }}>
+              {sentences.join(' ')}
+            </p>
+          ))}
+        </div>
       </div>
 
       {/* Page number */}
