@@ -1,21 +1,22 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { BookOpen, ArrowRight, Mic, Square, Check, Volume2, Loader2 } from 'lucide-react';
+import { BookOpen, ArrowRight, Mic, Square, Loader2 } from 'lucide-react';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { syntaxMicroTasks, SYNTAX_SCORING, type SyntaxMicroTask } from './syntaxItems';
+import { syntaxExercises, SYNTAX_SCORING } from './syntaxItems';
+import { getPrompts, type SyntaxPrompt } from '@/components/assessment/promptBank/loadPromptBank';
 
 interface SyntaxModuleProps {
   sessionId: string;
   onComplete: () => void;
 }
 
-interface TaskRecording {
-  taskId: string;
+interface ExerciseRecording {
+  exerciseType: 'E1' | 'E2' | 'E3';
   transcript?: string;
   audioBase64?: string;
   audioMimeType?: string;
@@ -24,26 +25,23 @@ interface TaskRecording {
 interface SyntaxResult {
   overall: number;
   subscores: {
-    passe_compose: { score: number; evidence: string[] };
-    futur_proche: { score: number; evidence: string[] };
-    pronouns: { score: number; evidence: string[] };
-    questions: { score: number; evidence: string[] };
-    connectors_structure: { score: number; evidence: string[] };
+    structure_connectors: { score: number };
+    tenses_time: { score: number };
+    pronouns: { score: number };
+    questions_modality_negation: { score: number };
   };
-  errors: { type: string; example: string; fix_hint_fr: string }[];
+  errors: { category: string; example: string; fix_hint_fr: string }[];
   feedback: string;
 }
 
 export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
   const { user } = useAuth();
   const [showIntro, setShowIntro] = useState(true);
-  const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
-  const [taskRecordings, setTaskRecordings] = useState<TaskRecording[]>([]);
+  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
+  const [exerciseRecordings, setExerciseRecordings] = useState<ExerciseRecording[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<SyntaxResult | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [currentSubQuestion, setCurrentSubQuestion] = useState(0);
-  const [playingAudio, setPlayingAudio] = useState(false);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const pendingAdvanceRef = useRef(false);
@@ -51,9 +49,32 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
   const isDev = import.meta.env.DEV || window.location.pathname.startsWith('/dev');
   const [devTranscript, setDevTranscript] = useState('');
 
-  const currentTask = syntaxMicroTasks[currentTaskIndex];
-  const totalTasks = syntaxMicroTasks.length;
-  const progress = ((currentTaskIndex) / totalTasks) * 100;
+  // Select prompts deterministically (one for each exercise type)
+  const selectedPrompts = useMemo(() => {
+    const allPrompts = getPrompts('syntax') as SyntaxPrompt[];
+    const e1Prompts = allPrompts.filter(p => p.payload.exerciseType === 'E1');
+    const e2Prompts = allPrompts.filter(p => p.payload.exerciseType === 'E2');
+    const e3Prompts = allPrompts.filter(p => p.payload.exerciseType === 'E3');
+    
+    // Use sessionId hash to select deterministically
+    const hash = sessionId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const e1Index = hash % e1Prompts.length;
+    const e2Index = (hash * 2) % e2Prompts.length;
+    const e3Index = (hash * 3) % e3Prompts.length;
+    
+    return {
+      E1: e1Prompts[e1Index] || e1Prompts[0],
+      E2: e2Prompts[e2Index] || e2Prompts[0],
+      E3: e3Prompts[e3Index] || e3Prompts[0],
+    };
+  }, [sessionId]);
+
+  const exerciseOrder: ('E1' | 'E2' | 'E3')[] = ['E1', 'E2', 'E3'];
+  const currentExerciseType = exerciseOrder[currentExerciseIndex];
+  const currentPrompt = selectedPrompts[currentExerciseType];
+  const currentDuration = syntaxExercises[currentExerciseType].duration;
+  const totalExercises = exerciseOrder.length;
+  const progress = ((currentExerciseIndex) / totalExercises) * 100;
 
   // Callback for when recording completes
   const handleRecordingComplete = useCallback((blob: Blob) => {
@@ -62,19 +83,18 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
     reader.onload = () => {
       const base64 = (reader.result as string).split(',')[1];
       
-      setTaskRecordings(prev => {
+      setExerciseRecordings(prev => {
         const updated = [
-          ...prev.filter(r => r.taskId !== currentTask.id),
-          { taskId: currentTask.id, audioBase64: base64, audioMimeType: mimeType }
+          ...prev.filter(r => r.exerciseType !== currentExerciseType),
+          { exerciseType: currentExerciseType, audioBase64: base64, audioMimeType: mimeType }
         ];
         
-        // Check if this was the last task
+        // Check if this was the last exercise
         if (pendingAdvanceRef.current) {
           pendingAdvanceRef.current = false;
           
-          if (currentTaskIndex < totalTasks - 1) {
-            setCurrentTaskIndex(idx => idx + 1);
-            setCurrentSubQuestion(0);
+          if (currentExerciseIndex < totalExercises - 1) {
+            setCurrentExerciseIndex(idx => idx + 1);
           } else {
             // Process all recordings
             setTimeout(() => processAllRecordings(updated), 100);
@@ -85,11 +105,11 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
       });
     };
     reader.readAsDataURL(blob);
-  }, [currentTask?.id, currentTaskIndex, totalTasks]);
+  }, [currentExerciseType, currentExerciseIndex, totalExercises]);
 
   const { isRecording, startRecording, stopRecording } = useAudioRecorder({
     onRecordingComplete: handleRecordingComplete,
-    maxDuration: currentTask?.timeSec || 30
+    maxDuration: currentDuration
   });
 
   // Timer effect
@@ -114,7 +134,7 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
   }, [isRecording, timeLeft]);
 
   const handleStartRecording = async () => {
-    setTimeLeft(currentTask.timeSec);
+    setTimeLeft(currentDuration);
     await startRecording();
   };
 
@@ -129,24 +149,23 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
   const handleDevSubmit = () => {
     if (!devTranscript.trim()) return;
     
-    const newRecording = { taskId: currentTask.id, transcript: devTranscript };
+    const newRecording = { exerciseType: currentExerciseType, transcript: devTranscript };
     const updatedRecordings = [
-      ...taskRecordings.filter(r => r.taskId !== currentTask.id),
+      ...exerciseRecordings.filter(r => r.exerciseType !== currentExerciseType),
       newRecording
     ];
     
-    setTaskRecordings(updatedRecordings);
+    setExerciseRecordings(updatedRecordings);
     setDevTranscript('');
     
-    if (currentTaskIndex < totalTasks - 1) {
-      setCurrentTaskIndex(prev => prev + 1);
-      setCurrentSubQuestion(0);
+    if (currentExerciseIndex < totalExercises - 1) {
+      setCurrentExerciseIndex(prev => prev + 1);
     } else {
       processAllRecordings(updatedRecordings);
     }
   };
 
-  const processAllRecordings = async (recordings: TaskRecording[]) => {
+  const processAllRecordings = async (recordings: ExerciseRecording[]) => {
     if (!user) return;
     
     setIsProcessing(true);
@@ -172,7 +191,7 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
       const { data, error } = await supabase.functions.invoke('analyze-syntax', {
         body: {
           sessionId,
-          taskTranscripts: recordings,
+          exerciseTranscripts: recordings,
           recordingId: recording.id
         }
       });
@@ -183,7 +202,7 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
         overall: data.overall,
         subscores: data.subscores,
         errors: data.errors || [],
-        feedback: data.feedback
+        feedback: data.feedback || data.feedback_fr || ''
       });
 
     } catch (error) {
@@ -191,24 +210,6 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
       toast.error('Failed to analyze your responses. Please try again.');
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  const playQuestion = async (text: string) => {
-    setPlayingAudio(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('french-tts', {
-        body: { text, voice: 'alloy' }
-      });
-      
-      if (error) throw error;
-      
-      const audio = new Audio(`data:audio/mp3;base64,${data.audioBase64}`);
-      audio.onended = () => setPlayingAudio(false);
-      await audio.play();
-    } catch (error) {
-      console.error('TTS error:', error);
-      setPlayingAudio(false);
     }
   };
 
@@ -225,7 +226,7 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
           </CardHeader>
           <CardContent className="space-y-6">
             <p className="text-center text-muted-foreground">
-              5 quick tasks to assess your A2 French grammar structures.
+              3 exercises to assess your A2→B1 French grammar structures.
             </p>
             
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
@@ -265,7 +266,7 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
             <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
             <h3 className="text-xl font-medium">Analyzing your responses...</h3>
             <p className="text-muted-foreground">
-              Our AI is evaluating your A2 French structures.
+              Our AI is evaluating your A2→B1 French structures.
             </p>
           </CardContent>
         </Card>
@@ -307,7 +308,7 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
                 <h4 className="font-medium text-amber-700 dark:text-amber-400">Top Errors:</h4>
                 {result.errors.slice(0, 3).map((err, i) => (
                   <div key={i} className="text-sm">
-                    <span className="font-medium">{err.type}:</span> "{err.example}"
+                    <span className="font-medium">{err.category}:</span> "{err.example}"
                     <br />
                     <span className="text-muted-foreground">→ {err.fix_hint_fr}</span>
                   </div>
@@ -316,7 +317,9 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
             )}
 
             {/* Feedback */}
-            <p className="text-muted-foreground">{result.feedback}</p>
+            {result.feedback && (
+              <p className="text-muted-foreground">{result.feedback}</p>
+            )}
 
             <div className="text-center pt-4">
               <Button size="lg" onClick={onComplete} className="gap-2">
@@ -330,14 +333,26 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
     );
   }
 
-  // Task recording screen
+  // Exercise recording screen
+  if (!currentPrompt) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <Card className="border-primary/20">
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">Loading exercise...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       {/* Progress */}
       <div className="space-y-2">
         <div className="flex justify-between text-sm text-muted-foreground">
-          <span>Task {currentTaskIndex + 1} of {totalTasks}</span>
-          <span>{currentTask.name}</span>
+          <span>Exercise {currentExerciseIndex + 1} of {totalExercises}</span>
+          <span>{syntaxExercises[currentExerciseType].name}</span>
         </div>
         <Progress value={progress} className="h-2" />
       </div>
@@ -346,43 +361,13 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
         <CardHeader>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
             <span className="bg-primary/10 text-primary px-2 py-1 rounded text-xs font-medium">
-              {currentTask.targetStructures.join(' + ')}
+              {currentExerciseType} ({currentDuration}s)
             </span>
-            <span>• {currentTask.timeSec}s</span>
+            <span>• {currentPrompt.payload.targetStructures.join(', ')}</span>
           </div>
-          <CardTitle className="text-xl">{currentTask.promptFr}</CardTitle>
+          <CardTitle className="text-xl">{currentPrompt.payload.instruction}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* S3 mini-questions display */}
-          {currentTask.items && (
-            <div className="space-y-3 bg-muted/50 rounded-lg p-4">
-              <h4 className="font-medium text-sm">Questions:</h4>
-              {currentTask.items.map((item, idx) => (
-                <div 
-                  key={idx} 
-                  className={`flex items-center gap-3 p-2 rounded ${
-                    idx === currentSubQuestion ? 'bg-primary/10' : ''
-                  }`}
-                >
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => playQuestion(item.q)}
-                    disabled={playingAudio}
-                  >
-                    <Volume2 className="h-4 w-4" />
-                  </Button>
-                  <span className={idx <= currentSubQuestion ? '' : 'text-muted-foreground'}>
-                    {idx + 1}. {item.q}
-                  </span>
-                  {idx < currentSubQuestion && (
-                    <Check className="h-4 w-4 text-green-500 ml-auto" />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* Timer */}
           {isRecording && (
             <div className="text-center">
@@ -431,10 +416,10 @@ export function SyntaxModule({ sessionId, onComplete }: SyntaxModuleProps) {
             </div>
           )}
 
-          {/* Completed tasks */}
-          {taskRecordings.length > 0 && (
+          {/* Completed exercises */}
+          {exerciseRecordings.length > 0 && (
             <div className="text-sm text-muted-foreground">
-              <span className="text-green-500">✓</span> {taskRecordings.length} task(s) recorded
+              <span className="text-green-500">✓</span> {exerciseRecordings.length} exercise(s) recorded
             </div>
           )}
         </CardContent>

@@ -1,80 +1,68 @@
 /**
- * LLM Evaluator Prompt for A2 French Structure/Syntax
+ * LLM Feature Extraction Prompt for A2→B1 French Syntax (Layer A)
  * 
- * This prompt is used to score learner transcripts for A2 structures.
+ * This prompt extracts features and evidence from transcripts.
+ * Scoring is done deterministically in code (Layer B).
  * Focus is on structure, not vocabulary or pronunciation.
  */
 
-export const SYNTAX_EVALUATOR_PROMPT = `You are a strict but fair evaluator of French A2 structures. Output ONLY valid JSON.
+export const SYNTAX_FEATURE_EXTRACTION_PROMPT = `You evaluate SPOKEN French syntax from ASR transcripts that may be cleaned.
+Score only from POSITIVE evidence. Do not penalize absence of mistakes.
+Return STRICT JSON matching the schema. Quotes must be verbatim.
+Be conservative if transcript is short, garbled, or mixed-language.
+Dropped "ne" is allowed when negation marker is correct.
+No accent/vocabulary/pronunciation grading.`;
 
-Score the learner transcript for A2 structures. Focus on structure, not vocabulary or pronunciation.
+export const SYNTAX_EXERCISE_CONTEXT = `
+## Exercise Context
+The learner completed 3 speaking exercises designed to elicit A2→B1 structures:
 
-## Important Rules
-- Dropped "ne" is allowed if "pas/jamais/rien" is used correctly (common in spoken French)
-- Be conservative if ASR seems uncertain
-- Focus on PRACTICAL communication - minor errors that don't impede understanding are penalized less
+1. **E1 (15s) - Quick Answer**: Binary choice + 1 reason
+   - Targets: connectors (parce que/mais), basic negation, preference verbs
 
-## Subscores (Total: 100 points)
+2. **E2 (30s) - Structured Plan**: Plan with 3 actions + sequencing
+   - Targets: futur proche, sequencers (d'abord/ensuite/puis), object pronouns
 
-### Passé Composé (0-25 points)
-- 0: No attempt at passé composé
-- 10: Attempts but mostly wrong forms (wrong auxiliary, wrong agreement)
-- 20: Mostly correct usage (a few minor errors acceptable)
-- 25: Consistent and correct usage with proper auxiliaries and agreements
+3. **E3 (60s) - Mini-Story/Dilemma**: Past narration + what you do + why
+   - Targets: passé composé, pronouns, questions, si-clauses, connector chains
 
-### Futur Proche (0-15 points)
-- 0: No use of futur proche
-- 7: 1 correct instance of "aller + infinitif"
-- 12: 2+ correct instances
-- 15: Consistent and natural use in context
+Extract features and evidence from the combined transcript.`;
 
-### Pronouns - le/la/les/lui/leur (0-25 points)
-- 0: No object pronouns used
-- 10: Uses pronouns but often in wrong position or form
-- 20: Mostly correct le/la/les + some lui/leur usage
-- 25: Consistently correct pronoun choice and positioning
-
-### Questions (0-15 points)
-- 0: No questions formed
-- 8: 1-2 clear questions (any method: intonation, est-ce que, inversion)
-- 15: 3+ clear questions with good structure
-
-### Connectors & Structure (0-20 points)
-Award points for: et, mais, parce que, puis, donc, d'abord, ensuite, enfin
-- 0-5: Single clauses only, no connectors
-- 10-15: Simple chaining with basic connectors (et, mais)
-- 16-20: Structured mini-argument with cause/sequence markers
-
+export const SYNTAX_JSON_SCHEMA = `
 Return JSON in this exact format:
 {
-  "overall": <0-100 total score>,
-  "subs": {
-    "passe_compose": {"score": <0-25>, "evidence": ["<quote1>", "<quote2>"]},
-    "futur_proche": {"score": <0-15>, "evidence": ["<quote1>"]},
-    "pronouns": {"score": <0-25>, "evidence": ["<quote1>"]},
-    "questions": {"score": <0-15>, "evidence": ["<quote1>"]},
-    "connectors_structure": {"score": <0-20>, "evidence": ["<quote1>"]}
+  "meta": {
+    "prompt_version": "YYYY-MM-DD",
+    "scorer_version": "YYYY-MM-DD",
+    "asr_version": "whisper-1"
   },
-  "errors_top3": [
-    {"type": "<error category>", "example": "<from transcript>", "fix_hint_fr": "<correction in French>"}
+  "asr_quality": {
+    "confidence": 0.0,
+    "flags": ["ok|short|garbled|mixed_language|too_clean"]
+  },
+  "evidence": {
+    "passe_compose": [{"exercise":"E1|E2|E3","quote":"..."}],
+    "futur_proche": [{"exercise":"E1|E2|E3","quote":"..."}],
+    "connectors": [{"exercise":"E1|E2|E3","quote":"...","type":"because|contrast|sequence|result"}],
+    "pronouns": [{"exercise":"E1|E2|E3","quote":"...","type":"le/la/les|lui/leur"}],
+    "negation": [{"exercise":"E1|E2|E3","quote":"..."}],
+    "questions": [{"exercise":"E1|E2|E3","quote":"...","type":"est-ce que|wh|intonation"}],
+    "modality": [{"exercise":"E1|E2|E3","quote":"...","type":"pouvoir|devoir|vouloir"}],
+    "si_clause": [{"exercise":"E1|E2|E3","quote":"..."}]
+  },
+  "features": {
+    "clauses": { "estimated_clauses": 0, "multi_clause": false },
+    "tenses": { "passe_compose_correct_like": 0, "futur_proche_correct_like": 0, "time_markers": [] },
+    "connectors": { "because": 0, "contrast": 0, "sequence": 0, "result": 0, "examples": [] },
+    "pronouns": { "le_la_les_correct_like": 0, "lui_leur_correct_like": 0, "issues": [] },
+    "negation": { "count": 0, "types": ["pas|jamais|rien|plus|personne"], "issues": [] },
+    "questions": { "clear_questions": 0, "types": ["est-ce que|why|how|where|intonation"], "issues": [] },
+    "modality": { "count": 0, "types": ["pouvoir|devoir|vouloir"], "issues": [] },
+    "si_clause": { "count": 0 }
+  },
+  "top_errors": [
+    { "category": "word_order|pronouns|tense|questions|connectors", "example": "...", "fix_hint_fr": "..." }
   ],
-  "confidence": <0-1 your confidence in this evaluation>
+  "feedback_fr": "1–2 encouraging sentences in French.",
+  "confidence": 0.0
 }`;
-
-export const SYNTAX_TASK_CONTEXT = `
-## Task Context
-The learner completed 5 micro-tasks designed to elicit specific A2 structures:
-
-1. **S1 - Past Story**: Asked to describe 3 things they did last weekend (targets: passé composé)
-2. **S2 - Plans**: Asked about tonight's plans with 3 actions (targets: futur proche)  
-3. **S3 - Object Pronouns**: Rapid-fire questions requiring le/la/les/lui/leur responses
-4. **S4 - Ask Questions**: Role-play asking 3 questions to a shopkeeper
-5. **S5 - Reasons + Comparison**: Compare city vs countryside with reasons (targets: parce que, comparatives)
-
-Evaluate the combined transcript from all tasks. Each subscore maps to specific task(s):
-- passé_composé → mainly S1
-- futur_proche → mainly S2
-- pronouns → mainly S3
-- questions → mainly S4
-- connectors_structure → mainly S5, but can appear anywhere
-`;

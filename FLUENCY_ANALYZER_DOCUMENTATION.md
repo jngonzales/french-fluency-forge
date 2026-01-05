@@ -427,97 +427,104 @@ Final Score = (Questionnaire Score × 0.5) + (Speaking Score × 0.5)
 **Location:** `src/components/assessment/syntax/`  
 **Edge Function:** `supabase/functions/analyze-syntax/index.ts`
 
-#### Task Structure
+#### Exercise Structure
 
-**5 Micro-Tasks (Elicit Specific Structures):**
+**3 Exercises (ASR-Resilient Design):**
 
-1. **S1 - Past Story**
-   - Prompt: Describe 3 things you did last weekend
-   - **Target:** Passé composé usage
+1. **E1 - Quick Answer (15s)**
+   - Prompt style: Binary choice + 1 reason
+   - Example: "Tu préfères le week-end : rester à la maison ou sortir ? Une phrase + une raison."
+   - **Targets:** Connectors (parce que/mais), basic negation, preference verbs
 
-2. **S2 - Plans**
-   - Prompt: What are your plans for tonight? (3 actions)
-   - **Target:** Futur proche (aller + infinitif)
+2. **E2 - Structured Plan (30s)**
+   - Prompt style: Plan with 3 actions + sequencing
+   - Example: "Ce soir, tu as une mission : organiser un petit dîner. Donne 3 actions dans l'ordre (d'abord/ensuite/puis)."
+   - **Targets:** Futur proche, sequencers (d'abord/ensuite/puis), object pronouns
 
-3. **S3 - Object Pronouns**
-   - Rapid-fire questions requiring le/la/les/lui/leur responses
-   - **Target:** Object pronoun usage and placement
+3. **E3 - Mini-Story/Dilemma (60s)**
+   - Prompt style: Ethical dilemma or conflict scenario
+   - Example: "Imagine : ton ami(e) te demande de mentir pour lui/elle. Raconte la situation et dis ce que tu fais, et pourquoi."
+   - **Targets:** Passé composé, pronouns, questions, si-clauses, connector chains
 
-4. **S4 - Ask Questions**
-   - Role-play: Ask 3 questions to a shopkeeper
-   - **Target:** Question formation
+**All exercises combined into single transcript for evaluation**
 
-5. **S5 - Reasons + Comparison**
-   - Compare city vs countryside with reasons
-   - **Target:** Connectors (parce que), comparatives
-
-**All tasks combined into single transcript for evaluation**
+**Prompt Bank:**
+- 20 variants for each exercise type (60 total prompts)
+- Deterministic selection based on session ID
+- Stored in `src/components/assessment/promptBank/promptBanks/syntax.json`
 
 #### Scoring System
 
-**AI-Powered Evaluation (GPT-4o-mini)**
+**Two-Layer Scoring (ASR-Resilient):**
 
-**Subscores (Total: 100 points):**
+**Layer A (LLM Feature Extraction):**
+- GPT-4o-mini extracts features and evidence (temperature=0)
+- Returns structured JSON with evidence quotes and feature counts
+- Only rewards positive evidence (does not penalize absence)
+- Conservative when ASR quality is uncertain
 
-1. **Passé Composé (0-25 points)**
-   - 0: No attempt
-   - 10: Attempts but mostly wrong (wrong auxiliary, agreement)
-   - 20: Mostly correct (few minor errors acceptable)
-   - 25: Consistent and correct with proper auxiliaries and agreements
-   - **Primary Source:** S1 task
+**Layer B (Deterministic Code Scoring):**
+- Computes scores from feature counts in code
+- Ensures 20-run consistency (same features → same scores)
+- Applies ASR quality adjustments (caps score if short/garbled)
 
-2. **Futur Proche (0-15 points)**
-   - 0: No use
-   - 7: 1 correct instance of "aller + infinitif"
-   - 12: 2+ correct instances
-   - 15: Consistent and natural use
-   - **Primary Source:** S2 task
+**4-Bucket Scoring System (Total: 100 points):**
 
-3. **Pronouns - le/la/les/lui/leur (0-25 points)**
-   - 0: No object pronouns used
-   - 10: Uses pronouns but wrong position/form
-   - 20: Mostly correct le/la/les + some lui/leur
-   - 25: Consistently correct choice and positioning
-   - **Primary Source:** S3 task
+1. **Structure & Connectors (0-30 points)**
+   - Multi-clause output: +10 points
+   - Connector variety (because/contrast/sequence/result): up to +20 points
+   - **Primary Source:** All exercises, especially E3
 
-4. **Questions (0-15 points)**
-   - 0: No questions formed
-   - 8: 1-2 clear questions (any method: intonation, est-ce que, inversion)
-   - 15: 3+ clear questions with good structure
-   - **Primary Source:** S4 task
+2. **Tenses & Time (0-25 points)**
+   - Passé composé evidence: up to +15 points
+   - Futur proche evidence: up to +10 points
+   - Time markers: up to +5 points
+   - **Primary Source:** E2 (futur proche), E3 (passé composé)
 
-5. **Connectors & Structure (0-20 points)**
-   - Award points for: et, mais, parce que, puis, donc, d'abord, ensuite, enfin
-   - 0-5: Single clauses only, no connectors
-   - 10-15: Simple chaining with basic connectors (et, mais)
-   - 16-20: Structured mini-argument with cause/sequence markers
-   - **Primary Source:** S5 task, but can appear anywhere
+3. **Pronouns (0-25 points)**
+   - le/la/les correct-like evidence: up to +15 points
+   - lui/leur correct-like evidence: up to +10 points
+   - **Primary Source:** E2, E3
 
-**Overall Score:** Sum of all subscores (0-100)
+4. **Questions + Modality + Negation (0-20 points)**
+   - Clear questions: up to +10 points
+   - Modality verbs (pouvoir/devoir/vouloir): up to +5 points
+   - Negation: up to +5 points
+   - **Primary Source:** E1 (negation), E3 (questions)
+
+**Overall Score:** Sum of all 4 buckets (0-100)
 
 **Additional Outputs:**
-- **Evidence:** Quotes from transcript supporting each subscore
-- **Top 3 Errors:** Error categories with examples and fix hints (in French)
+- **Evidence:** Quotes from transcript with exercise markers (E1/E2/E3)
+- **Features:** Detailed feature counts (clauses, tenses, connectors, pronouns, etc.)
+- **Top Errors:** Error categories with examples and fix hints (in French)
+- **ASR Quality Flags:** ok/short/garbled/mixed_language/too_clean
 - **Confidence:** AI confidence in evaluation (0-1)
 
 **Important Rules:**
 - Dropped "ne" is allowed if "pas/jamais/rien" is used correctly (common in spoken French)
-- Focus on PRACTICAL communication - minor errors that don't impede understanding penalized less
-- Conservative scoring if ASR (Automatic Speech Recognition) seems uncertain
+- Score only from positive evidence (never penalize absence)
+- Conservative scoring if ASR quality flags indicate uncertainty
+- Cap overall score at 85 if ASR quality is poor (short/garbled)
 
-**AI Model:** GPT-4o-mini with JSON response format
+**AI Model:** GPT-4o-mini with JSON response format (temperature=0)
 
 #### Technical Details
 
 **Transcription:**
-- Each task can have audio or direct transcript
+- Each exercise can have audio or direct transcript
 - Audio transcribed via Whisper API if needed
-- All transcripts combined with task labels: `[Task S1]\n...\n[Task S2]\n...`
+- All transcripts combined with exercise markers: `[E1]\n...\n[E2]\n...\n[E3]\n...`
 
-**Evaluation:**
-- Combined transcript sent to LLM with task context
-- LLM evaluates all structures together
-- Returns structured JSON with subscores and evidence
+**Evaluation Flow:**
+1. **Layer A:** Combined transcript sent to LLM for feature extraction
+2. **Layer B:** Features processed deterministically in code to compute scores
+3. Results stored in `ai_breakdown` with full feature extraction data
+
+**Feature Extraction Schema:**
+- Evidence arrays with exercise markers and quotes
+- Feature counts (clauses, tenses, connectors, pronouns, negation, questions, modality, si-clauses)
+- ASR quality assessment (confidence, flags)
 
 ---
 

@@ -82,11 +82,9 @@ const dimensions: {
     label: "Syntax",
     icon: <BookOpen className="h-4 w-4" />,
     subtests: [
-      { id: "S1", label: "S1: Passé composé" },
-      { id: "S2", label: "S2: Futur proche" },
-      { id: "S3", label: "S3: Object pronouns" },
-      { id: "S4", label: "S4: Questions" },
-      { id: "S5", label: "S5: Connectors" },
+      { id: "E1", label: "E1: Quick Answer (15s)" },
+      { id: "E2", label: "E2: Structured Plan (30s)" },
+      { id: "E3", label: "E3: Mini-Story (60s)" },
     ],
   },
   {

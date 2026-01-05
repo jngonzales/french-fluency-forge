@@ -51,13 +51,14 @@ export interface ConfidencePrompt extends PromptBase {
   };
 }
 
-// Syntax prompts (micro-tasks)
+// Syntax prompts (syntax exercises)
 export interface SyntaxPrompt extends PromptBase {
-  type: 'micro_task';
+  type: 'syntax_exercise';
   payload: {
-    taskId: string;
+    exerciseType: 'E1' | 'E2' | 'E3';
+    duration: 15 | 30 | 60;
     instruction: string;
-    targetStructure: string; // e.g., "passé composé"
+    targetStructures: string[];
   };
 }
 
