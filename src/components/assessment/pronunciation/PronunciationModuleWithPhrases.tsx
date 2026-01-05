@@ -316,8 +316,8 @@ const PronunciationModuleWithPhrases = ({
         {/* Coverage Progress - only in dev mode */}
         {showDevFeatures && <CoverageProgress testedPhonemes={testedPhonemes} currentPhrase={currentIndex + 1} totalPhrases={phrases.length} />}
 
-        {/* Status Flow */}
-        {processingStatus !== 'idle' && processingStatus !== 'complete' && <StatusIndicator status={processingStatus} provider={currentProvider} devMode={showDevFeatures} />}
+        {/* Status Flow - hide during feedback */}
+        {!showFeedback && processingStatus !== 'idle' && processingStatus !== 'complete' && <StatusIndicator status={processingStatus} provider={currentProvider} devMode={showDevFeatures} />}
 
         {/* Recording Error */}
         {recordingError && <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-3">
