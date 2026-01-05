@@ -6,6 +6,7 @@
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import type { Phrase } from '../types';
+import { ExplanationChips } from './ExplanationChips';
 
 interface RevealPanelProps {
   phrase: Phrase;
@@ -82,6 +83,9 @@ export function RevealPanel({ phrase, timeToReveal, showTimeToReveal }: RevealPa
           </Badge>
         )}
       </div>
+
+      {/* Explanation chips */}
+      <ExplanationChips phraseId={phrase.id} />
     </motion.div>
   );
 }

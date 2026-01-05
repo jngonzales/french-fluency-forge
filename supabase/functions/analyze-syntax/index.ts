@@ -177,7 +177,10 @@ Return JSON in this exact format:
         { role: 'user', content: userPrompt }
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.3,
+      temperature: 0,
+      top_p: 1,
+      presence_penalty: 0,
+      frequency_penalty: 0,
     }),
   });
 
@@ -306,6 +309,13 @@ serve(async (req) => {
 
     const feedback = feedbackParts.join(' ') || 'Keep practicing A2 structures!';
 
+    // Version tracking
+    const versions = {
+      prompt_version: '2026-01-04',
+      scorer_version: '2026-01-04',
+      asr_version: 'whisper-1'
+    };
+
     // Update recording with results
     const { error: updateError } = await supabase
       .from('skill_recordings')
@@ -318,8 +328,12 @@ serve(async (req) => {
           subscores: evaluation.subs,
           errors: evaluation.errors_top3,
           confidence: evaluation.confidence,
-          taskTranscripts: processedTranscripts
+          taskTranscripts: processedTranscripts,
+          versions
         },
+        prompt_version: versions.prompt_version,
+        scorer_version: versions.scorer_version,
+        asr_version: versions.asr_version,
         status: 'completed',
         completed_at: new Date().toISOString()
       })
@@ -341,7 +355,8 @@ serve(async (req) => {
         confidence: evaluation.confidence,
         feedback,
         wordCount,
-        taskTranscripts: processedTranscripts
+        taskTranscripts: processedTranscripts,
+        versions
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

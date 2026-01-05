@@ -1,0 +1,24 @@
+{
+  "name": "Medium Confidence - Some Personal Opinion",
+  "description": "Moderate length with some personal perspective but less assertiveness",
+  "input": {
+    "transcript": "Je pense que... bon, les gens qui ne font pas d'erreurs, c'est peut-être qu'ils ne prennent pas beaucoup de risques. Moi, je fais des erreurs parfois, et c'est normal. Je crois que tout le monde fait des erreurs. C'est important d'apprendre de ses erreurs.",
+    "promptText": "Qu'est-ce que vous pensez des gens qui ne font jamais d'erreurs ?",
+    "moduleType": "confidence"
+  },
+  "expected": {
+    "score": {"min": 55, "max": 70},
+    "breakdown": {
+      "length_development": {"min": 10, "max": 15},
+      "assertiveness": {"min": 10, "max": 15},
+      "emotional_engagement": {"min": 5, "max": 10},
+      "clarity": {"min": 8, "max": 12},
+      "linguistic_signals": {"min": 3, "max": 6}
+    }
+  },
+  "tolerance": {
+    "score_range": 3,
+    "score_stddev": 1.0
+  }
+}
+

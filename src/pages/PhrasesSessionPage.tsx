@@ -34,6 +34,7 @@ export default function PhrasesSessionPage() {
     estimatedTimeLeft,
     intervals,
     exactDueDates,
+    speechResult,
     actions,
   } = usePhrasesSession();
 
@@ -196,9 +197,15 @@ export default function PhrasesSessionPage() {
               </motion.div>
             </AnimatePresence>
 
-            {/* Speech feedback (if enabled) */}
-            {!sessionState.isRevealed && (
-              <SpeechFeedbackPanel enabled={settings.speech_feedback_enabled} />
+            {/* Speech feedback (if enabled and recall mode) */}
+            {!sessionState.isRevealed && 
+             settings.speech_feedback_enabled && 
+             currentPhrase.mode === 'recall' && (
+              <SpeechFeedbackPanel 
+                enabled={settings.speech_feedback_enabled}
+                targetText={currentPhrase.answers_fr || [currentPhrase.canonical_fr || '']}
+                onTranscript={actions.handleSpeechResult}
+              />
             )}
 
             {/* Reveal button or revealed content */}
@@ -223,6 +230,9 @@ export default function PhrasesSessionPage() {
                   onRate={handleRate}
                   intervals={intervals || undefined}
                   exactDueDates={exactDueDates || undefined}
+                  suggestedRating={speechResult && settings.auto_assess_enabled 
+                    ? (speechResult as any).suggestedRating 
+                    : undefined}
                 />
               </div>
             )}

@@ -1,0 +1,304 @@
+{
+  "version": "2026-01-04",
+  "module": "pronunciation",
+  "meta": {
+    "description": "Pronunciation prompts covering French phoneme contrasts",
+    "lastUpdated": "2026-01-04",
+    "author": "French Fluency Forge"
+  },
+  "prompts": [
+    {
+      "id": "pronR-1",
+      "type": "read_aloud",
+      "tags": ["A2", "/y/-/u/", "vowels"],
+      "difficulty": 2,
+      "payload": {
+        "text": "Tu as vu tout le monde dans la rue ?",
+        "phonemes": ["/y/", "/u/"],
+        "phonetic": "ty a vy tu lə mɔ̃d dɑ̃ la ʁy"
+      }
+    },
+    {
+      "id": "pronR-2",
+      "type": "read_aloud",
+      "tags": ["B1", "nasal_vowels", "/ɛ̃/", "/ɑ̃/", "/ɔ̃/"],
+      "difficulty": 3,
+      "payload": {
+        "text": "Ce matin, il y a du vent. Je bois un verre de vin dans le salon.",
+        "phonemes": ["/ɛ̃/", "/ɑ̃/", "/ɔ̃/"],
+        "phonetic": "sə matɛ̃ il i a dy vɑ̃ ʒə bwa œ̃ vɛʁ də vɛ̃ dɑ̃ lə salɔ̃"
+      }
+    },
+    {
+      "id": "pronR-3",
+      "type": "read_aloud",
+      "tags": ["A2", "/s/-/z/", "consonants"],
+      "difficulty": 2,
+      "payload": {
+        "text": "Je mange du poisson, pas du poison !",
+        "phonemes": ["/s/", "/z/"],
+        "phonetic": "ʒə mɑ̃ʒ dy pwasɔ̃ pa dy pwazɔ̃"
+      }
+    },
+    {
+      "id": "pronR-4",
+      "type": "read_aloud",
+      "tags": ["A2", "/ʁ/", "uvular"],
+      "difficulty": 2,
+      "payload": {
+        "text": "Robert roule rapidement sur la route.",
+        "phonemes": ["/ʁ/"],
+        "phonetic": "ʁɔbɛʁ ʁul ʁapidmɑ̃ syʁ la ʁut"
+      }
+    },
+    {
+      "id": "pronR-5",
+      "type": "read_aloud",
+      "tags": ["B1", "/ə/", "schwa"],
+      "difficulty": 3,
+      "payload": {
+        "text": "Je ne sais pas ce que tu demandes.",
+        "phonemes": ["/ə/"],
+        "phonetic": "ʒə nə sɛ pa sə kə ty dəmɑ̃d"
+      }
+    },
+    {
+      "id": "pronE-1",
+      "type": "listen_repeat",
+      "tags": ["A2", "position", "prepositions"],
+      "difficulty": 2,
+      "payload": {
+        "text": "Je suis sous le pont, puis je passe dessus.",
+        "audioUrl": "/audio/pronE-1.mp3",
+        "phonemes": ["/u/", "/y/"],
+        "phonetic": "ʒə sɥi su lə pɔ̃ pɥi ʒə pas dəsy"
+      }
+    },
+    {
+      "id": "pronE-2",
+      "type": "listen_repeat",
+      "tags": ["A2", "vowels", "/a/-/ɑ/", "/ʁ/"],
+      "difficulty": 2,
+      "payload": {
+        "text": "Je fais des pâtes, et le chat a mal à la patte.",
+        "audioUrl": "/audio/pronE-2.mp3",
+        "phonemes": ["/a/", "/ɑ/", "/ʁ/"],
+        "phonetic": "ʒə fɛ de pɑt e lə ʃa a mal a la pat"
+      }
+    },
+    {
+      "id": "pronE-3",
+      "type": "listen_repeat",
+      "tags": ["B1", "oral-nasal", "/ʃ/-/ʒ/"],
+      "difficulty": 3,
+      "payload": {
+        "text": "Je cherche mon chien, mais je n'entends rien.",
+        "audioUrl": "/audio/pronE-3.mp3",
+        "phonemes": ["/ʃ/", "/ʒ/", "/j/", "/ɛ̃/"],
+        "phonetic": "ʒə ʃɛʁʃ mɔ̃ ʃjɛ̃ mɛ ʒə nɑ̃tɑ̃ ʁjɛ̃"
+      }
+    },
+    {
+      "id": "pronR-6",
+      "type": "read_aloud",
+      "tags": ["A2", "/e/-/ɛ/", "closed-open"],
+      "difficulty": 2,
+      "payload": {
+        "text": "Tu as été à côté de la forêt ?",
+        "phonemes": ["/e/", "/ɛ/"],
+        "phonetic": "ty a ete a kote də la fɔʁɛ"
+      }
+    },
+    {
+      "id": "pronR-7",
+      "type": "read_aloud",
+      "tags": ["B1", "liaisons", "elision"],
+      "difficulty": 3,
+      "payload": {
+        "text": "Ils ont un ami en Italie. C'est un homme intelligent.",
+        "phonemes": ["liaison"],
+        "phonetic": "il zɔ̃ œ̃n‿ami ɑ̃n‿itali se tœ̃n‿ɔm ɛ̃teliʒɑ̃"
+      }
+    },
+    {
+      "id": "pronR-8",
+      "type": "read_aloud",
+      "tags": ["A2", "/l/", "lateral"],
+      "difficulty": 2,
+      "payload": {
+        "text": "Lola lit le livre à la lumière de la lune.",
+        "phonemes": ["/l/"],
+        "phonetic": "lola li lə livʁ a la lymjɛʁ də la lyn"
+      }
+    },
+    {
+      "id": "pronR-9",
+      "type": "read_aloud",
+      "tags": ["A2", "/p/-/b/", "plosives"],
+      "difficulty": 2,
+      "payload": {
+        "text": "Papa boit de la bière au bord de la piscine.",
+        "phonemes": ["/p/", "/b/"],
+        "phonetic": "papa bwa də la bjɛʁ o bɔʁ də la pisin"
+      }
+    },
+    {
+      "id": "pronR-10",
+      "type": "read_aloud",
+      "tags": ["A2", "/t/-/d/", "plosives"],
+      "difficulty": 2,
+      "payload": {
+        "text": "Ton dos te fait mal depuis deux jours ?",
+        "phonemes": ["/t/", "/d/"],
+        "phonetic": "tɔ̃ do tə fɛ mal dəpɥi dø ʒuʁ"
+      }
+    },
+    {
+      "id": "pronR-11",
+      "type": "read_aloud",
+      "tags": ["B1", "/k/-/g/", "plosives"],
+      "difficulty": 3,
+      "payload": {
+        "text": "Le gâteau de Carole est garni de crème.",
+        "phonemes": ["/k/", "/g/"],
+        "phonetic": "lə gɑto də kaʁɔl ɛ gaʁni də kʁɛm"
+      }
+    },
+    {
+      "id": "pronR-12",
+      "type": "read_aloud",
+      "tags": ["B1", "/f/-/v/", "fricatives"],
+      "difficulty": 3,
+      "payload": {
+        "text": "Véronique fait des valises pour les vacances.",
+        "phonemes": ["/f/", "/v/"],
+        "phonetic": "veʁɔnik fɛ de valiz puʁ le vakɑ̃s"
+      }
+    },
+    {
+      "id": "pronE-4",
+      "type": "listen_repeat",
+      "tags": ["A2", "intonation", "questions"],
+      "difficulty": 2,
+      "payload": {
+        "text": "Tu viens ? Tu es où ? On part quand ?",
+        "audioUrl": "/audio/pronE-4.mp3",
+        "phonemes": ["intonation"],
+        "phonetic": "ty vjɛ̃ ty ɛ u ɔ̃ paʁ kɑ̃"
+      }
+    },
+    {
+      "id": "pronE-5",
+      "type": "listen_repeat",
+      "tags": ["B1", "rhythm", "syllables"],
+      "difficulty": 3,
+      "payload": {
+        "text": "Naturellement, je vais probablement arriver.",
+        "audioUrl": "/audio/pronE-5.mp3",
+        "phonemes": ["rhythm"],
+        "phonetic": "natyʁɛlmɑ̃ ʒə vɛ pʁɔbabləmɑ̃ aʁive"
+      }
+    },
+    {
+      "id": "pronR-13",
+      "type": "read_aloud",
+      "tags": ["B2", "complex", "clusters"],
+      "difficulty": 4,
+      "payload": {
+        "text": "L'extraordinaire spectacle s'est déroulé splendidement.",
+        "phonemes": ["clusters"],
+        "phonetic": "lɛkstʁaɔʁdinɛʁ spɛktakl sɛ deʁule splɑ̃didmɑ̃"
+      }
+    },
+    {
+      "id": "pronR-14",
+      "type": "read_aloud",
+      "tags": ["A2", "/ɥ/", "semi-vowel"],
+      "difficulty": 2,
+      "payload": {
+        "text": "Huit huîtres dans une cuisine, c'est nul !",
+        "phonemes": ["/ɥ/", "/y/"],
+        "phonetic": "ɥit ɥitʁ dɑ̃z‿yn kɥizin sɛ nyl"
+      }
+    },
+    {
+      "id": "pronR-15",
+      "type": "read_aloud",
+      "tags": ["A2", "/j/", "semi-vowel"],
+      "difficulty": 2,
+      "payload": {
+        "text": "Hier, j'ai payé du yaourt et des yeux rouges.",
+        "phonemes": ["/j/"],
+        "phonetic": "jɛʁ ʒɛ pɛje dy jauʁt e de zjø ʁuʒ"
+      }
+    },
+    {
+      "id": "pronR-16",
+      "type": "read_aloud",
+      "tags": ["B1", "/w/", "semi-vowel"],
+      "difficulty": 3,
+      "payload": {
+        "text": "Louis voit trois oiseaux voler loin.",
+        "phonemes": ["/w/", "/wa/"],
+        "phonetic": "lwi vwa tʁwa wazo vɔle lwɛ̃"
+      }
+    },
+    {
+      "id": "pronE-6",
+      "type": "listen_repeat",
+      "tags": ["B1", "numbers", "dates"],
+      "difficulty": 3,
+      "payload": {
+        "text": "Le vingt-huit juin, à dix-huit heures quinze.",
+        "audioUrl": "/audio/pronE-6.mp3",
+        "phonemes": ["numbers"],
+        "phonetic": "lə vɛ̃t ɥit ʒɥɛ̃ a diz ɥit œʁ kɛ̃z"
+      }
+    },
+    {
+      "id": "pronR-17",
+      "type": "read_aloud",
+      "tags": ["B2", "/ɔ̃/-/œ̃/", "nasal"],
+      "difficulty": 4,
+      "payload": {
+        "text": "Un bon brun mange du thon à jeun.",
+        "phonemes": ["/ɔ̃/", "/œ̃/"],
+        "phonetic": "œ̃ bɔ̃ bʁœ̃ mɑ̃ʒ dy tɔ̃ a ʒœ̃"
+      }
+    },
+    {
+      "id": "pronR-18",
+      "type": "read_aloud",
+      "tags": ["A2", "everyday", "complete"],
+      "difficulty": 2,
+      "payload": {
+        "text": "Bonjour ! Comment allez-vous aujourd'hui ?",
+        "phonemes": ["complete"],
+        "phonetic": "bɔ̃ʒuʁ kɔmɑ̃ tale vu oʒuʁdɥi"
+      }
+    },
+    {
+      "id": "pronR-19",
+      "type": "read_aloud",
+      "tags": ["B1", "sentence", "complete"],
+      "difficulty": 3,
+      "payload": {
+        "text": "Si j'avais su, je n'aurais jamais accepté cette proposition.",
+        "phonemes": ["complete"],
+        "phonetic": "si ʒavɛ sy ʒə noʁɛ ʒamɛ aksɛpte sɛt pʁɔpozisj ɔ̃"
+      }
+    },
+    {
+      "id": "pronR-20",
+      "type": "read_aloud",
+      "tags": ["B2", "formal", "complete"],
+      "difficulty": 4,
+      "payload": {
+        "text": "Veuillez agréer, Monsieur, l'expression de mes sentiments distingués.",
+        "phonemes": ["complete"],
+        "phonetic": "vœje agʁee məsjø lɛkspʁɛsjɔ̃ də me sɑ̃timɑ̃ distɛ̃ge"
+      }
+    }
+  ]
+}
+

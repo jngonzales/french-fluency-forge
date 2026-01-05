@@ -1,0 +1,232 @@
+{
+  "version": "2026-01-04",
+  "module": "conversation",
+  "meta": {
+    "description": "Conversation scenarios testing comprehension and repair strategies",
+    "lastUpdated": "2026-01-04",
+    "author": "French Fluency Forge"
+  },
+  "prompts": [
+    {
+      "id": "conv-work-01",
+      "type": "scenario",
+      "tags": ["B1", "work", "comprehension", "complex"],
+      "difficulty": 3,
+      "payload": {
+        "scenario": "work_meeting",
+        "role": "colleague",
+        "context": "Imaginez que vous êtes dans une réunion de travail et votre collègue dit : 'Je pense qu'on devrait reconsidérer notre approche concernant le projet, surtout en tenant compte des retours qu'on a reçus la semaine dernière sur les aspects budgétaires et le calendrier.' Que répondriez-vous ?"
+      }
+    },
+    {
+      "id": "conv-advice-01",
+      "type": "scenario",
+      "tags": ["B1", "advice", "empathy", "decision"],
+      "difficulty": 3,
+      "payload": {
+        "scenario": "friend_advice",
+        "role": "friend",
+        "context": "Un ami vous demande conseil : 'Tu sais, j'hésite vraiment entre accepter cette nouvelle offre d'emploi qui paie mieux mais qui est plus loin, ou rester là où je suis avec mes collègues que j'adore mais sans vraie perspective d'évolution.' Qu'est-ce que vous lui diriez ?"
+      }
+    },
+    {
+      "id": "conv-restaurant-01",
+      "type": "scenario",
+      "tags": ["A2", "restaurant", "transaction"],
+      "difficulty": 2,
+      "payload": {
+        "scenario": "restaurant",
+        "role": "server",
+        "context": "Le serveur vous dit : 'Bonjour ! Qu'est-ce que vous prenez aujourd'hui ? On a un plat du jour : poulet rôti avec des légumes.' Répondez."
+      }
+    },
+    {
+      "id": "conv-doctor-01",
+      "type": "scenario",
+      "tags": ["A2", "doctor", "health"],
+      "difficulty": 2,
+      "payload": {
+        "scenario": "doctor",
+        "role": "doctor",
+        "context": "Le médecin vous demande : 'Depuis quand vous avez mal ? Et c'est une douleur continue ou ça va et ça vient ?' Répondez."
+      }
+    },
+    {
+      "id": "conv-store-01",
+      "type": "scenario",
+      "tags": ["A2", "shopping", "problem_solving"],
+      "difficulty": 2,
+      "payload": {
+        "scenario": "store",
+        "role": "sales_person",
+        "context": "Dans un magasin, le vendeur vous dit : 'Cette taille est trop petite pour vous. Vous voulez essayer la taille au-dessus ? On l'a en bleu et en noir.' Que répondez-vous ?"
+      }
+    },
+    {
+      "id": "conv-directions-01",
+      "type": "scenario",
+      "tags": ["A2", "directions", "clarification"],
+      "difficulty": 2,
+      "payload": {
+        "scenario": "asking_directions",
+        "role": "passerby",
+        "context": "Quelqu'un vous explique : 'Vous allez tout droit, puis vous tournez à gauche au feu, et c'est juste après la boulangerie.' Mais vous n'avez pas bien compris. Que dites-vous ?"
+      }
+    },
+    {
+      "id": "conv-complex-01",
+      "type": "scenario",
+      "tags": ["B2", "complex", "misunderstanding", "repair"],
+      "difficulty": 4,
+      "payload": {
+        "scenario": "complex_explanation",
+        "role": "expert",
+        "context": "Un expert vous explique quelque chose de compliqué : 'En ce qui concerne la procédure, il faudrait d'abord que vous remplissiez le formulaire A38, ensuite vous devrez attendre la validation du service concerné avant de pouvoir soumettre votre demande définitive.' Vous n'avez pas tout compris. Répondez."
+      }
+    },
+    {
+      "id": "conv-phone-01",
+      "type": "scenario",
+      "tags": ["A2", "phone", "information"],
+      "difficulty": 2,
+      "payload": {
+        "scenario": "phone_call",
+        "role": "customer_service",
+        "context": "Au téléphone, on vous dit : 'Allo ? Vous m'entendez bien ? Pour votre commande, j'ai besoin de votre numéro de référence.' Répondez."
+      }
+    },
+    {
+      "id": "conv-party-01",
+      "type": "scenario",
+      "tags": ["A2", "social", "invitation"],
+      "difficulty": 2,
+      "payload": {
+        "scenario": "party_invitation",
+        "role": "friend",
+        "context": "Un ami vous dit : 'On fait une soirée samedi. Ça commence vers 20h, mais tu peux venir plus tôt si tu veux. Tu es libre ?' Répondez."
+      }
+    },
+    {
+      "id": "conv-complaint-01",
+      "type": "scenario",
+      "tags": ["B1", "complaint", "polite_firmness"],
+      "difficulty": 3,
+      "payload": {
+        "scenario": "complaint",
+        "role": "manager",
+        "context": "Vous avez un problème avec un produit. Le responsable vous dit : 'Je comprends votre situation, mais normalement on ne peut pas rembourser après 30 jours.' Comment répondez-vous poliment mais fermement ?"
+      }
+    },
+    {
+      "id": "conv-work-02",
+      "type": "scenario",
+      "tags": ["B1", "work", "negotiation"],
+      "difficulty": 3,
+      "payload": {
+        "scenario": "work_request",
+        "role": "manager",
+        "context": "Votre patron vous dit : 'J'aurais besoin que tu restes tard ce soir pour finir le dossier. C'est urgent.' Mais vous avez un rendez-vous important. Que dites-vous ?"
+      }
+    },
+    {
+      "id": "conv-neighbor-01",
+      "type": "scenario",
+      "tags": ["A2", "neighbors", "conflict_resolution"],
+      "difficulty": 2,
+      "payload": {
+        "scenario": "neighbor_issue",
+        "role": "neighbor",
+        "context": "Votre voisin fait du bruit tard le soir. Vous allez le voir et il dit : 'Ah désolé, je ne savais pas. C'était si fort que ça ?' Répondez poliment."
+      }
+    },
+    {
+      "id": "conv-misheard-01",
+      "type": "scenario",
+      "tags": ["B1", "misunderstanding", "repair", "clarification"],
+      "difficulty": 3,
+      "payload": {
+        "scenario": "misheard_info",
+        "role": "information_desk",
+        "context": "À la gare, on vous donne des informations rapidement : 'Votre train part voie 7, départ 14h47, correspondance à Lyon, arrivée 18h32.' Vous n'avez pas tout capté. Que demandez-vous ?"
+      }
+    },
+    {
+      "id": "conv-fast-speech-01",
+      "type": "scenario",
+      "tags": ["B2", "fast_speech", "comprehension", "repair"],
+      "difficulty": 4,
+      "payload": {
+        "scenario": "fast_talker",
+        "role": "fast_speaker",
+        "context": "Quelqu'un parle très vite : 'Alors écoute, on pourrait se retrouver vers midi et demi, non plutôt une heure, ou même plus tard si tu préfères, enfin bref on verra, mais dis-moi si ça te va ou pas.' Répondez."
+      }
+    },
+    {
+      "id": "conv-group-01",
+      "type": "scenario",
+      "tags": ["B1", "group", "turn_taking"],
+      "difficulty": 3,
+      "payload": {
+        "scenario": "group_discussion",
+        "role": "group_member",
+        "context": "Dans une discussion de groupe, quelqu'un dit : 'Moi je pense qu'on devrait faire comme ça. Qu'est-ce que vous en pensez ?' Donnez votre avis et engagez la conversation."
+      }
+    },
+    {
+      "id": "conv-apology-01",
+      "type": "scenario",
+      "tags": ["A2", "apology", "explanation"],
+      "difficulty": 2,
+      "payload": {
+        "scenario": "apology",
+        "role": "friend",
+        "context": "Vous êtes en retard à un rendez-vous. Votre ami vous dit : 'Ah tu es là ! J'ai attendu 20 minutes.' Excusez-vous et expliquez."
+      }
+    },
+    {
+      "id": "conv-technical-01",
+      "type": "scenario",
+      "tags": ["B2", "technical", "jargon", "clarification"],
+      "difficulty": 4,
+      "payload": {
+        "scenario": "technical_support",
+        "role": "technician",
+        "context": "Un technicien vous explique : 'Le problème vient du serveur DNS qui ne résout pas correctement les requêtes HTTPS. Il faut modifier les paramètres du pare-feu.' Vous ne comprenez pas tout. Que dites-vous ?"
+      }
+    },
+    {
+      "id": "conv-debate-01",
+      "type": "scenario",
+      "tags": ["B1", "debate", "disagreement"],
+      "difficulty": 3,
+      "payload": {
+        "scenario": "friendly_debate",
+        "role": "friend",
+        "context": "Un ami dit : 'Je pense que les gens regardent trop leur téléphone. C'est un vrai problème de société.' Vous n'êtes pas d'accord. Répondez."
+      }
+    },
+    {
+      "id": "conv-interruption-01",
+      "type": "scenario",
+      "tags": ["B1", "interruption", "politeness"],
+      "difficulty": 3,
+      "payload": {
+        "scenario": "being_interrupted",
+        "role": "interrupter",
+        "context": "Vous êtes en train de parler et quelqu'un vous interrompt : 'Attends, attends, je veux juste dire que...' Comment gérez-vous ça poliment ?"
+      }
+    },
+    {
+      "id": "conv-accent-01",
+      "type": "scenario",
+      "tags": ["B2", "accent", "comprehension", "patience"],
+      "difficulty": 4,
+      "payload": {
+        "scenario": "strong_accent",
+        "role": "person_with_accent",
+        "context": "Quelqu'un avec un fort accent régional vous parle rapidement. Vous comprenez environ 60% de ce qu'il dit. Il vous demande : 'Alors, ça te va comme ça ?' Que répondez-vous ?"
+      }
+    }
+  ]
+}
+

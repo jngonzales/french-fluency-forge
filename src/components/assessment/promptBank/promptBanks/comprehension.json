@@ -1,0 +1,272 @@
+{
+  "version": "2026-01-04",
+  "module": "comprehension",
+  "meta": {
+    "description": "Listening comprehension items with key facts and acceptable intents",
+    "lastUpdated": "2026-01-04",
+    "author": "French Fluency Forge"
+  },
+  "prompts": [
+    {
+      "id": "L1",
+      "type": "listen_answer",
+      "tags": ["A2", "bakery", "transaction"],
+      "difficulty": 2,
+      "payload": {
+        "audioUrl": "/audio/comp-L1.mp3",
+        "audioScript": "Bonjour ! Il n'y a plus de croissants. Il reste des pains au chocolat. Vous en voulez ?",
+        "question": "Que réponds-tu ?",
+        "keyFacts": ["plus de croissants", "alternative disponible: pains au chocolat", "question: en voulez-vous"],
+        "acceptableIntents": ["answer_yes", "answer_no", "ask_about_other_options"]
+      }
+    },
+    {
+      "id": "L2",
+      "type": "listen_answer",
+      "tags": ["A2", "appointment", "ETA"],
+      "difficulty": 2,
+      "payload": {
+        "audioUrl": "/audio/comp-L2.mp3",
+        "audioScript": "Salut ! Je suis déjà là. Tu arrives dans combien de minutes ?",
+        "question": "Que réponds-tu ?",
+        "keyFacts": ["interlocuteur déjà là", "demande ETA"],
+        "acceptableIntents": ["give_eta", "apologize_and_give_eta", "ask_to_move_time"]
+      }
+    },
+    {
+      "id": "L3",
+      "type": "listen_answer",
+      "tags": ["A2", "restaurant", "booking"],
+      "difficulty": 2,
+      "payload": {
+        "audioUrl": "/audio/comp-L3.mp3",
+        "audioScript": "On est complet ce soir. Mais demain à 19h, c'est possible.",
+        "question": "Que réponds-tu ?",
+        "keyFacts": ["pas de place ce soir", "option demain 19h"],
+        "acceptableIntents": ["accept_tomorrow", "decline", "ask_alternative_time"]
+      }
+    },
+    {
+      "id": "L4",
+      "type": "listen_answer",
+      "tags": ["A2", "transport", "announcement"],
+      "difficulty": 2,
+      "payload": {
+        "audioUrl": "/audio/comp-L4.mp3",
+        "audioScript": "Prochain arrêt : Gare du Nord. Attention, les portes vont se fermer.",
+        "question": "Que fais-tu ?",
+        "keyFacts": ["next stop Gare du Nord", "doors closing soon"],
+        "acceptableIntents": ["confirm_stop", "ask_if_need_get_off", "react_safely"]
+      }
+    },
+    {
+      "id": "L5",
+      "type": "listen_answer",
+      "tags": ["A2", "plans", "weather", "choice"],
+      "difficulty": 2,
+      "payload": {
+        "audioUrl": "/audio/comp-L5.mp3",
+        "audioScript": "On peut aller au parc, mais il va pleuvoir. Tu préfères un café ?",
+        "question": "Que réponds-tu ?",
+        "keyFacts": ["parc possible", "risque pluie", "alternative: café", "asks preference"],
+        "acceptableIntents": ["choose_option", "suggest_third_option", "ask_time/place"]
+      }
+    },
+    {
+      "id": "L6",
+      "type": "listen_answer",
+      "tags": ["A2", "work", "schedule_change"],
+      "difficulty": 2,
+      "payload": {
+        "audioUrl": "/audio/comp-L6.mp3",
+        "audioScript": "La réunion est déplacée à 15h, pas à 14h. Tu peux confirmer ?",
+        "question": "Que réponds-tu ?",
+        "keyFacts": ["meeting moved to 15h", "not 14h", "asks confirmation"],
+        "acceptableIntents": ["confirm", "ask_details"]
+      }
+    },
+    {
+      "id": "L7",
+      "type": "listen_answer",
+      "tags": ["A2", "train", "delay", "platform"],
+      "difficulty": 2,
+      "payload": {
+        "audioUrl": "/audio/comp-L7.mp3",
+        "audioScript": "Votre train a dix minutes de retard. Il partira voie 6.",
+        "question": "Que comprends-tu ?",
+        "keyFacts": ["10 min delay", "platform 6"],
+        "acceptableIntents": ["acknowledge", "ask_platform_confirmation"]
+      }
+    },
+    {
+      "id": "L8",
+      "type": "listen_answer",
+      "tags": ["A2", "doctor", "questions"],
+      "difficulty": 2,
+      "payload": {
+        "audioUrl": "/audio/comp-L8.mp3",
+        "audioScript": "Vous avez de la fièvre depuis quand ? Et vous avez mal où ?",
+        "question": "Que réponds-tu ?",
+        "keyFacts": ["asks since when fever", "asks where pain is"],
+        "acceptableIntents": ["answer_both", "ask_clarification"]
+      }
+    },
+    {
+      "id": "L9",
+      "type": "listen_answer",
+      "tags": ["A2", "customer_service", "information"],
+      "difficulty": 2,
+      "payload": {
+        "audioUrl": "/audio/comp-L9.mp3",
+        "audioScript": "Je peux vous aider, mais j'ai besoin de votre numéro de commande.",
+        "question": "Que réponds-tu ?",
+        "keyFacts": ["can help", "needs order number"],
+        "acceptableIntents": ["provide_number", "ask_where_find_number"]
+      }
+    },
+    {
+      "id": "L10",
+      "type": "listen_answer",
+      "tags": ["A2", "party", "timing"],
+      "difficulty": 2,
+      "payload": {
+        "audioUrl": "/audio/comp-L10.mp3",
+        "audioScript": "Ça commence à 20h, mais si tu peux, viens un peu plus tôt.",
+        "question": "Que réponds-tu ?",
+        "keyFacts": ["starts 20h", "request to come earlier if possible"],
+        "acceptableIntents": ["accept_earlier", "decline_earlier_with_reason", "ask_how_early"]
+      }
+    },
+    {
+      "id": "L11",
+      "type": "listen_answer",
+      "tags": ["A2", "shopping", "advice"],
+      "difficulty": 2,
+      "payload": {
+        "audioUrl": "/audio/comp-L11.mp3",
+        "audioScript": "Cette taille est petite. Je vous conseille une taille au-dessus.",
+        "question": "Que réponds-tu ?",
+        "keyFacts": ["current size small", "advises one size up"],
+        "acceptableIntents": ["accept_advice", "ask_to_try_other_size"]
+      }
+    },
+    {
+      "id": "L12",
+      "type": "listen_answer",
+      "tags": ["A2", "friend", "suggestion"],
+      "difficulty": 2,
+      "payload": {
+        "audioUrl": "/audio/comp-L12.mp3",
+        "audioScript": "Je suis fatigué, mais je veux quand même sortir. Tu proposes quoi ?",
+        "question": "Que réponds-tu ?",
+        "keyFacts": ["friend tired", "still wants to go out", "asks suggestion"],
+        "acceptableIntents": ["suggest_low_energy_plan", "ask_preference"]
+      }
+    },
+    {
+      "id": "L13",
+      "type": "listen_answer",
+      "tags": ["B1", "directions", "complex"],
+      "difficulty": 3,
+      "payload": {
+        "audioUrl": "/audio/comp-L13.mp3",
+        "audioScript": "Vous allez tout droit jusqu'au deuxième feu, ensuite vous prenez à droite juste après la pharmacie, et c'est la troisième rue à gauche.",
+        "question": "As-tu bien compris ?",
+        "keyFacts": ["straight to 2nd light", "right after pharmacy", "3rd street on left"],
+        "acceptableIntents": ["repeat_directions", "ask_clarification", "confirm_understanding"]
+      }
+    },
+    {
+      "id": "L14",
+      "type": "listen_answer",
+      "tags": ["B1", "phone", "multiple_options"],
+      "difficulty": 3,
+      "payload": {
+        "audioUrl": "/audio/comp-L14.mp3",
+        "audioScript": "Pour le service client, tapez 1. Pour les réclamations, tapez 2. Pour les nouvelles commandes, tapez 3.",
+        "question": "Que comprends-tu ? Que fais-tu ?",
+        "keyFacts": ["option 1: customer service", "option 2: complaints", "option 3: new orders"],
+        "acceptableIntents": ["state_which_option", "ask_to_repeat"]
+      }
+    },
+    {
+      "id": "L15",
+      "type": "listen_answer",
+      "tags": ["B1", "weather", "planning"],
+      "difficulty": 3,
+      "payload": {
+        "audioUrl": "/audio/comp-L15.mp3",
+        "audioScript": "Demain, il y aura du soleil le matin, mais l'après-midi, attendez-vous à de la pluie et du vent. Températures entre 15 et 18 degrés.",
+        "question": "Quel temps fera-t-il ?",
+        "keyFacts": ["morning: sunny", "afternoon: rain and wind", "temp: 15-18°C"],
+        "acceptableIntents": ["summarize_weather", "ask_for_repeat"]
+      }
+    },
+    {
+      "id": "L16",
+      "type": "listen_answer",
+      "tags": ["B1", "work", "task"],
+      "difficulty": 3,
+      "payload": {
+        "audioUrl": "/audio/comp-L16.mp3",
+        "audioScript": "Avant de partir, tu dois envoyer le rapport à Marie, confirmer la réunion de lundi, et appeler le client pour le dossier urgent.",
+        "question": "Qu'est-ce qu'il faut faire ?",
+        "keyFacts": ["send report to Marie", "confirm Monday meeting", "call client about urgent file"],
+        "acceptableIntents": ["repeat_tasks", "ask_priority", "confirm_understanding"]
+      }
+    },
+    {
+      "id": "L17",
+      "type": "listen_answer",
+      "tags": ["B2", "news", "complex"],
+      "difficulty": 4,
+      "payload": {
+        "audioUrl": "/audio/comp-L17.mp3",
+        "audioScript": "Suite aux négociations d'hier, le gouvernement a annoncé qu'il reportait sa décision concernant la nouvelle loi, en attendant les résultats de la consultation publique qui se terminera fin mars.",
+        "question": "Que s'est-il passé ?",
+        "keyFacts": ["government postponed decision", "waiting for public consultation", "consultation ends late March"],
+        "acceptableIntents": ["summarize_news", "ask_clarification"]
+      }
+    },
+    {
+      "id": "L18",
+      "type": "listen_answer",
+      "tags": ["B1", "instructions", "sequence"],
+      "difficulty": 3,
+      "payload": {
+        "audioUrl": "/audio/comp-L18.mp3",
+        "audioScript": "D'abord, vous allumez l'appareil. Ensuite, vous appuyez sur le bouton vert, puis vous attendez le signal sonore avant de commencer.",
+        "question": "Quelle est la procédure ?",
+        "keyFacts": ["1: turn on device", "2: press green button", "3: wait for sound signal before starting"],
+        "acceptableIntents": ["repeat_steps", "confirm_order", "ask_clarification"]
+      }
+    },
+    {
+      "id": "L19",
+      "type": "listen_answer",
+      "tags": ["B1", "invitation", "details"],
+      "difficulty": 3,
+      "payload": {
+        "audioUrl": "/audio/comp-L19.mp3",
+        "audioScript": "On se retrouve samedi au restaurant 'Le Petit Zinc', vers 20h. Si tu veux, on peut se voir avant pour prendre un verre, vers 18h30 au café du coin.",
+        "question": "Quels sont les plans ?",
+        "keyFacts": ["Saturday at Le Petit Zinc at 20h", "optional: drinks at 18h30 at corner café"],
+        "acceptableIntents": ["confirm_attendance", "ask_which_option", "decline_politely"]
+      }
+    },
+    {
+      "id": "L20",
+      "type": "listen_answer",
+      "tags": ["B2", "formal", "announcement"],
+      "difficulty": 4,
+      "payload": {
+        "audioUrl": "/audio/comp-L20.mp3",
+        "audioScript": "En raison de travaux sur la ligne, le trafic est interrompu entre Nation et République jusqu'à lundi prochain. Un service de bus de remplacement est mis en place. Veuillez prévoir 15 minutes supplémentaires pour votre trajet.",
+        "question": "Quelle est l'information importante ?",
+        "keyFacts": ["line interrupted Nation-République", "until next Monday", "replacement buses available", "add 15 min to journey"],
+        "acceptableIntents": ["summarize_disruption", "ask_alternative", "confirm_understanding"]
+      }
+    }
+  ]
+}
+

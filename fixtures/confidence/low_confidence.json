@@ -1,0 +1,24 @@
+{
+  "name": "Low Confidence - Short and Hesitant",
+  "description": "Brief response without personal positioning or emotion",
+  "input": {
+    "transcript": "Euh... je ne sais pas. C'est bien, je suppose.",
+    "promptText": "Qu'est-ce que vous pensez des gens qui ne font jamais d'erreurs ?",
+    "moduleType": "confidence"
+  },
+  "expected": {
+    "score": {"min": 10, "max": 25},
+    "breakdown": {
+      "length_development": {"min": 0, "max": 5},
+      "assertiveness": {"min": 0, "max": 5},
+      "emotional_engagement": {"min": 0, "max": 3},
+      "clarity": {"min": 0, "max": 5},
+      "linguistic_signals": {"min": 0, "max": 2}
+    }
+  },
+  "tolerance": {
+    "score_range": 3,
+    "score_stddev": 1.0
+  }
+}
+

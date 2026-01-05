@@ -1,0 +1,24 @@
+{
+  "name": "High Confidence - Assertive and Expressive",
+  "description": "Long response with personal positioning and emotional engagement",
+  "input": {
+    "transcript": "Franchement, moi je pense que les gens qui ne font jamais d'erreurs, ça n'existe pas vraiment. Le truc, c'est que tout le monde fait des erreurs, et ce que j'adore c'est quand les gens sont honnêtes et admettent leurs erreurs. Je vais te dire, personnellement, j'ai fait beaucoup d'erreurs dans ma vie, et c'est comme ça que j'ai appris les choses les plus importantes. Moi, je crois que si tu ne fais jamais d'erreurs, tu ne prends pas assez de risques, et tu ne grandis pas vraiment en tant que personne. C'est vraiment important d'être vulnérable et d'accepter qu'on n'est pas parfait.",
+    "promptText": "Qu'est-ce que vous pensez des gens qui ne font jamais d'erreurs ?",
+    "moduleType": "confidence"
+  },
+  "expected": {
+    "score": {"min": 85, "max": 95},
+    "breakdown": {
+      "length_development": {"min": 22, "max": 25},
+      "assertiveness": {"min": 20, "max": 25},
+      "emotional_engagement": {"min": 16, "max": 20},
+      "clarity": {"min": 12, "max": 15},
+      "linguistic_signals": {"min": 12, "max": 15}
+    }
+  },
+  "tolerance": {
+    "score_range": 3,
+    "score_stddev": 1.0
+  }
+}
+

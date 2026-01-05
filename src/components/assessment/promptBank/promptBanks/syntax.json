@@ -1,0 +1,232 @@
+{
+  "version": "2026-01-04",
+  "module": "syntax",
+  "meta": {
+    "description": "Syntax micro-tasks for assessing A2 grammatical structures",
+    "lastUpdated": "2026-01-04",
+    "author": "French Fluency Forge"
+  },
+  "prompts": [
+    {
+      "id": "syn-S1-01",
+      "type": "micro_task",
+      "tags": ["A2", "passé_composé", "past"],
+      "difficulty": 2,
+      "payload": {
+        "taskId": "S1",
+        "instruction": "Raconte 3 choses que tu as faites le week-end dernier.",
+        "targetStructure": "passé composé"
+      }
+    },
+    {
+      "id": "syn-S1-02",
+      "type": "micro_task",
+      "tags": ["A2", "passé_composé", "past"],
+      "difficulty": 2,
+      "payload": {
+        "taskId": "S1",
+        "instruction": "Qu'est-ce que tu as mangé hier ? Avec qui ?",
+        "targetStructure": "passé composé"
+      }
+    },
+    {
+      "id": "syn-S1-03",
+      "type": "micro_task",
+      "tags": ["A2", "passé_composé", "past"],
+      "difficulty": 2,
+      "payload": {
+        "taskId": "S1",
+        "instruction": "Décris ta journée d'hier en 3 phrases.",
+        "targetStructure": "passé composé"
+      }
+    },
+    {
+      "id": "syn-S1-04",
+      "type": "micro_task",
+      "tags": ["A2", "passé_composé", "past"],
+      "difficulty": 2,
+      "payload": {
+        "taskId": "S1",
+        "instruction": "Où es-tu allé(e) la semaine dernière ? Qu'est-ce que tu y as fait ?",
+        "targetStructure": "passé composé"
+      }
+    },
+    {
+      "id": "syn-S2-01",
+      "type": "micro_task",
+      "tags": ["A2", "futur_proche", "future"],
+      "difficulty": 2,
+      "payload": {
+        "taskId": "S2",
+        "instruction": "Qu'est-ce que tu vas faire ce soir ? Donne 3 actions.",
+        "targetStructure": "futur proche (aller + infinitif)"
+      }
+    },
+    {
+      "id": "syn-S2-02",
+      "type": "micro_task",
+      "tags": ["A2", "futur_proche", "future"],
+      "difficulty": 2,
+      "payload": {
+        "taskId": "S2",
+        "instruction": "Parle-moi de tes plans pour demain.",
+        "targetStructure": "futur proche (aller + infinitif)"
+      }
+    },
+    {
+      "id": "syn-S2-03",
+      "type": "micro_task",
+      "tags": ["A2", "futur_proche", "future"],
+      "difficulty": 2,
+      "payload": {
+        "taskId": "S2",
+        "instruction": "Qu'est-ce que tu vas faire pendant les vacances ?",
+        "targetStructure": "futur proche (aller + infinitif)"
+      }
+    },
+    {
+      "id": "syn-S2-04",
+      "type": "micro_task",
+      "tags": ["A2", "futur_proche", "future"],
+      "difficulty": 2,
+      "payload": {
+        "taskId": "S2",
+        "instruction": "Ce week-end, quels sont tes projets ? (3 choses)",
+        "targetStructure": "futur proche (aller + infinitif)"
+      }
+    },
+    {
+      "id": "syn-S3-01",
+      "type": "micro_task",
+      "tags": ["A2", "pronouns", "COD_COI"],
+      "difficulty": 3,
+      "payload": {
+        "taskId": "S3",
+        "instruction": "Questions rapides: Tu aimes le chocolat ? Tu parles à ta mère souvent ? Tu regardes la télé ?",
+        "targetStructure": "le/la/les, lui/leur"
+      }
+    },
+    {
+      "id": "syn-S3-02",
+      "type": "micro_task",
+      "tags": ["A2", "pronouns", "COD_COI"],
+      "difficulty": 3,
+      "payload": {
+        "taskId": "S3",
+        "instruction": "Tu vois tes amis ce week-end ? Tu téléphones à ton frère ? Tu manges les légumes ?",
+        "targetStructure": "le/la/les, lui/leur"
+      }
+    },
+    {
+      "id": "syn-S4-01",
+      "type": "micro_task",
+      "tags": ["A2", "questions", "interrogation"],
+      "difficulty": 2,
+      "payload": {
+        "taskId": "S4",
+        "instruction": "Tu es dans un magasin. Pose 3 questions au vendeur.",
+        "targetStructure": "question formation"
+      }
+    },
+    {
+      "id": "syn-S4-02",
+      "type": "micro_task",
+      "tags": ["A2", "questions", "interrogation"],
+      "difficulty": 2,
+      "payload": {
+        "taskId": "S4",
+        "instruction": "Tu rencontres quelqu'un de nouveau. Pose 3 questions pour apprendre à le connaître.",
+        "targetStructure": "question formation"
+      }
+    },
+    {
+      "id": "syn-S4-03",
+      "type": "micro_task",
+      "tags": ["A2", "questions", "interrogation"],
+      "difficulty": 2,
+      "payload": {
+        "taskId": "S4",
+        "instruction": "Tu es perdu(e). Pose 3 questions pour trouver ton chemin.",
+        "targetStructure": "question formation"
+      }
+    },
+    {
+      "id": "syn-S5-01",
+      "type": "micro_task",
+      "tags": ["A2", "connectors", "comparison"],
+      "difficulty": 3,
+      "payload": {
+        "taskId": "S5",
+        "instruction": "Compare la ville et la campagne. Donne des raisons avec 'parce que'.",
+        "targetStructure": "connectors (parce que, donc, mais)"
+      }
+    },
+    {
+      "id": "syn-S5-02",
+      "type": "micro_task",
+      "tags": ["A2", "connectors", "comparison"],
+      "difficulty": 3,
+      "payload": {
+        "taskId": "S5",
+        "instruction": "Qu'est-ce qui est mieux : travailler à la maison ou au bureau ? Pourquoi ?",
+        "targetStructure": "connectors (parce que, donc, mais)"
+      }
+    },
+    {
+      "id": "syn-S5-03",
+      "type": "micro_task",
+      "tags": ["A2", "connectors", "sequence"],
+      "difficulty": 3,
+      "payload": {
+        "taskId": "S5",
+        "instruction": "Explique comment tu prépares ton café. Utilise: d'abord, ensuite, puis, enfin.",
+        "targetStructure": "sequence connectors"
+      }
+    },
+    {
+      "id": "syn-S5-04",
+      "type": "micro_task",
+      "tags": ["A2", "connectors", "cause_effect"],
+      "difficulty": 3,
+      "payload": {
+        "taskId": "S5",
+        "instruction": "Pourquoi tu apprends le français ? Donne plusieurs raisons.",
+        "targetStructure": "parce que, donc, alors"
+      }
+    },
+    {
+      "id": "syn-S1-05",
+      "type": "micro_task",
+      "tags": ["B1", "passé_composé", "imparfait"],
+      "difficulty": 3,
+      "payload": {
+        "taskId": "S1",
+        "instruction": "Raconte un souvenir d'enfance. Qu'est-ce que tu faisais ? Qu'est-ce qui s'est passé ?",
+        "targetStructure": "passé composé + imparfait"
+      }
+    },
+    {
+      "id": "syn-S2-05",
+      "type": "micro_task",
+      "tags": ["B1", "conditional", "future"],
+      "difficulty": 3,
+      "payload": {
+        "taskId": "S2",
+        "instruction": "Si tu avais un million d'euros, qu'est-ce que tu ferais ?",
+        "targetStructure": "conditional"
+      }
+    },
+    {
+      "id": "syn-COMPLEX-01",
+      "type": "micro_task",
+      "tags": ["B1", "complex", "subordinates"],
+      "difficulty": 4,
+      "payload": {
+        "taskId": "S5",
+        "instruction": "Explique pourquoi tu aimes ton travail, mais aussi pourquoi c'est difficile parfois.",
+        "targetStructure": "subordinate clauses (qui, que, dont)"
+      }
+    }
+  ]
+}
+

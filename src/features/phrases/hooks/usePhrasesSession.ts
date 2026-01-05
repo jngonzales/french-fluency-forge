@@ -14,6 +14,8 @@ import {
   formatIntervalFSRS 
 } from '../data/fsrsScheduler';
 import { usePhrasesSettings } from './usePhrasesSettings';
+import type { SpeechRecognitionResult } from '../services/speechRecognition';
+import { isSimilarityGoodEnough } from '../utils/similarityCalculation';
 
 export function usePhrasesSession() {
   const { user } = useAuth();
@@ -24,6 +26,7 @@ export function usePhrasesSession() {
   const [cards, setCards] = useState<MemberPhraseCard[]>([]);
   const [reviewLogs, setReviewLogs] = useState<PhraseReviewLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [speechResult, setSpeechResult] = useState<SpeechRecognitionResult | null>(null);
 
   // Load cards and logs from localStorage
   useEffect(() => {
@@ -105,6 +108,29 @@ export function usePhrasesSession() {
     });
   }, [sessionState]);
 
+  // Store speech recognition result
+  const handleSpeechResult = useCallback((result: SpeechRecognitionResult) => {
+    setSpeechResult(result);
+    
+    // Auto-assess if enabled
+    if (settings.auto_assess_enabled) {
+      // Suggest rating based on similarity
+      let suggestedRating: Rating = 'good';
+      if (result.similarity >= 0.90) {
+        suggestedRating = 'easy';
+      } else if (result.similarity >= 0.75) {
+        suggestedRating = 'good';
+      } else if (result.similarity >= 0.50) {
+        suggestedRating = 'hard';
+      } else {
+        suggestedRating = 'again';
+      }
+      
+      // Store suggested rating in result (will be used when rating)
+      (result as any).suggestedRating = suggestedRating;
+    }
+  }, [settings.auto_assess_enabled]);
+
   // Rate card
   const rateCard = useCallback((rating: Rating) => {
     if (!sessionState || !currentCard || !currentPhrase) return;
@@ -172,10 +198,17 @@ export function usePhrasesSession() {
         enable_fuzz: false,
       },
       
-      // Speech (optional, mock for v0)
-      speech_used: false,
+      // Speech data
+      speech_used: speechResult !== null,
+      transcript: speechResult?.transcript,
+      similarity: speechResult?.similarity,
+      auto_assessed: settings.auto_assess_enabled && speechResult !== null,
+      suggested_rating: (speechResult as any)?.suggestedRating,
     };
     saveLogs([...reviewLogs, log]);
+    
+    // Clear speech result for next card
+    setSpeechResult(null);
 
     // Move to next card
     const nextIndex = sessionState.currentIndex + 1;
@@ -201,7 +234,7 @@ export function usePhrasesSession() {
     }
 
     return updatedCard;
-  }, [sessionState, currentCard, currentPhrase, cards, saveCards, reviewLogs, saveLogs, memberId]);
+  }, [sessionState, currentCard, currentPhrase, cards, saveCards, reviewLogs, saveLogs, memberId, speechResult, settings]);
 
   // Card actions during session
   const buryCard = useCallback(() => {
@@ -344,6 +377,7 @@ export function usePhrasesSession() {
     estimatedTimeLeft,
     intervals,
     exactDueDates,
+    speechResult,
     actions: {
       startSession,
       revealCard,
@@ -354,6 +388,7 @@ export function usePhrasesSession() {
       flagCard,
       addNote,
       endSession,
+      handleSpeechResult,
     },
   };
 }

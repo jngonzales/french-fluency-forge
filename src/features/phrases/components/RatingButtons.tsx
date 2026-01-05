@@ -11,10 +11,24 @@ interface RatingButtonsProps {
   onRate: (rating: Rating) => void;
   intervals?: Record<Rating, string>;
   exactDueDates?: Record<Rating, Date>; // For tooltips with exact timestamps
+  previewIntervals?: Record<Rating, { due_at: string; interval_ms: number; label: string }>; // From schedule preview
+  suggestedRating?: Rating; // Auto-assessed suggested rating
   disabled?: boolean;
 }
 
-export function RatingButtons({ onRate, intervals, exactDueDates, disabled }: RatingButtonsProps) {
+export function RatingButtons({ onRate, intervals, exactDueDates, previewIntervals, suggestedRating, disabled }: RatingButtonsProps) {
+  // Use preview intervals if available, fallback to intervals
+  const displayIntervals = previewIntervals
+    ? Object.fromEntries(
+        Object.entries(previewIntervals).map(([key, value]) => [key, value.label])
+      ) as Record<Rating, string>
+    : intervals;
+  
+  const displayDueDates = previewIntervals
+    ? Object.fromEntries(
+        Object.entries(previewIntervals).map(([key, value]) => [key, new Date(value.due_at)])
+      ) as Record<Rating, Date>
+    : exactDueDates;
   // Format exact due date for tooltip
   const formatExactDueDate = (date: Date): string => {
     return date.toLocaleString('en-US', {
@@ -58,6 +72,7 @@ export function RatingButtons({ onRate, intervals, exactDueDates, disabled }: Ra
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {buttons.map((button) => {
+        const isSuggested = suggestedRating === button.rating;
         const ButtonComponent = (
           <Button
             key={button.rating}
@@ -65,22 +80,29 @@ export function RatingButtons({ onRate, intervals, exactDueDates, disabled }: Ra
             size="lg"
             onClick={() => onRate(button.rating)}
             disabled={disabled}
-            className={`h-16 text-lg font-medium ${button.className || ''}`}
+            className={`h-16 text-lg font-medium relative ${
+              isSuggested ? 'ring-2 ring-primary ring-offset-2' : ''
+            } ${button.className || ''}`}
           >
             <div className="flex flex-col items-center">
               <span>{button.label}</span>
-              {intervals && (
+              {isSuggested && (
+                <span className="text-xs font-semibold text-primary mt-0.5">
+                  Suggested
+                </span>
+              )}
+              {displayIntervals && (
                 <span className="text-xs opacity-75 mt-1">
-                  {intervals[button.rating]}
+                  {displayIntervals[button.rating]}
                 </span>
               )}
             </div>
           </Button>
         );
 
-        if (intervals) {
-          const intervalText = intervals[button.rating];
-          const exactDate = exactDueDates?.[button.rating];
+        if (displayIntervals) {
+          const intervalText = displayIntervals[button.rating];
+          const exactDate = displayDueDates?.[button.rating];
           const tooltipText = exactDate 
             ? `Next review: ${intervalText}\nExact time: ${formatExactDueDate(exactDate)}`
             : `Next review: ${intervalText}`;

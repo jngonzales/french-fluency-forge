@@ -199,6 +199,10 @@ async function analyzeWithAI(transcript: string, moduleType: string, promptText:
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
+      temperature: 0,
+      top_p: 1,
+      presence_penalty: 0,
+      frequency_penalty: 0,
       messages: [
         { role: 'system', content: systemPrompt },
         { 
@@ -208,7 +212,7 @@ async function analyzeWithAI(transcript: string, moduleType: string, promptText:
 The student's response (transcribed from audio):
 "${transcript}"
 
-Analyze this response and provide your evaluation.`
+Analyze this response and provide your evaluation. Include specific evidence quotes from the transcript to support your scores.`
         }
       ],
       tools: [
@@ -234,9 +238,16 @@ Analyze this response and provide your evaluation.`
                   additionalProperties: {
                     type: 'number'
                   }
+                },
+                evidence: {
+                  type: 'array',
+                  description: 'Evidence quotes from transcript supporting the scores',
+                  items: {
+                    type: 'string'
+                  }
                 }
               },
-              required: ['total_score', 'feedback', 'breakdown']
+              required: ['total_score', 'feedback', 'breakdown', 'evidence']
             }
           }
         }
@@ -264,8 +275,56 @@ Analyze this response and provide your evaluation.`
   return {
     score: Math.min(100, Math.max(0, args.total_score)),
     feedback: args.feedback,
-    breakdown: args.breakdown
+    breakdown: args.breakdown,
+    evidence: args.evidence || []
   };
+}
+
+// Determinism guardrail: run multiple times and use median if needed
+async function analyzeWithDeterminismGuard(
+  transcript: string,
+  moduleType: string,
+  promptText: string
+): Promise<{
+  score: number;
+  feedback: string;
+  breakdown: Record<string, number>;
+  evidence: string[];
+  flags: string[];
+}> {
+  // First attempt
+  const result1 = await analyzeWithAI(transcript, moduleType, promptText);
+  
+  // Check if we need to run additional attempts (based on env flag or always for critical modules)
+  const runMultiple = Deno.env.get('ENABLE_DETERMINISM_GUARD') === 'true';
+  
+  if (!runMultiple) {
+    return { ...result1, flags: [] };
+  }
+  
+  // Run 2 more times
+  const result2 = await analyzeWithAI(transcript, moduleType, promptText);
+  const result3 = await analyzeWithAI(transcript, moduleType, promptText);
+  
+  const scores = [result1.score, result2.score, result3.score];
+  const spread = Math.max(...scores) - Math.min(...scores);
+  
+  // If spread > 5, flag as unstable and use median
+  if (spread > 5) {
+    const sortedScores = [...scores].sort((a, b) => a - b);
+    const medianScore = sortedScores[1];
+    
+    // Find which result has the median score
+    const medianResult = [result1, result2, result3].find(r => r.score === medianScore) || result1;
+    
+    return {
+      ...medianResult,
+      score: medianScore,
+      flags: ['unstable_scoring', `spread=${spread}`]
+    };
+  }
+  
+  return { ...result1, flags: [] };
 }
 
 serve(async (req) => {
@@ -319,8 +378,15 @@ serve(async (req) => {
     }
     const wordCount = transcript.split(/\s+/).filter(w => w.length > 0).length;
 
-    // Analyze with AI
-    const analysis = await analyzeWithAI(transcript, moduleType, promptText);
+    // Analyze with AI (with determinism guard)
+    const analysis = await analyzeWithDeterminismGuard(transcript, moduleType, promptText);
+
+    // Version tracking
+    const versions = {
+      prompt_version: '2026-01-04',
+      scorer_version: '2026-01-04',
+      asr_version: 'whisper-1'
+    };
 
     // Update recording with results
     const { error: updateError } = await supabase
@@ -330,7 +396,15 @@ serve(async (req) => {
         word_count: wordCount,
         ai_score: analysis.score,
         ai_feedback: analysis.feedback,
-        ai_breakdown: analysis.breakdown,
+        ai_breakdown: {
+          ...analysis.breakdown,
+          evidence: analysis.evidence,
+          flags: analysis.flags,
+          versions
+        },
+        prompt_version: versions.prompt_version,
+        scorer_version: versions.scorer_version,
+        asr_version: versions.asr_version,
         status: 'completed',
         completed_at: new Date().toISOString()
       })
@@ -350,7 +424,10 @@ serve(async (req) => {
         wordCount,
         score: analysis.score,
         feedback: analysis.feedback,
-        breakdown: analysis.breakdown
+        breakdown: analysis.breakdown,
+        evidence: analysis.evidence,
+        flags: analysis.flags,
+        versions
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

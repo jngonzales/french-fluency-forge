@@ -98,6 +98,10 @@ Return:
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
+      temperature: 0,
+      top_p: 1,
+      presence_penalty: 0,
+      frequency_penalty: 0,
       messages: [
         { role: 'system', content: COMPREHENSION_SCORING_PROMPT },
         { role: 'user', content: userPrompt }
@@ -231,6 +235,13 @@ serve(async (req) => {
     // Analyze comprehension
     const analysis = await analyzeComprehension(transcript, itemConfig);
 
+    // Version tracking
+    const versions = {
+      prompt_version: '2026-01-04',
+      scorer_version: '2026-01-04',
+      asr_version: 'whisper-1'
+    };
+
     // Update recording with results
     const { error: updateError } = await supabase
       .from('comprehension_recordings')
@@ -241,6 +252,9 @@ serve(async (req) => {
         understood_facts: analysis.understoodFacts,
         intent_match: analysis.intentMatch,
         ai_confidence: analysis.confidence,
+        prompt_version: versions.prompt_version,
+        scorer_version: versions.scorer_version,
+        asr_version: versions.asr_version,
         status: 'completed',
         completed_at: new Date().toISOString()
       })
@@ -261,7 +275,8 @@ serve(async (req) => {
         feedbackFr: analysis.feedbackFr,
         understoodFacts: analysis.understoodFacts,
         intentMatch: analysis.intentMatch,
-        confidence: analysis.confidence
+        confidence: analysis.confidence,
+        versions
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

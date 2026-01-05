@@ -1,0 +1,232 @@
+{
+  "version": "2026-01-04",
+  "module": "fluency",
+  "meta": {
+    "description": "Picture description prompts for fluency assessment",
+    "lastUpdated": "2026-01-04",
+    "author": "French Fluency Forge"
+  },
+  "prompts": [
+    {
+      "id": "fluPic-01",
+      "type": "picture",
+      "tags": ["A2", "description", "opinions", "daily_life"],
+      "difficulty": 2,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/191160/messy-room",
+        "description": "Décris la pièce. Qui est responsable du désordre ? Pourquoi ?",
+        "altText": "A messy bedroom with clothes and items scattered around"
+      }
+    },
+    {
+      "id": "fluPic-02",
+      "type": "picture",
+      "tags": ["A2", "description", "daily_life", "conflict"],
+      "difficulty": 2,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/327749/kitchen-with-dirty-dishes",
+        "description": "Qu'est-ce qui se passe dans la cuisine ? Qui doit faire la vaisselle ?",
+        "altText": "A kitchen with dirty dishes"
+      }
+    },
+    {
+      "id": "fluPic-03",
+      "type": "picture",
+      "tags": ["B1", "opinions", "conflict", "emotions"],
+      "difficulty": 3,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/319792/argument-silhouette",
+        "description": "Deux personnes se disputent. Qui a tort, selon toi ?",
+        "altText": "Two people arguing"
+      }
+    },
+    {
+      "id": "fluPic-04",
+      "type": "picture",
+      "tags": ["B1", "relationships", "advice", "conflict"],
+      "difficulty": 3,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/309036/couple-arguing-by-mstlion-silhouette",
+        "description": "Un couple se dispute. Est-ce que quelqu'un exagère ?",
+        "altText": "A couple arguing"
+      }
+    },
+    {
+      "id": "fluPic-05",
+      "type": "picture",
+      "tags": ["A2", "social_situations", "opinions"],
+      "difficulty": 2,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/179384/waiting-in-line",
+        "description": "Les gens attendent dans une file. Imagine : quelqu'un passe devant. C'est grave ?",
+        "altText": "People waiting in line"
+      }
+    },
+    {
+      "id": "fluPic-06",
+      "type": "picture",
+      "tags": ["B1", "safety", "advice", "social_situations"],
+      "difficulty": 3,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/333553/no-drinking-and-driving",
+        "description": "Un ami veut conduire après avoir bu. Tu lui fais confiance ?",
+        "altText": "No drinking and driving sign"
+      }
+    },
+    {
+      "id": "fluPic-07",
+      "type": "picture",
+      "tags": ["A2", "narration", "past_experience", "safety"],
+      "difficulty": 2,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/49105/boy-driving-car-cartoon",
+        "description": "Tu vois quelqu'un qui conduit. Il/elle a l'air prudent(e) ou dangereux(se) ?",
+        "altText": "Cartoon person driving a car"
+      }
+    },
+    {
+      "id": "fluPic-08",
+      "type": "picture",
+      "tags": ["A2", "safety", "opinions", "daily_life"],
+      "difficulty": 2,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/322047/a-woman-riding-a-bike-fast-remix",
+        "description": "Cette personne roule vite à vélo. C'est une bonne idée ? Pourquoi ?",
+        "altText": "A person riding a bike fast"
+      }
+    },
+    {
+      "id": "fluPic-09",
+      "type": "picture",
+      "tags": ["B1", "emotions", "personal", "coping"],
+      "difficulty": 3,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/223115/multiple-thoughts-man-line-art",
+        "description": "Cette personne pense à beaucoup de choses. Elle est stressée ? À cause de quoi ?",
+        "altText": "A person with multiple thoughts, looking stressed"
+      }
+    },
+    {
+      "id": "fluPic-10",
+      "type": "picture",
+      "tags": ["A2", "school", "personal", "opinions"],
+      "difficulty": 2,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/227553/student-asking-question",
+        "description": "En classe, quelqu'un pose une question. C'est courageux ?",
+        "altText": "A student asking a question in class"
+      }
+    },
+    {
+      "id": "fluPic-11",
+      "type": "picture",
+      "tags": ["A2", "environment", "social_responsibility"],
+      "difficulty": 2,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/201522/no-littering-sign",
+        "description": "Quelqu'un jette des déchets par terre. Qui est en tort ?",
+        "altText": "No littering sign"
+      }
+    },
+    {
+      "id": "fluPic-12",
+      "type": "picture",
+      "tags": ["B1", "work", "honesty", "humor"],
+      "difficulty": 3,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/226337/Camouflage",
+        "description": "Cette personne fait semblant de lire, mais elle dort. C'est 'pas sérieux' ?",
+        "altText": "A person pretending to read but sleeping"
+      }
+    },
+    {
+      "id": "fluPic-13",
+      "type": "picture",
+      "tags": ["A2", "social_etiquette", "conflict"],
+      "difficulty": 2,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/168343/Cinema",
+        "description": "Tu es au cinéma. Imagine : quelqu'un parle très fort. Qui a tort ?",
+        "altText": "Cinema scene"
+      }
+    },
+    {
+      "id": "fluPic-14",
+      "type": "picture",
+      "tags": ["B1", "roommates", "advice", "rules"],
+      "difficulty": 3,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/332669/hygiene-products",
+        "description": "Tu partages une salle de bain. Quelqu'un laisse tout sale. Tu fais quoi ?",
+        "altText": "Hygiene products in a bathroom"
+      }
+    },
+    {
+      "id": "fluPic-15",
+      "type": "picture",
+      "tags": ["A2", "health", "personal", "problems"],
+      "difficulty": 2,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/325237/no-sleep-icon",
+        "description": "Tu ne dors pas bien. Pourquoi ? Qu'est-ce que tu ressens ?",
+        "altText": "Icon indicating sleep problems"
+      }
+    },
+    {
+      "id": "fluPic-16",
+      "type": "picture",
+      "tags": ["A2", "safety", "emotions", "description"],
+      "difficulty": 2,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/822/police-car",
+        "description": "Tu vois une voiture de police. Qu'est-ce qui se passe, selon toi ?",
+        "altText": "A police car"
+      }
+    },
+    {
+      "id": "fluPic-17",
+      "type": "picture",
+      "tags": ["B1", "insurance", "practical", "explanation"],
+      "difficulty": 3,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/233914/car-side-view",
+        "description": "Imagine : cette voiture est abîmée. Qui est responsable ?",
+        "altText": "Side view of a car"
+      }
+    },
+    {
+      "id": "fluPic-18",
+      "type": "picture",
+      "tags": ["A2", "priorities", "decisions"],
+      "difficulty": 2,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/286088/important",
+        "description": "Tu reçois une note 'Important'. Tu penses que c'est quoi ?",
+        "altText": "An 'Important' notice"
+      }
+    },
+    {
+      "id": "fluPic-19",
+      "type": "picture",
+      "tags": ["A2", "culture", "politeness", "greetings"],
+      "difficulty": 2,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/353395/silhouette-bowing-remix",
+        "description": "Deux personnes se saluent. Imagine : une personne est impolie. Qui ? Pourquoi ?",
+        "altText": "Two people greeting each other"
+      }
+    },
+    {
+      "id": "fluPic-20",
+      "type": "picture",
+      "tags": ["B1", "safety", "narration", "warning"],
+      "difficulty": 3,
+      "payload": {
+        "imageUrl": "https://openclipart.org/detail/326906/high-voltage-power-lines-silhouette",
+        "description": "Tu vois un endroit dangereux. Est-ce que les gens respectent les règles ?",
+        "altText": "High voltage power lines"
+      }
+    }
+  ]
+}
+

@@ -1,0 +1,39 @@
+{
+  "name": "Excellent Speaker - High WPM, No Long Pauses",
+  "description": "Fluent speaker with 120 WPM and minimal pauses",
+  "input": {
+    "words": [
+      {"word": "Je", "start": 0.1, "end": 0.2},
+      {"word": "pense", "start": 0.3, "end": 0.6},
+      {"word": "que", "start": 0.65, "end": 0.8},
+      {"word": "c'est", "start": 0.85, "end": 1.1},
+      {"word": "vraiment", "start": 1.15, "end": 1.5},
+      {"word": "important", "start": 1.55, "end": 2.0},
+      {"word": "de", "start": 2.05, "end": 2.15},
+      {"word": "pratiquer", "start": 2.2, "end": 2.7},
+      {"word": "régulièrement", "start": 2.75, "end": 3.5},
+      {"word": "pour", "start": 3.55, "end": 3.75},
+      {"word": "améliorer", "start": 3.8, "end": 4.3},
+      {"word": "son", "start": 4.35, "end": 4.5},
+      {"word": "niveau", "start": 4.55, "end": 4.95},
+      {"word": "de", "start": 5.0, "end": 5.1},
+      {"word": "français", "start": 5.15, "end": 5.6}
+    ],
+    "totalDuration": 6.0
+  },
+  "expected": {
+    "wordCount": 15,
+    "articulationWpm": {"min": 118, "max": 122},
+    "longPauseCount": 0,
+    "maxPause": {"max": 1.0},
+    "pauseRatio": {"max": 0.2},
+    "speedSubscore": {"min": 58, "max": 60},
+    "pauseSubscore": {"min": 38, "max": 40},
+    "totalScore": {"min": 96, "max": 100}
+  },
+  "tolerance": {
+    "score_range": 3,
+    "score_stddev": 1.0
+  }
+}
+

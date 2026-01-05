@@ -263,6 +263,13 @@ serve(async (req) => {
       totalScore,
     });
 
+    // Version tracking
+    const versions = {
+      prompt_version: '2026-01-04',
+      scorer_version: '2026-01-04',
+      asr_version: 'whisper-1'
+    };
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -284,6 +291,8 @@ serve(async (req) => {
         speedSubscore,
         pauseSubscore,
         totalScore,
+        // Versions
+        versions,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

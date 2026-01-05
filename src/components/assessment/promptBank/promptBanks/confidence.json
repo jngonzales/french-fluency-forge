@@ -1,0 +1,212 @@
+{
+  "version": "2026-01-04",
+  "module": "confidence",
+  "meta": {
+    "description": "Confidence assessment prompts - evaluating assertiveness and emotional expression",
+    "lastUpdated": "2026-01-04",
+    "author": "French Fluency Forge"
+  },
+  "prompts": [
+    {
+      "id": "conf-1",
+      "type": "speaking",
+      "tags": ["A2", "opinions", "personal"],
+      "difficulty": 2,
+      "payload": {
+        "question": "Qu'est-ce que vous pensez des gens qui ne font jamais d'erreurs ?",
+        "context": "Share your personal opinion openly"
+      }
+    },
+    {
+      "id": "conf-2",
+      "type": "speaking",
+      "tags": ["B1", "narrative", "personal_growth"],
+      "difficulty": 3,
+      "payload": {
+        "question": "Racontez-moi un moment où vous avez changé d'avis sur quelque chose d'important.",
+        "context": "Share a personal story with emotion"
+      }
+    },
+    {
+      "id": "conf-3",
+      "type": "speaking",
+      "tags": ["A2", "preferences", "assertive"],
+      "difficulty": 2,
+      "payload": {
+        "question": "Qu'est-ce que vous détestez vraiment ? Pourquoi ?",
+        "context": "Express strong opinions confidently"
+      }
+    },
+    {
+      "id": "conf-4",
+      "type": "speaking",
+      "tags": ["B1", "advice", "assertive"],
+      "difficulty": 3,
+      "payload": {
+        "question": "Si quelqu'un vous critique injustement, qu'est-ce que vous faites ?",
+        "context": "Explain your approach with conviction"
+      }
+    },
+    {
+      "id": "conf-5",
+      "type": "speaking",
+      "tags": ["A2", "values", "personal"],
+      "difficulty": 2,
+      "payload": {
+        "question": "Qu'est-ce qui est vraiment important pour vous dans la vie ?",
+        "context": "Share your values authentically"
+      }
+    },
+    {
+      "id": "conf-6",
+      "type": "speaking",
+      "tags": ["B1", "conflict", "assertive"],
+      "difficulty": 3,
+      "payload": {
+        "question": "Vous êtes en désaccord avec votre patron. Vous dites quoi ?",
+        "context": "Demonstrate confidence in difficult situations"
+      }
+    },
+    {
+      "id": "conf-7",
+      "type": "speaking",
+      "tags": ["A2", "emotions", "vulnerability"],
+      "difficulty": 2,
+      "payload": {
+        "question": "Racontez un moment où vous avez eu peur. Qu'est-ce qui s'est passé ?",
+        "context": "Share emotional experiences openly"
+      }
+    },
+    {
+      "id": "conf-8",
+      "type": "speaking",
+      "tags": ["B1", "success", "pride"],
+      "difficulty": 3,
+      "payload": {
+        "question": "Qu'est-ce que vous avez réussi récemment ? Vous êtes fier/fière ?",
+        "context": "Celebrate your achievements confidently"
+      }
+    },
+    {
+      "id": "conf-9",
+      "type": "speaking",
+      "tags": ["A2", "preferences", "strong_opinions"],
+      "difficulty": 2,
+      "payload": {
+        "question": "Qu'est-ce que vous aimez vraiment ? Pourquoi c'est important ?",
+        "context": "Express passion and enthusiasm"
+      }
+    },
+    {
+      "id": "conf-10",
+      "type": "speaking",
+      "tags": ["B1", "boundaries", "assertive"],
+      "difficulty": 3,
+      "payload": {
+        "question": "Quelqu'un vous demande une faveur impossible. Comment vous refusez ?",
+        "context": "Show confidence in setting boundaries"
+      }
+    },
+    {
+      "id": "conf-11",
+      "type": "speaking",
+      "tags": ["A2", "beliefs", "convictions"],
+      "difficulty": 2,
+      "payload": {
+        "question": "Il y a quelque chose que tout le monde fait, mais pas vous ? Pourquoi ?",
+        "context": "Defend your unique position"
+      }
+    },
+    {
+      "id": "conf-12",
+      "type": "speaking",
+      "tags": ["B1", "mistakes", "learning"],
+      "difficulty": 3,
+      "payload": {
+        "question": "Parlez-moi d'une erreur que vous avez faite. Qu'est-ce que vous avez appris ?",
+        "context": "Show vulnerability and growth"
+      }
+    },
+    {
+      "id": "conf-13",
+      "type": "speaking",
+      "tags": ["A2", "frustrations", "emotions"],
+      "difficulty": 2,
+      "payload": {
+        "question": "Qu'est-ce qui vous énerve le plus chez les autres ?",
+        "context": "Express frustrations authentically"
+      }
+    },
+    {
+      "id": "conf-14",
+      "type": "speaking",
+      "tags": ["B1", "dreams", "aspirations"],
+      "difficulty": 3,
+      "payload": {
+        "question": "Si vous pouviez faire n'importe quoi demain, ce serait quoi ?",
+        "context": "Share dreams with enthusiasm"
+      }
+    },
+    {
+      "id": "conf-15",
+      "type": "speaking",
+      "tags": ["A2", "injustice", "strong_opinions"],
+      "difficulty": 2,
+      "payload": {
+        "question": "Qu'est-ce qui n'est pas juste dans le monde, selon vous ?",
+        "context": "Take a strong position on issues"
+      }
+    },
+    {
+      "id": "conf-16",
+      "type": "speaking",
+      "tags": ["B1", "disagreement", "debate"],
+      "difficulty": 3,
+      "payload": {
+        "question": "Tout le monde dit que X est bien. Mais vous, vous n'êtes pas d'accord. Pourquoi ?",
+        "context": "Argue against popular opinion"
+      }
+    },
+    {
+      "id": "conf-17",
+      "type": "speaking",
+      "tags": ["A2", "comfort_zone", "honesty"],
+      "difficulty": 2,
+      "payload": {
+        "question": "Qu'est-ce que vous ne voulez jamais faire ? Pourquoi ?",
+        "context": "Be honest about your limits"
+      }
+    },
+    {
+      "id": "conf-18",
+      "type": "speaking",
+      "tags": ["B1", "advice", "conviction"],
+      "difficulty": 3,
+      "payload": {
+        "question": "Quel conseil vous donneriez à quelqu'un qui a peur de parler ?",
+        "context": "Share wisdom with confidence"
+      }
+    },
+    {
+      "id": "conf-19",
+      "type": "speaking",
+      "tags": ["A2", "personality", "self_awareness"],
+      "difficulty": 2,
+      "payload": {
+        "question": "Qu'est-ce qui vous rend unique ? Qu'est-ce qui vous différencie ?",
+        "context": "Celebrate your uniqueness"
+      }
+    },
+    {
+      "id": "conf-20",
+      "type": "speaking",
+      "tags": ["B1", "change", "determination"],
+      "difficulty": 3,
+      "payload": {
+        "question": "Si vous pouviez changer une chose dans votre vie, ce serait quoi ? Et pourquoi vous ne l'avez pas encore fait ?",
+        "context": "Reflect honestly on goals and obstacles"
+      }
+    }
+  ]
+}
+

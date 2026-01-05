@@ -28,6 +28,10 @@ export interface Phrase {
   
   tags: string[];
   difficulty: 1 | 2 | 3 | 4 | 5;
+  scaffold_overrides?: {
+    level2?: string;
+    level3?: string;
+  };
   created_at: string;
 }
 
@@ -56,7 +60,25 @@ export interface MemberPhraseCard {
     repetitions?: number;
     interval_days?: number;
     ease_factor?: number; // >= 1.3
+    
+    // FSRS full state (JSONB)
+    scheduler_state_jsonb?: Record<string, any>;
   };
+  
+  // Assist level (0-4)
+  assist_level?: number;
+  
+  // Struggle counters
+  consecutive_again?: number;
+  again_count_24h?: number;
+  again_count_7d?: number;
+  
+  // Pause fields
+  paused_reason?: string;
+  paused_at?: string;
+  
+  // Short-term step tracking
+  short_term_step_index?: number;
   
   // UX/analytics
   lapses: number;
@@ -127,6 +149,11 @@ export interface PhraseSettings {
   auto_assess_enabled: boolean;
   recognition_shadow_default: boolean;
   show_time_to_recall: boolean;
+  
+  // FSRS config
+  learning_steps?: string[];
+  relearning_steps?: string[];
+  enable_fuzz?: boolean;
 }
 
 // Phrase Pack (curated sets)

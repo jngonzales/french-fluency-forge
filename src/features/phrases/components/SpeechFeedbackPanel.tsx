@@ -1,46 +1,87 @@
 /**
  * Speech Feedback Panel Component
- * Mock speech feedback UI for v0
+ * Real speech recognition with transcription and similarity scoring
  */
 
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff } from 'lucide-react';
-import { useState } from 'react';
+import { Mic, MicOff, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useAudioRecorder } from '@/hooks/useAudioRecorder';
+import { transcribePhraseAudio, type SpeechRecognitionResult } from '../services/speechRecognition';
+import type { TokenMatch } from '../utils/similarityCalculation';
 
 interface SpeechFeedbackPanelProps {
   enabled: boolean;
+  targetText: string | string[]; // French text to compare against
+  onTranscript?: (result: SpeechRecognitionResult) => void; // Callback with transcript and similarity
 }
 
-export function SpeechFeedbackPanel({ enabled }: SpeechFeedbackPanelProps) {
-  const [isRecording, setIsRecording] = useState(false);
-  const [hasRecorded, setHasRecorded] = useState(false);
+export function SpeechFeedbackPanel({ 
+  enabled, 
+  targetText,
+  onTranscript 
+}: SpeechFeedbackPanelProps) {
+  const [recognitionResult, setRecognitionResult] = useState<SpeechRecognitionResult | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!enabled) return null;
+  const {
+    isRecording,
+    recordingTime,
+    audioBlob,
+    error: recorderError,
+    startRecording,
+    stopRecording,
+    resetRecording,
+  } = useAudioRecorder({
+    maxDuration: 10, // 10 seconds max
+  });
 
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    // Simulate recording for 2 seconds
-    setTimeout(() => {
-      setIsRecording(false);
-      setHasRecorded(true);
-    }, 2000);
+  // Handle recording completion
+  useEffect(() => {
+    if (audioBlob && !isRecording && !isTranscribing) {
+      handleTranscribe(audioBlob);
+    }
+  }, [audioBlob, isRecording]);
+
+  const handleTranscribe = async (blob: Blob) => {
+    setIsTranscribing(true);
+    setError(null);
+
+    try {
+      const result = await transcribePhraseAudio(blob, targetText);
+      setRecognitionResult(result);
+      onTranscript?.(result);
+    } catch (err) {
+      console.error('Transcription error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to transcribe audio');
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  const handleStartRecording = async () => {
+    setError(null);
+    setRecognitionResult(null);
+    await startRecording();
   };
 
   const handleStopRecording = () => {
-    setIsRecording(false);
-    setHasRecorded(true);
+    stopRecording();
   };
 
-  // Mock transcript data
-  const mockTranscript = 'Comment ça va';
-  const mockTokens = [
-    { text: 'Comment', matched: true },
-    { text: 'ça', matched: true },
-    { text: 'va', matched: true },
-  ];
-  const mockSimilarity = 0.95;
+  const handleReset = () => {
+    resetRecording();
+    setRecognitionResult(null);
+    setError(null);
+  };
+
+  if (!enabled) return null;
+
+  const hasResult = recognitionResult !== null;
+  const displayError = error || recorderError;
 
   return (
     <motion.div
@@ -50,18 +91,21 @@ export function SpeechFeedbackPanel({ enabled }: SpeechFeedbackPanelProps) {
     >
       <div className="flex items-center justify-between">
         <div className="text-sm font-medium">Speech Feedback</div>
-        <Badge variant="secondary" className="font-normal">
-          Mock (v0)
-        </Badge>
+        {hasResult && (
+          <Badge variant="secondary" className="font-normal">
+            {Math.round(recognitionResult.similarity * 100)}% match
+          </Badge>
+        )}
       </div>
 
-      {!hasRecorded ? (
+      {!hasResult && !isTranscribing ? (
         <div className="text-center py-4">
           <Button
             size="lg"
             variant={isRecording ? 'destructive' : 'outline'}
             onClick={isRecording ? handleStopRecording : handleStartRecording}
             className="rounded-full w-16 h-16"
+            disabled={isTranscribing}
           >
             {isRecording ? (
               <MicOff className="w-6 h-6" />
@@ -70,7 +114,25 @@ export function SpeechFeedbackPanel({ enabled }: SpeechFeedbackPanelProps) {
             )}
           </Button>
           <div className="text-sm text-muted-foreground mt-2">
-            {isRecording ? 'Recording...' : 'Tap to record'}
+            {isRecording ? (
+              <>
+                Recording... {recordingTime}s
+              </>
+            ) : (
+              'Tap to record'
+            )}
+          </div>
+          {displayError && (
+            <div className="text-xs text-destructive mt-2">
+              {displayError}
+            </div>
+          )}
+        </div>
+      ) : isTranscribing ? (
+        <div className="text-center py-4">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+          <div className="text-sm text-muted-foreground mt-2">
+            Transcribing...
           </div>
         </div>
       ) : (
@@ -79,7 +141,7 @@ export function SpeechFeedbackPanel({ enabled }: SpeechFeedbackPanelProps) {
           <div>
             <div className="text-xs text-muted-foreground mb-1">Your speech:</div>
             <div className="flex flex-wrap gap-1">
-              {mockTokens.map((token, i) => (
+              {recognitionResult.similarityDetails.matchedTokens.map((token: TokenMatch, i: number) => (
                 <span
                   key={i}
                   className={`px-2 py-1 rounded text-sm ${
@@ -92,24 +154,55 @@ export function SpeechFeedbackPanel({ enabled }: SpeechFeedbackPanelProps) {
                 </span>
               ))}
             </div>
+            {recognitionResult.transcript && (
+              <div className="text-xs text-muted-foreground mt-2 italic">
+                "{recognitionResult.transcript}"
+              </div>
+            )}
           </div>
 
           {/* Similarity score */}
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Match:</span>
-            <span className="font-medium text-green-600 dark:text-green-400">
-              {(mockSimilarity * 100).toFixed(0)}%
+            <span className={`font-medium ${
+              recognitionResult.similarity >= 0.85
+                ? 'text-green-600 dark:text-green-400'
+                : recognitionResult.similarity >= 0.70
+                ? 'text-yellow-600 dark:text-yellow-400'
+                : 'text-red-600 dark:text-red-400'
+            }`}>
+              {Math.round(recognitionResult.similarity * 100)}%
             </span>
           </div>
+
+          {/* Missing/Extra tokens */}
+          {(recognitionResult.similarityDetails.missingTokens.length > 0 || 
+            recognitionResult.similarityDetails.extraTokens.length > 0) && (
+            <div className="text-xs space-y-1">
+              {recognitionResult.similarityDetails.missingTokens.length > 0 && (
+                <div>
+                  <span className="text-muted-foreground">Missing: </span>
+                  <span className="text-red-600 dark:text-red-400">
+                    {recognitionResult.similarityDetails.missingTokens.join(', ')}
+                  </span>
+                </div>
+              )}
+              {recognitionResult.similarityDetails.extraTokens.length > 0 && (
+                <div>
+                  <span className="text-muted-foreground">Extra: </span>
+                  <span className="text-yellow-600 dark:text-yellow-400">
+                    {recognitionResult.similarityDetails.extraTokens.join(', ')}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Reset */}
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => {
-              setHasRecorded(false);
-              setIsRecording(false);
-            }}
+            onClick={handleReset}
             className="w-full"
           >
             Try again
