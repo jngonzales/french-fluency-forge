@@ -36,6 +36,46 @@ function processBase64Chunks(base64String: string, chunkSize = 32768): Uint8Arra
   return result;
 }
 
+// Retry helper with exponential backoff
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 3,
+  baseDelay = 1000
+): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (attempt > 0) {
+      const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 500;
+      console.log(`[Azure] Retry ${attempt}/${maxRetries} after ${Math.round(delay)}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    
+    const response = await fetch(url, options);
+    
+    if (response.ok) {
+      return response;
+    }
+    
+    // Handle rate limiting (429) with retry
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('Retry-After');
+      const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : baseDelay * Math.pow(2, attempt);
+      console.log(`[Azure] Rate limited (429). Waiting ${waitTime}ms before retry...`);
+      lastError = new Error(`Rate limited (429)`);
+      continue;
+    }
+    
+    // For other errors, don't retry
+    const errorText = await response.text();
+    console.error('[Azure] API error:', response.status, errorText);
+    throw new Error(`Azure Speech API error: ${response.status} - ${JSON.stringify(errorText)}`);
+  }
+  
+  throw lastError || new Error('Max retries exceeded');
+}
+
 async function assessPronunciation(
   audioData: Uint8Array,
   referenceText: string,
@@ -67,7 +107,7 @@ async function assessPronunciation(
   const endpoint = `https://${speechRegion}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=fr-FR&format=detailed`;
 
   const apiStart = Date.now();
-  const response = await fetch(endpoint, {
+  const response = await fetchWithRetry(endpoint, {
     method: 'POST',
     headers: {
       'Ocp-Apim-Subscription-Key': speechKey,
@@ -79,12 +119,6 @@ async function assessPronunciation(
   });
 
   const apiDuration = Date.now() - apiStart;
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('[Azure] API error:', response.status, errorText);
-    throw new Error(`Azure API error: ${response.status}`);
-  }
 
   const rawResponse = await response.json();
   const nBest = rawResponse.NBest?.[0];
