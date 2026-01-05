@@ -113,29 +113,42 @@ const PronunciationModuleWithPhrases = ({
       handleRecordingSubmit();
     }
   }, [wavBlob, showDevFeatures, processingStatus]);
+  // Helper for staged status with delays (user mode only)
+  const setStatusWithDelay = async (status: ProcessingStatus, delayMs: number = 100) => {
+    if (!showDevFeatures && delayMs > 0) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+    setProcessingStatus(status);
+  };
+
   const handleRecordingSubmit = async () => {
     if (!audioBlob || !currentPhrase) return;
     setProcessingStatus('uploading');
     setShowFeedback(false);
-    toast.info('Preparing audio for analysis...');
+    if (showDevFeatures) {
+      toast.info('Preparing audio for analysis...');
+    }
     try {
       // Get WAV audio
       let audioToSend = wavBlob;
       let audioFormatToSend = 'audio/wav';
       if (!audioToSend) {
         console.log('[Pronunciation] Converting to WAV...');
-        toast.info('Converting to optimal format...');
+        if (showDevFeatures) toast.info('Converting to optimal format...');
         audioToSend = await getWavBlob();
       }
       if (!audioToSend) {
         console.warn('[Pronunciation] WAV conversion failed, using WebM');
         audioToSend = audioBlob;
         audioFormatToSend = audioBlob.type || 'audio/webm';
-        toast.warning('Using original format');
+        if (showDevFeatures) toast.warning('Using original format');
       } else {
-        toast.success('Audio optimized (WAV)');
+        if (showDevFeatures) toast.success('Audio optimized (WAV)');
       }
 
+      // Staged status progression with delays for user mode
+      await setStatusWithDelay('recorded', 100);  // Processing
+      
       // Convert to base64
       const arrayBuffer = await audioToSend.arrayBuffer();
       const bytes = new Uint8Array(arrayBuffer);
@@ -144,8 +157,11 @@ const PronunciationModuleWithPhrases = ({
         binary += String.fromCharCode(bytes[i]);
       }
       const base64Audio = btoa(binary);
-      setProcessingStatus('processing');
-      toast.info('Analyzing pronunciation...');
+      
+      await setStatusWithDelay('processing', 100);  // Understanding
+      if (showDevFeatures) toast.info('Analyzing pronunciation...');
+
+      await setStatusWithDelay('uploading', 100);  // Analyzing
 
       // Call pronunciation API
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-pronunciation`, {
@@ -166,12 +182,19 @@ const PronunciationModuleWithPhrases = ({
         const errorText = await response.text();
         throw new Error(errorText || 'Assessment failed');
       }
-      setProcessingStatus('analyzed');
+      
+      // "Almost there" - no extra delay before this (natural API response time)
+      await setStatusWithDelay('analyzed', 0);
+      
       const result = await response.json();
       console.log('[Pronunciation] Result:', result);
       setCurrentProvider(result.provider || 'azure');
-      toast.success(`Complete (${result.provider === 'speechsuper' ? 'SpeechSuper' : 'Azure'})`);
-
+      
+      // Final "Magic!" step with small delay for dramatic effect
+      await setStatusWithDelay('complete', 100);
+      if (showDevFeatures) {
+        toast.success(`Complete (${result.provider === 'speechsuper' ? 'SpeechSuper' : 'Azure'})`);
+      }
       // Update tested phonemes
       const phrasePhonemes = currentPhrase.phonemes || parseIPA(currentPhrase.ipa);
       setTestedPhonemes(prev => {
