@@ -1,6 +1,13 @@
 /**
  * Pronunciation Module with Phrase Bank
  * Uses coverage-constrained sampling to test all 39 French phonemes
+ * 
+ * STATE MACHINE:
+ * - idle: Ready to record
+ * - recording: User is recording
+ * - processing: Audio being analyzed (3 steps: uploading, analyzing, finishing)
+ * - feedback: Showing result
+ * - error: Error occurred
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -27,11 +34,16 @@ import { parseIPA, getTargetPhonemes } from "@/lib/pronunciation/ipaParser";
 import { updatePhonemeStats, extractPhonemeScores } from "@/lib/pronunciation/phonemeStats";
 import { generateSeed } from "@/lib/random/seededShuffle";
 import pronunciationPhrasesBank from "../promptBank/promptBanks/pronunciation-phrases.json";
+
+// Clear state machine phases
+type ModulePhase = 'idle' | 'recording' | 'processing' | 'feedback' | 'error';
+
 interface PronunciationModuleWithPhrasesProps {
   sessionId: string;
   onComplete: (results: any[]) => void;
   onSkip?: () => void;
 }
+
 const PronunciationModuleWithPhrases = ({
   sessionId,
   onComplete,
@@ -40,25 +52,25 @@ const PronunciationModuleWithPhrases = ({
   const { user } = useAuth();
   const { isAdmin, isDev } = useAdminMode();
 
-  // Dev mode toggle state - default to false
+  // Dev mode toggle state
   const [devModeEnabled, setDevModeEnabled] = useState(false);
   const showDevFeatures = devModeEnabled && (isAdmin || isDev);
 
-  // State
+  // Phrase state
   const [phrases, setPhrases] = useState<PronunciationPhrase[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [results, setResults] = useState<any[]>([]);
   const [testedPhonemes, setTestedPhonemes] = useState<Set<string>>(new Set());
   const [attemptCounts, setAttemptCounts] = useState<Record<string, number>>({});
 
-  // Processing state
-  const [processingStatus, setProcessingStatus] = useState<ProcessingStatus>('idle');
-  const [currentProvider, setCurrentProvider] = useState<'speechsuper' | 'azure' | null>(null);
-
-  // Feedback state
-  const [showFeedback, setShowFeedback] = useState(false);
+  // Clear state machine - ONE source of truth for UI
+  const [phase, setPhase] = useState<ModulePhase>('idle');
+  const [processingStep, setProcessingStep] = useState<1 | 2 | 3>(1);
   const [currentResult, setCurrentResult] = useState<any>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [currentProvider, setCurrentProvider] = useState<'speechsuper' | 'azure' | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+
   const {
     isRecording,
     recordingTime,
@@ -88,69 +100,77 @@ const PronunciationModuleWithPhrases = ({
     });
     console.log('[Pronunciation] Selected', result.phrases.length, 'phrases');
     console.log('[Pronunciation] Coverage:', result.coveragePercent + '%');
-    console.log('[Pronunciation] Swaps made:', result.swapsMade);
-    if (result.missingPhonemes.length > 0) {
-      console.warn('[Pronunciation] Missing phonemes:', result.missingPhonemes);
-    }
     setPhrases(result.phrases);
   }, []);
+
   const currentPhrase = phrases[currentIndex];
   const currentAttemptCount = currentPhrase ? attemptCounts[currentPhrase.id] || 0 : 0;
   const maxAttemptsReached = currentAttemptCount >= 2;
   const progress = phrases.length > 0 ? (currentIndex + 1) / phrases.length * 100 : 0;
 
-  // Track recording state
+  // Sync recorder state with phase
   useEffect(() => {
-    if (isRecording) {
-      setProcessingStatus('recording');
-    } else if (audioBlob && processingStatus === 'recording') {
-      setProcessingStatus('recorded');
+    if (isRecording && phase !== 'recording') {
+      setPhase('recording');
     }
-  }, [isRecording, audioBlob, processingStatus]);
+  }, [isRecording, phase]);
 
   // Auto-submit when WAV is ready (user mode only)
   useEffect(() => {
-    if (!showDevFeatures && wavBlob && processingStatus === 'recorded') {
+    if (!showDevFeatures && wavBlob && phase === 'recording' && !isRecording) {
       console.log('[Pronunciation] WAV ready, auto-submitting...');
       handleRecordingSubmit();
     }
-  }, [wavBlob, showDevFeatures, processingStatus]);
-  // Helper for staged status with delays (user mode only)
-  const setStatusWithDelay = async (status: ProcessingStatus, delayMs: number = 100) => {
-    if (!showDevFeatures && delayMs > 0) {
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+  }, [wavBlob, showDevFeatures, phase, isRecording]);
+
+  // Map processing step to status for StatusIndicator
+  const getProcessingStatus = (): ProcessingStatus => {
+    if (phase === 'recording') return 'recording';
+    if (phase === 'processing') {
+      if (processingStep === 1) return 'uploading';
+      if (processingStep === 2) return 'processing';
+      return 'analyzed';
     }
-    setProcessingStatus(status);
+    if (phase === 'feedback') return 'complete';
+    if (phase === 'error') return 'error';
+    return 'idle';
+  };
+
+  const handleStartRecording = () => {
+    setPhase('idle'); // Reset first
+    setCurrentResult(null);
+    setErrorMessage(null);
+    startRecording();
+  };
+
+  const handleStopRecording = () => {
+    stopRecording();
+    // Phase will update via useEffect when wavBlob is ready
   };
 
   const handleRecordingSubmit = async () => {
     if (!audioBlob || !currentPhrase) return;
-    setProcessingStatus('uploading');
-    setShowFeedback(false);
-    if (showDevFeatures) {
-      toast.info('Preparing audio for analysis...');
-    }
+    
+    setPhase('processing');
+    setProcessingStep(1); // Uploading
+    setErrorMessage(null);
+
     try {
       // Get WAV audio
       let audioToSend = wavBlob;
       let audioFormatToSend = 'audio/wav';
+      
       if (!audioToSend) {
         console.log('[Pronunciation] Converting to WAV...');
-        if (showDevFeatures) toast.info('Converting to optimal format...');
         audioToSend = await getWavBlob();
       }
+      
       if (!audioToSend) {
         console.warn('[Pronunciation] WAV conversion failed, using WebM');
         audioToSend = audioBlob;
         audioFormatToSend = audioBlob.type || 'audio/webm';
-        if (showDevFeatures) toast.warning('Using original format');
-      } else {
-        if (showDevFeatures) toast.success('Audio optimized (WAV)');
       }
 
-      // Staged status progression with delays for user mode
-      await setStatusWithDelay('recorded', 100);  // Processing
-      
       // Convert to base64
       const arrayBuffer = await audioToSend.arrayBuffer();
       const bytes = new Uint8Array(arrayBuffer);
@@ -160,10 +180,7 @@ const PronunciationModuleWithPhrases = ({
       }
       const base64Audio = btoa(binary);
       
-      await setStatusWithDelay('processing', 100);  // Understanding
-      if (showDevFeatures) toast.info('Analyzing pronunciation...');
-
-      setProcessingStatus('uploading');  // Analyzing - no delay
+      setProcessingStep(2); // Analyzing
 
       // Call pronunciation API
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-pronunciation`, {
@@ -180,23 +197,18 @@ const PronunciationModuleWithPhrases = ({
           audioFormat: audioFormatToSend
         })
       });
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || 'Assessment failed');
       }
       
-      // "Almost there" - natural API response time
-      setProcessingStatus('analyzed');
+      setProcessingStep(3); // Finishing
       
       const result = await response.json();
       console.log('[Pronunciation] Result:', result);
       setCurrentProvider(result.provider || 'azure');
-      
-      // Final "Magic!" step - no artificial delay
-      setProcessingStatus('complete');
-      if (showDevFeatures) {
-        toast.success(`Complete (${result.provider === 'speechsuper' ? 'SpeechSuper' : 'Azure'})`);
-      }
+
       // Update tested phonemes
       const phrasePhonemes = currentPhrase.phonemes || parseIPA(currentPhrase.ipa);
       setTestedPhonemes(prev => {
@@ -212,54 +224,57 @@ const PronunciationModuleWithPhrases = ({
         [currentPhrase.id]: attemptNumber
       }));
 
-      // Store result
+      // Build result object
       const itemResult = {
         ...result,
         phraseId: currentPhrase.id,
         phraseIpa: currentPhrase.ipa,
         attemptNumber,
         scores: result.scores || {
-          overall: result.pronScore || result.accuracyScore || 0,
+          overall: result.pronScore || 0,
           accuracy: result.accuracyScore || 0,
-          fluency: result.fluencyScore || 80,
+          fluency: result.fluencyScore || 0,
           completeness: result.completenessScore || 0
         },
         words: result.words || [],
-        allPhonemes: result.allPhonemes || [],
-        strengths: result.strengths || [],
-        improvements: result.improvements || [],
-        practiceSuggestions: result.practiceSuggestions || []
+        allPhonemes: result.allPhonemes || []
       };
-      setResults(prev => [...prev, itemResult]);
-      setCurrentResult(itemResult);
-      setShowFeedback(true);
-      setProcessingStatus('complete');
+
+      // OVERWRITE previous result for same phrase (for "Try Again")
+      setResults(prev => {
+        const filtered = prev.filter(r => r.phraseId !== currentPhrase.id);
+        return [...filtered, itemResult];
+      });
       
-      // Trigger confetti for high scores (95%+) in user mode
+      setCurrentResult(itemResult);
+      setPhase('feedback');
+      
+      // Trigger confetti for high scores (95%+)
       const overallScore = itemResult.scores?.overall || 0;
       if (!showDevFeatures && overallScore >= 95) {
         setShowConfetti(true);
       }
     } catch (error) {
       console.error("Pronunciation error:", error);
-      setProcessingStatus('error');
+      setErrorMessage(error instanceof Error ? error.message : "Assessment failed");
+      setPhase('error');
       toast.error(error instanceof Error ? error.message : "Assessment failed");
     }
   };
+
   const advanceToNext = async () => {
     resetRecording();
-    setShowFeedback(false);
     setCurrentResult(null);
-    setProcessingStatus('idle');
+    setPhase('idle');
+    setProcessingStep(1);
     setCurrentProvider(null);
+    
     if (currentIndex < phrases.length - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
       // Test complete - update phoneme stats
       if (user) {
         console.log('[Pronunciation] Test complete, updating phoneme stats...');
-
-        // Extract all phoneme scores from results
         const allPhonemeScores = results.flatMap(r => extractPhonemeScores(r));
         if (allPhonemeScores.length > 0) {
           await updatePhonemeStats(user.id, allPhonemeScores);
@@ -269,18 +284,25 @@ const PronunciationModuleWithPhrases = ({
       onComplete(results);
     }
   };
+
   const handleTryAgain = () => {
     resetRecording();
-    setShowFeedback(false);
     setCurrentResult(null);
-    setProcessingStatus('idle');
+    setPhase('idle');
+    setProcessingStep(1);
   };
+
+  // Loading state
   if (phrases.length === 0) {
-    return <div className="flex min-h-screen items-center justify-center">
+    return (
+      <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen bg-background py-8 px-4">
+
+  return (
+    <div className="min-h-screen bg-background py-8 px-4">
       {/* Confetti celebration for high scores */}
       <ConfettiCelebration show={showConfetti} onComplete={() => setShowConfetti(false)} />
       
@@ -305,7 +327,9 @@ const PronunciationModuleWithPhrases = ({
                 </div>
               )}
             </div>
-            {processingStatus !== 'idle' && <StatusBadge status={processingStatus} provider={currentProvider} devMode={showDevFeatures} />}
+            {phase !== 'idle' && phase !== 'feedback' && (
+              <StatusBadge status={getProcessingStatus()} provider={currentProvider} devMode={showDevFeatures} />
+            )}
           </div>
           <Progress value={progress} className="h-2 mb-2" />
           <p className="text-sm text-muted-foreground">
@@ -314,23 +338,37 @@ const PronunciationModuleWithPhrases = ({
         </div>
 
         {/* Coverage Progress - only in dev mode */}
-        {showDevFeatures && <CoverageProgress testedPhonemes={testedPhonemes} currentPhrase={currentIndex + 1} totalPhrases={phrases.length} />}
+        {showDevFeatures && (
+          <CoverageProgress 
+            testedPhonemes={testedPhonemes} 
+            currentPhrase={currentIndex + 1} 
+            totalPhrases={phrases.length} 
+          />
+        )}
 
-        {/* Status Flow - hide during feedback */}
-        {!showFeedback && processingStatus !== 'idle' && processingStatus !== 'complete' && <StatusIndicator status={processingStatus} provider={currentProvider} devMode={showDevFeatures} />}
+        {/* Status Flow - ONLY show during processing phase */}
+        {phase === 'processing' && (
+          <StatusIndicator 
+            status={getProcessingStatus()} 
+            provider={currentProvider} 
+            devMode={showDevFeatures} 
+          />
+        )}
 
         {/* Recording Error */}
-        {recordingError && <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-3">
+        {(recordingError || phase === 'error') && (
+          <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
             <div>
-              <div className="font-semibold text-destructive mb-1">Recording Error</div>
-              <p className="text-sm text-destructive">{recordingError}</p>
+              <div className="font-semibold text-destructive mb-1">Error</div>
+              <p className="text-sm text-destructive">{recordingError || errorMessage}</p>
             </div>
-          </div>}
+          </div>
+        )}
 
-        {/* Current Phrase - Show during recording */}
-        {!showFeedback && currentPhrase && <>
-            {/* IPA Display - show IPA and targets only in dev mode */}
+        {/* Current Phrase + Recording Controls - Show when NOT in feedback phase */}
+        {phase !== 'feedback' && currentPhrase && (
+          <>
             <IPADisplay 
               textFr={currentPhrase.text_fr} 
               ipa={currentPhrase.ipa} 
@@ -339,140 +377,173 @@ const PronunciationModuleWithPhrases = ({
               showIPA={showDevFeatures}
             />
 
-            {/* Recording Controls */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">
                     {showDevFeatures ? 'Record this phrase' : 'Say this phrase'}
                   </CardTitle>
-                  {currentAttemptCount > 0 && <Badge variant="secondary" className="text-xs">
+                  {currentAttemptCount > 0 && (
+                    <Badge variant="secondary" className="text-xs">
                       Attempt {currentAttemptCount}/2
-                    </Badge>}
+                    </Badge>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
                 <RecordingControls 
-                  isRecording={isRecording} 
-                  isProcessing={processingStatus !== 'idle' && processingStatus !== 'recorded'} 
-                  isConverting={isConverting} 
-                  audioBlob={audioBlob} 
-                  wavBlob={wavBlob} 
-                  recordingTime={recordingTime} 
-                  startRecording={startRecording} 
-                  stopRecording={stopRecording} 
-                  resetRecording={resetRecording} 
+                  phase={phase}
+                  isRecording={isRecording}
+                  isConverting={isConverting}
+                  audioBlob={audioBlob}
+                  wavBlob={wavBlob}
+                  recordingTime={recordingTime}
+                  onStart={handleStartRecording}
+                  onStop={handleStopRecording}
+                  onReset={() => {
+                    resetRecording();
+                    setPhase('idle');
+                  }}
                   onSubmit={handleRecordingSubmit}
                   devMode={showDevFeatures}
                 />
               </CardContent>
             </Card>
-          </>}
+          </>
+        )}
 
-        {/* Feedback Display */}
-        {showFeedback && currentResult && <div className="space-y-6">
-            <EnhancedFeedbackDisplay result={currentResult} onContinue={advanceToNext} onTryAgain={maxAttemptsReached ? null : handleTryAgain} attemptNumber={currentAttemptCount} />
+        {/* Feedback Display - ONLY show in feedback phase */}
+        {phase === 'feedback' && currentResult && (
+          <div className="space-y-6">
+            <EnhancedFeedbackDisplay 
+              result={currentResult} 
+              onContinue={advanceToNext} 
+              onTryAgain={maxAttemptsReached ? null : handleTryAgain} 
+              attemptNumber={currentAttemptCount}
+              showScores={showDevFeatures}
+            />
             {showDevFeatures && <PronunciationDebugPanel result={currentResult} isOpen={false} />}
-          </div>}
+          </div>
+        )}
 
         {onSkip && <SkipButton onClick={onSkip} />}
       </div>
-    </div>;
+    </div>
+  );
 };
 
-// Recording Controls Component
+// Recording Controls Component - simplified
 interface RecordingControlsProps {
+  phase: ModulePhase;
   isRecording: boolean;
-  isProcessing: boolean;
   isConverting: boolean;
   audioBlob: Blob | null;
   wavBlob: Blob | null;
   recordingTime: number;
-  startRecording: () => void;
-  stopRecording: () => void;
-  resetRecording: () => void;
+  onStart: () => void;
+  onStop: () => void;
+  onReset: () => void;
   onSubmit: () => void;
   devMode?: boolean;
 }
+
 function RecordingControls({
+  phase,
   isRecording,
-  isProcessing,
   isConverting,
   audioBlob,
   wavBlob,
   recordingTime,
-  startRecording,
-  stopRecording,
-  resetRecording,
+  onStart,
+  onStop,
+  onReset,
   onSubmit,
   devMode = false
 }: RecordingControlsProps) {
-  return <div className="flex flex-col items-center space-y-4">
+  const isProcessing = phase === 'processing';
+  const showMicButton = phase === 'idle' && !isRecording && !audioBlob;
+  const showStopButton = isRecording;
+  const showDevControls = devMode && audioBlob && !isRecording && phase !== 'processing';
+
+  return (
+    <div className="flex flex-col items-center space-y-4">
       <div className="text-3xl font-mono tabular-nums">
         {formatTime(recordingTime)}
       </div>
 
-      {/* Only show technical messages in dev mode */}
-      {devMode && isConverting && <div className="text-sm text-primary flex items-center gap-2">
+      {/* Dev mode messages */}
+      {devMode && isConverting && (
+        <div className="text-sm text-primary flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin" />
           Converting to WAV for Azure...
-        </div>}
+        </div>
+      )}
       
-      {/* Hide WAV optimization text in user mode */}
-      {devMode && wavBlob && !isConverting && !isRecording && <div className="text-xs text-green-600 flex items-center gap-1">
+      {devMode && wavBlob && !isConverting && !isRecording && (
+        <div className="text-xs text-green-600 flex items-center gap-1">
           <Check className="h-3 w-3" />
           Optimized for pronunciation assessment (WAV)
-        </div>}
+        </div>
+      )}
 
       <div className="flex items-center gap-4">
-        {!isRecording && !audioBlob && <Button size="lg" onClick={startRecording} className="h-16 w-16 rounded-full" disabled={isProcessing || isConverting}>
+        {/* Mic button - only when idle and no recording */}
+        {showMicButton && (
+          <Button 
+            size="lg" 
+            onClick={onStart} 
+            className="h-16 w-16 rounded-full" 
+            disabled={isProcessing || isConverting}
+          >
             <Mic className="h-6 w-6" />
-          </Button>}
+          </Button>
+        )}
 
-        {isRecording && <Button size="lg" variant="destructive" onClick={stopRecording} className="h-16 w-16 rounded-full animate-pulse">
+        {/* Stop button - only when recording */}
+        {showStopButton && (
+          <Button 
+            size="lg" 
+            variant="destructive" 
+            onClick={onStop} 
+            className="h-16 w-16 rounded-full animate-pulse"
+          >
             <Square className="h-6 w-6" />
-          </Button>}
+          </Button>
+        )}
 
-        {/* In user mode: auto-submits, so only show redo button. In dev mode: show submit button */}
-        {audioBlob && !isRecording && (
-          devMode ? (
-            <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={resetRecording} disabled={isProcessing || isConverting}>
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Redo
-              </Button>
-              <Button onClick={onSubmit} disabled={isProcessing || isConverting} size="lg">
-                {isProcessing ? <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Analyzing...
-                  </> : isConverting ? <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Converting...
-                  </> : <>
-                    Submit {wavBlob && '(WAV)'}
-                    <ChevronRight className="h-4 w-4 ml-2" />
-                  </>}
-              </Button>
-            </div>
-          ) : (
-            /* User mode - just show processing state or redo */
-            <div className="flex items-center gap-3">
-              {!isProcessing && (
-                <Button variant="outline" onClick={resetRecording} disabled={isProcessing || isConverting}>
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Try Again
-                </Button>
+        {/* Dev mode controls */}
+        {showDevControls && (
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={onReset} disabled={isProcessing || isConverting}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Redo
+            </Button>
+            <Button onClick={onSubmit} disabled={isProcessing || isConverting} size="lg">
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  Analyze
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </>
               )}
-              {(isProcessing || isConverting) && (
-                <div className="flex items-center gap-2 text-primary">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  <span className="text-sm font-medium">Working magic...</span>
-                </div>
-              )}
-            </div>
-          )
+            </Button>
+          </div>
         )}
       </div>
-    </div>;
+
+      {/* Processing indicator for user mode */}
+      {!devMode && isProcessing && (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm">Analyzing your pronunciation...</span>
+        </div>
+      )}
+    </div>
+  );
 }
+
 export default PronunciationModuleWithPhrases;

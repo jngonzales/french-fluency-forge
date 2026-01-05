@@ -189,31 +189,16 @@ async function assessPronunciation(
     }
   }
 
-  // Get scores
+  // Get scores - USE ONLY Azure's PronScore as the main score (0-100)
   let pronScore = assessment.PronScore ?? nBest.PronScore ?? 0;
-  let accuracyScore = assessment.AccuracyScore ?? nBest.AccuracyScore ?? 0;
-  let fluencyScore = assessment.FluencyScore ?? nBest.FluencyScore ?? 0;
-  let completenessScore = assessment.CompletenessScore ?? nBest.CompletenessScore ?? 0;
+  const accuracyScore = assessment.AccuracyScore ?? nBest.AccuracyScore ?? 0;
+  const fluencyScore = assessment.FluencyScore ?? nBest.FluencyScore ?? 0;
+  const completenessScore = assessment.CompletenessScore ?? nBest.CompletenessScore ?? 0;
 
-  // If no words recognized properly, set all scores to 0
+  // If no words recognized at all, score is 0
   const validWords = words.filter((w: any) => w.accuracyScore > 0 || w.errorType !== 'None');
   if (validWords.length === 0 || (nBest.Display === '.' && words.length === 0)) {
     pronScore = 0;
-    accuracyScore = 0;
-    fluencyScore = 0;
-    completenessScore = 0;
-  }
-
-  // Fallback calculation if needed (only if we have actual recognized content)
-  if (pronScore === 0 && validWords.length > 0) {
-    const wordScores = words.map((w: any) => w.accuracyScore);
-    accuracyScore = wordScores.reduce((a: number, b: number) => a + b, 0) / wordScores.length;
-    
-    const refWords = referenceText.split(/\s+/).filter(w => w.length > 0);
-    const spokenWords = words.filter((w: any) => w.errorType !== 'Omission');
-    completenessScore = Math.min(100, (spokenWords.length / refWords.length) * 100);
-    
-    pronScore = accuracyScore * 0.6 + fluencyScore * 0.2 + completenessScore * 0.2;
   }
 
   const recognizedText = words.map((w: any) => w.word).join(' ');
