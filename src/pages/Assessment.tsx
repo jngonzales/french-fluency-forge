@@ -16,12 +16,14 @@ import { PersonalityQuiz } from "@/components/assessment/personality-quiz";
 import { ProcessingView } from "@/components/assessment/ProcessingView";
 import { LiveDataViewer } from "@/components/LiveDataViewer";
 import { EnhancedLiveDataViewer } from "@/components/EnhancedLiveDataViewer";
+import { UnifiedExamModule } from "@/components/assessment/UnifiedExamModule";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
 
 type SessionStatus = Database["public"]["Enums"]["session_status"];
 type AssessmentPhase = "pronunciation" | "fluency" | "confidence" | "syntax" | "conversation" | "comprehension";
+type AssessmentMode = "unified" | "traditional"; // New: choose exam type
 
 interface AssessmentSession {
   id: string;
@@ -36,6 +38,7 @@ const Assessment = () => {
   
   const [session, setSession] = useState<AssessmentSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [assessmentMode, setAssessmentMode] = useState<AssessmentMode>("unified"); // Default to unified exam
   const [assessmentPhase, setAssessmentPhase] = useState<AssessmentPhase>(() => {
     // Check for dev override
     const devPhase = sessionStorage.getItem("dev_assessment_phase");
@@ -173,6 +176,35 @@ const Assessment = () => {
       );
 
     case "assessment":
+      // MAIN PATH: Unified Voice Exam
+      if (assessmentMode === "unified") {
+        return (
+          <AdminPadding>
+            <UnifiedExamModule 
+              sessionId={session.id} 
+              onComplete={async () => {
+                await skipToStatus("processing");
+              }}
+            />
+            
+            {/* Dev mode: Show mode switcher */}
+            {(isAdmin || isDev) && (
+              <div className="fixed top-20 left-4 z-[9997] space-y-2">
+                <Button 
+                  onClick={() => setAssessmentMode("traditional")} 
+                  variant="outline" 
+                  size="sm"
+                  className="bg-card"
+                >
+                  Switch to Traditional Modules
+                </Button>
+              </div>
+            )}
+          </AdminPadding>
+        );
+      }
+      
+      // OPTIONAL PATH: Traditional separate modules (for practice/advanced)
       const moduleProps = { sessionId: session.id, onComplete: advancePhase };
       
       const renderModule = () => {
@@ -195,6 +227,21 @@ const Assessment = () => {
       return (
         <AdminPadding>
           {renderModule()}
+          
+          {/* Dev mode: Show mode switcher */}
+          {(isAdmin || isDev) && (
+            <div className="fixed top-20 left-4 z-[9997] space-y-2">
+              <Button 
+                onClick={() => setAssessmentMode("unified")} 
+                variant="outline" 
+                size="sm"
+                className="bg-card"
+              >
+                Switch to Unified Exam
+              </Button>
+            </div>
+          )}
+          
           {(isAdmin || isDev) && <EnhancedLiveDataViewer sessionId={session.id} moduleType={assessmentPhase} />}
         </AdminPadding>
       );
