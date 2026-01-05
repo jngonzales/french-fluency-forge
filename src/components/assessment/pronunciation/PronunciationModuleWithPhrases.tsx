@@ -11,7 +11,10 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAudioRecorder, formatTime } from "@/hooks/useAudioRecorder";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Mic, Square, RotateCcw, Loader2, AlertCircle, ChevronRight, Check } from "lucide-react";
+import { useAdminMode } from "@/hooks/useAdminMode";
 import SkipButton from "../SkipButton";
 import { StatusIndicator, StatusBadge, type ProcessingStatus } from "./StatusIndicator";
 import { PronunciationDebugPanel } from "./PronunciationDebugPanel";
@@ -33,9 +36,12 @@ const PronunciationModuleWithPhrases = ({
   onComplete,
   onSkip
 }: PronunciationModuleWithPhrasesProps) => {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
+  const { isAdmin, isDev } = useAdminMode();
+
+  // Dev mode toggle state
+  const [devModeEnabled, setDevModeEnabled] = useState(true);
+  const showDevFeatures = devModeEnabled && (isAdmin || isDev);
 
   // State
   const [phrases, setPhrases] = useState<PronunciationPhrase[]>([]);
@@ -240,7 +246,23 @@ const PronunciationModuleWithPhrases = ({
         {/* Header */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold">🎯 Pronunciation Test 2.0</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold">Pronunciation Test</h1>
+              {/* Dev Mode Toggle - only visible to admins */}
+              {(isAdmin || isDev) && (
+                <div className="flex items-center gap-2 border rounded-lg px-2 py-1 bg-muted/50">
+                  <Switch
+                    id="dev-mode"
+                    checked={devModeEnabled}
+                    onCheckedChange={setDevModeEnabled}
+                    className="scale-75"
+                  />
+                  <Label htmlFor="dev-mode" className="text-xs font-medium cursor-pointer">
+                    Dev
+                  </Label>
+                </div>
+              )}
+            </div>
             {processingStatus !== 'idle' && <StatusBadge status={processingStatus} provider={currentProvider} />}
           </div>
           <Progress value={progress} className="h-2 mb-2" />
@@ -249,8 +271,8 @@ const PronunciationModuleWithPhrases = ({
           </p>
         </div>
 
-        {/* Coverage Progress */}
-        <CoverageProgress testedPhonemes={testedPhonemes} currentPhrase={currentIndex + 1} totalPhrases={phrases.length} />
+        {/* Coverage Progress - only in dev mode */}
+        {showDevFeatures && <CoverageProgress testedPhonemes={testedPhonemes} currentPhrase={currentIndex + 1} totalPhrases={phrases.length} />}
 
         {/* Status Flow */}
         {processingStatus !== 'idle' && processingStatus !== 'complete' && <StatusIndicator status={processingStatus} provider={currentProvider} />}
@@ -288,7 +310,7 @@ const PronunciationModuleWithPhrases = ({
         {/* Feedback Display */}
         {showFeedback && currentResult && <div className="space-y-6">
             <EnhancedFeedbackDisplay result={currentResult} onContinue={advanceToNext} onTryAgain={maxAttemptsReached ? null : handleTryAgain} attemptNumber={currentAttemptCount} />
-            <PronunciationDebugPanel result={currentResult} isOpen={false} />
+            {showDevFeatures && <PronunciationDebugPanel result={currentResult} isOpen={false} />}
           </div>}
 
         {onSkip && <SkipButton onClick={onSkip} />}
