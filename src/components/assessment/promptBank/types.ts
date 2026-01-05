@@ -72,15 +72,26 @@ export interface ConversationPrompt extends PromptBase {
   };
 }
 
-// Comprehension prompts (listen and answer)
+// Comprehension prompts (multi-select listening)
 export interface ComprehensionPrompt extends PromptBase {
-  type: 'listen_answer';
+  type: 'listen_multi_select';
   payload: {
-    audioUrl: string;
     audioScript: string;
-    question: string;
-    keyFacts: string[];
-    acceptableIntents: string[];
+    transcript_fr: string;
+    word_count: number;
+    estimated_duration_s: number;
+    prompt: {
+      fr: string;
+      en: string;
+    };
+    options: Array<{
+      id: string;
+      fr: string;
+      en: string;
+    }>;
+    answer_key: {
+      correct_option_ids: string[];
+    };
   };
 }
 
