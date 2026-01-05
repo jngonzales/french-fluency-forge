@@ -1,9 +1,10 @@
 /**
  * Phoneme Statistics Calculator
  * Handles per-user phoneme accuracy tracking
+ * 
+ * NOTE: The user_phoneme_stats table does not exist yet.
+ * All functions return mock/empty data until the table is created.
  */
-
-import { supabase } from '@/integrations/supabase/client';
 
 export interface PhonemeScore {
   phoneme: string;
@@ -19,6 +20,9 @@ export interface UserPhonemestat {
   confidence: number;
   last_tested_at: string;
 }
+
+// Re-export with correct casing for backward compatibility
+export type UserPhonemeStat = UserPhonemestat;
 
 /**
  * Calculate confidence based on number of attempts
@@ -50,6 +54,8 @@ export function calculateOnlineMean(
 /**
  * Update phoneme stats for a user after a pronunciation test
  * 
+ * NOTE: Stubbed - user_phoneme_stats table does not exist yet
+ * 
  * @param userId - User ID
  * @param phonemeScores - Array of phoneme scores from test
  */
@@ -57,157 +63,74 @@ export async function updatePhonemeStats(
   userId: string,
   phonemeScores: PhonemeScore[]
 ): Promise<void> {
-  console.log('[Phoneme Stats] Updating stats for', phonemeScores.length, 'phonemes');
-
-  for (const { phoneme, score } of phonemeScores) {
-    try {
-      // Use the database function for atomic update
-      const { error } = await supabase.rpc('update_user_phoneme_stat', {
-        p_user_id: userId,
-        p_phoneme: phoneme,
-        p_accuracy: score,
-      });
-
-      if (error) {
-        console.error(`[Phoneme Stats] Error updating ${phoneme}:`, error);
-      }
-    } catch (error) {
-      console.error(`[Phoneme Stats] Exception updating ${phoneme}:`, error);
-    }
-  }
-
-  console.log('[Phoneme Stats] Update complete');
+  console.log('[Phoneme Stats] Stats update skipped - table not yet created. Would update', phonemeScores.length, 'phonemes for user', userId);
+  // TODO: Implement when user_phoneme_stats table is created
 }
 
 /**
  * Get user's phoneme stats
+ * 
+ * NOTE: Stubbed - returns empty array
  */
 export async function getUserPhonemeStats(userId: string): Promise<UserPhonemestat[]> {
-  const { data, error } = await supabase
-    .from('user_phoneme_stats')
-    .select('*')
-    .eq('user_id', userId)
-    .order('phoneme');
-
-  if (error) {
-    console.error('[Phoneme Stats] Error fetching stats:', error);
-    return [];
-  }
-
-  return data || [];
+  console.log('[Phoneme Stats] getUserPhonemeStats stubbed for user:', userId);
+  return [];
 }
 
 /**
  * Get hardest phonemes for user
  * Low accuracy + high confidence = needs practice
  * 
- * @param userId - User ID
- * @param limit - Number of phonemes to return
- * @param minConfidence - Minimum confidence threshold
- * @returns Phonemes sorted by difficulty (hardest first)
+ * NOTE: Stubbed - returns empty array
  */
 export async function getHardestPhonemes(
   userId: string,
   limit: number = 5,
   minConfidence: number = 0.5
-): Promise<UserPhonemeStat[]> {
-  const { data, error } = await supabase
-    .from('user_phoneme_stats')
-    .select('*')
-    .eq('user_id', userId)
-    .gte('confidence', minConfidence)
-    .order('mean_accuracy', { ascending: true })
-    .limit(limit);
-
-  if (error) {
-    console.error('[Phoneme Stats] Error fetching hardest phonemes:', error);
-    return [];
-  }
-
-  return data || [];
+): Promise<UserPhonemestat[]> {
+  console.log('[Phoneme Stats] getHardestPhonemes stubbed for user:', userId);
+  return [];
 }
 
 /**
  * Get uncertain phonemes (low confidence = need more testing)
  * 
- * @param userId - User ID
- * @param maxConfidence - Maximum confidence threshold
- * @returns Phonemes that need more testing
+ * NOTE: Stubbed - returns empty array
  */
 export async function getUncertainPhonemes(
   userId: string,
   maxConfidence: number = 0.5
-): Promise<UserPhonemeStat[]> {
-  const { data, error } = await supabase
-    .from('user_phoneme_stats')
-    .select('*')
-    .eq('user_id', userId)
-    .lt('confidence', maxConfidence)
-    .order('attempts', { ascending: true });
-
-  if (error) {
-    console.error('[Phoneme Stats] Error fetching uncertain phonemes:', error);
-    return [];
-  }
-
-  return data || [];
+): Promise<UserPhonemestat[]> {
+  console.log('[Phoneme Stats] getUncertainPhonemes stubbed for user:', userId);
+  return [];
 }
 
 /**
  * Get strongest phonemes (high accuracy + high confidence)
  * 
- * @param userId - User ID
- * @param limit - Number of phonemes to return
- * @param minConfidence - Minimum confidence threshold
- * @returns Phonemes sorted by accuracy (strongest first)
+ * NOTE: Stubbed - returns empty array
  */
 export async function getStrongestPhonemes(
   userId: string,
   limit: number = 5,
   minConfidence: number = 0.5
-): Promise<UserPhonemeStat[]> {
-  const { data, error } = await supabase
-    .from('user_phoneme_stats')
-    .select('*')
-    .eq('user_id', userId)
-    .gte('confidence', minConfidence)
-    .order('mean_accuracy', { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    console.error('[Phoneme Stats] Error fetching strongest phonemes:', error);
-    return [];
-  }
-
-  return data || [];
+): Promise<UserPhonemestat[]> {
+  console.log('[Phoneme Stats] getStrongestPhonemes stubbed for user:', userId);
+  return [];
 }
 
 /**
  * Get phoneme coverage for user
  * 
- * @param userId - User ID
- * @returns Number of phonemes tested out of 39
+ * NOTE: Stubbed - returns 0 coverage
  */
 export async function getPhonemeCoverage(userId: string): Promise<{
   tested: number;
   total: number;
   percentage: number;
 }> {
-  const { count, error } = await supabase
-    .from('user_phoneme_stats')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId);
-
-  if (error) {
-    console.error('[Phoneme Stats] Error fetching coverage:', error);
-    return { tested: 0, total: 39, percentage: 0 };
-  }
-
-  const tested = count || 0;
-  const total = 39;
-  const percentage = Math.round((tested / total) * 100);
-
-  return { tested, total, percentage };
+  console.log('[Phoneme Stats] getPhonemeCoverage stubbed for user:', userId);
+  return { tested: 0, total: 39, percentage: 0 };
 }
 
 /**
@@ -243,25 +166,20 @@ export function extractPhonemeScores(result: any): PhonemeScore[] {
 
 /**
  * Get phoneme stats summary for user
+ * 
+ * NOTE: Stubbed - returns empty arrays
  */
 export async function getPhonemeStatsSummary(userId: string): Promise<{
-  hardest: UserPhonemeStat[];
-  uncertain: UserPhonemeStat[];
-  strongest: UserPhonemeStat[];
+  hardest: UserPhonemestat[];
+  uncertain: UserPhonemestat[];
+  strongest: UserPhonemestat[];
   coverage: { tested: number; total: number; percentage: number };
 }> {
-  const [hardest, uncertain, strongest, coverage] = await Promise.all([
-    getHardestPhonemes(userId, 3),
-    getUncertainPhonemes(userId),
-    getStrongestPhonemes(userId, 3),
-    getPhonemeCoverage(userId),
-  ]);
-
+  console.log('[Phoneme Stats] getPhonemeStatsSummary stubbed for user:', userId);
   return {
-    hardest,
-    uncertain,
-    strongest,
-    coverage,
+    hardest: [],
+    uncertain: [],
+    strongest: [],
+    coverage: { tested: 0, total: 39, percentage: 0 },
   };
 }
-

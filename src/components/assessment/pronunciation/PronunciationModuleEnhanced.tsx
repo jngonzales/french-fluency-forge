@@ -621,9 +621,9 @@ const PronunciationModuleEnhanced = ({ sessionId, onComplete, onSkip }: Pronunci
 interface RecordingControlsProps {
   isRecording: boolean;
   isProcessing: boolean;
-  isConverting: boolean;
+  isConverting?: boolean;
   audioBlob: Blob | null;
-  wavBlob: Blob | null;
+  wavBlob?: Blob | null;
   recordingTime: number;
   startRecording: () => void;
   stopRecording: () => void;

@@ -43,7 +43,7 @@ export function EnhancedWordHeatmap({ words }: EnhancedWordHeatmapProps) {
 
   const getWordColor = (word: WordAnalysis) => {
     // Safe access to word properties
-    const wordScore = word.score ?? word.accuracyScore ?? 0;
+    const wordScore = word.score ?? 0;
     const wordStatus = word.status ?? 'correct';
     if (wordStatus === 'omitted') {
       return 'bg-gray-500/20 border-gray-500 text-gray-700 dark:text-gray-400';
@@ -85,7 +85,7 @@ export function EnhancedWordHeatmap({ words }: EnhancedWordHeatmapProps) {
             >
               <div className="flex flex-col items-center">
                 <span>{word.word}</span>
-                <span className="text-[10px] font-bold mt-1">{word.score ?? word.accuracyScore ?? 0}%</span>
+                <span className="text-[10px] font-bold mt-1">{word.score ?? 0}%</span>
               </div>
             </button>
           ))}
@@ -99,8 +99,8 @@ export function EnhancedWordHeatmap({ words }: EnhancedWordHeatmapProps) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold">"{selectedWord.word}"</h3>
-                <Badge variant={(selectedWord.score ?? selectedWord.accuracyScore ?? 0) >= 75 ? 'default' : 'destructive'} className="text-base">
-                  {selectedWord.score ?? selectedWord.accuracyScore ?? 0}/100
+                <Badge variant={(selectedWord.score ?? 0) >= 75 ? 'default' : 'destructive'} className="text-base">
+                  {selectedWord.score ?? 0}/100
                 </Badge>
               </div>
 
