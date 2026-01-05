@@ -161,7 +161,7 @@ const PronunciationModuleWithPhrases = ({
       await setStatusWithDelay('processing', 100);  // Understanding
       if (showDevFeatures) toast.info('Analyzing pronunciation...');
 
-      await setStatusWithDelay('uploading', 100);  // Analyzing
+      setProcessingStatus('uploading');  // Analyzing - no delay
 
       // Call pronunciation API
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-pronunciation`, {
@@ -183,15 +183,15 @@ const PronunciationModuleWithPhrases = ({
         throw new Error(errorText || 'Assessment failed');
       }
       
-      // "Almost there" - no extra delay before this (natural API response time)
-      await setStatusWithDelay('analyzed', 0);
+      // "Almost there" - natural API response time
+      setProcessingStatus('analyzed');
       
       const result = await response.json();
       console.log('[Pronunciation] Result:', result);
       setCurrentProvider(result.provider || 'azure');
       
-      // Final "Magic!" step with small delay for dramatic effect
-      await setStatusWithDelay('complete', 100);
+      // Final "Magic!" step - no artificial delay
+      setProcessingStatus('complete');
       if (showDevFeatures) {
         toast.success(`Complete (${result.provider === 'speechsuper' ? 'SpeechSuper' : 'Azure'})`);
       }
