@@ -28,10 +28,12 @@ export function LiveDataViewer({ sessionId, moduleType }: LiveDataViewerProps) {
   const [loading, setLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  // Don't show if not admin/dev
-  if (!isAdmin && !isDev) return null;
+  // Determine visibility (but don't return early before hooks)
+  const shouldShow = isAdmin || isDev;
 
   const loadRecordings = async () => {
+    if (!shouldShow) return; // Guard inside function instead of early return
+    
     setLoading(true);
 
     try {
@@ -118,6 +120,8 @@ export function LiveDataViewer({ sessionId, moduleType }: LiveDataViewerProps) {
   };
 
   useEffect(() => {
+    if (!shouldShow) return; // Guard inside effect
+    
     loadRecordings();
 
     // Auto-refresh every 3 seconds
@@ -125,7 +129,10 @@ export function LiveDataViewer({ sessionId, moduleType }: LiveDataViewerProps) {
       const interval = setInterval(loadRecordings, 3000);
       return () => clearInterval(interval);
     }
-  }, [sessionId, moduleType, autoRefresh]);
+  }, [sessionId, moduleType, autoRefresh, shouldShow]);
+
+  // Move the early return AFTER all hooks
+  if (!shouldShow) return null;
 
   if (recordings.length === 0) {
     return (
