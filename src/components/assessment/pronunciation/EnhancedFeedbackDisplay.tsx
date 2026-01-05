@@ -136,8 +136,8 @@ export function EnhancedFeedbackDisplay({
         </Card>
       )}
 
-      {/* Word-Level Analysis - Handle both old and new formats */}
-      {result.words && result.words.length > 0 && (
+      {/* Word-Level Analysis - Only show for dev/admin */}
+      {showScores && result.words && result.words.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Word-by-Word Analysis</CardTitle>
@@ -148,8 +148,8 @@ export function EnhancedFeedbackDisplay({
         </Card>
       )}
 
-      {/* Phoneme Visualization */}
-      {result.allPhonemes && result.allPhonemes.length > 0 && (
+      {/* Phoneme Visualization - Only show for dev/admin */}
+      {showScores && result.allPhonemes && result.allPhonemes.length > 0 && (
         <Card>
           <CardHeader>
             <button
