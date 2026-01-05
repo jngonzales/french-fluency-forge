@@ -20,7 +20,10 @@ import {
   Gamepad2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import SkipButton from "../SkipButton";
+import { useAdminMode } from "@/hooks/useAdminMode";
 import { 
   READING_ITEMS, 
   REPEAT_ITEMS, 
@@ -58,6 +61,8 @@ interface PronunciationModuleProps {
 }
 
 const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationModuleProps) => {
+  const { isAdmin, isDev } = useAdminMode();
+  
   // Section state
   const [currentSection, setCurrentSection] = useState<Section>("reading");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -80,9 +85,13 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
   const [currentResult, setCurrentResult] = useState<ItemResult | null>(null);
   const [attemptCounts, setAttemptCounts] = useState<Record<string, number>>({});
   
-  // Debug state
+  // Debug/Dev mode state
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [devModeEnabled, setDevModeEnabled] = useState(true); // Toggle for dev features
+  
+  // Computed: show dev features only if toggle is on AND user is admin/dev
+  const showDevFeatures = devModeEnabled && (isAdmin || isDev);
   
   const referenceAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -382,14 +391,30 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-2xl font-bold">⚠️ OLD VERSION - Pronunciation</h1>
             <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDebug(!showDebug)}
-                className="text-xs"
-              >
-                {showDebug ? 'Hide Debug' : 'Debug'}
-              </Button>
+              {/* Dev Mode Toggle - only visible to admins */}
+              {(isAdmin || isDev) && (
+                <div className="flex items-center gap-2 border rounded-lg px-3 py-1.5 bg-muted/50">
+                  <Switch
+                    id="dev-mode"
+                    checked={devModeEnabled}
+                    onCheckedChange={setDevModeEnabled}
+                    className="scale-75"
+                  />
+                  <Label htmlFor="dev-mode" className="text-xs font-medium cursor-pointer">
+                    Dev Mode
+                  </Label>
+                </div>
+              )}
+              {showDevFeatures && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDebug(!showDebug)}
+                  className="text-xs"
+                >
+                  {showDebug ? 'Hide Debug' : 'Debug'}
+                </Button>
+              )}
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 {getSectionIcon(currentSection)}
                 <span>{getSectionTitle(currentSection)}</span>
@@ -404,8 +429,8 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
           </p>
         </div>
 
-        {/* Debug Panel */}
-        {showDebug && debugInfo && (
+        {/* Debug Panel - only when dev mode is enabled */}
+        {showDevFeatures && showDebug && debugInfo && (
           <div className="mb-6 p-4 rounded-lg bg-muted border text-xs font-mono overflow-auto max-h-80">
             <div className="flex justify-between items-center mb-2">
               <span className="font-bold text-sm">Debug Info</span>
