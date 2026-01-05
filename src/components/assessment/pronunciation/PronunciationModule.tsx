@@ -380,7 +380,7 @@ const PronunciationModule = ({ sessionId, onComplete, onSkip }: PronunciationMod
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-2xl font-bold">Pronunciation</h1>
+            <h1 className="text-2xl font-bold">⚠️ OLD VERSION - Pronunciation</h1>
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
