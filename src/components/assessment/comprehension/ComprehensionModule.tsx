@@ -75,9 +75,27 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
       
       if (error) throw error;
       
-      if (data?.audioContent) {
-        const audioUrl = `data:audio/mp3;base64,${data.audioContent}`;
+      // The response is binary audio data (ArrayBuffer or Blob)
+      if (data) {
+        let audioUrl: string;
+        
+        if (data instanceof Blob) {
+          // Convert Blob to URL
+          audioUrl = URL.createObjectURL(data);
+        } else if (data instanceof ArrayBuffer) {
+          // Convert ArrayBuffer to Blob then URL
+          const blob = new Blob([data], { type: 'audio/mpeg' });
+          audioUrl = URL.createObjectURL(blob);
+        } else if (typeof data === 'object' && data.audioContent) {
+          // Legacy format: base64 encoded
+          audioUrl = `data:audio/mp3;base64,${data.audioContent}`;
+        } else {
+          throw new Error('Unexpected audio response format');
+        }
+        
         setGeneratedAudio(prev => ({ ...prev, [currentItem.id]: audioUrl }));
+      } else {
+        throw new Error('No audio data received');
       }
     } catch (err) {
       console.error('Error generating audio:', err);
