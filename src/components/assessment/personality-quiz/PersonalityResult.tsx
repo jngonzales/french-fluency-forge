@@ -39,6 +39,8 @@ const axisLabels: Record<AxisKey, [string, string]> = {
 
 function AxisBar({ axisKey, result }: { axisKey: AxisKey; result: AxisResult }) {
   const [leftLabel, rightLabel] = axisLabels[axisKey];
+  // Clamp position between 8% and 92% for visual buffer
+  const clampedPosition = Math.max(8, Math.min(92, result.normalized));
   
   return (
     <div className="space-y-2">
@@ -50,16 +52,13 @@ function AxisBar({ axisKey, result }: { axisKey: AxisKey; result: AxisResult }) 
           {rightLabel}
         </span>
       </div>
-      <div className="relative h-3 bg-muted rounded-full overflow-hidden">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${result.normalized}%` }}
-          transition={{ duration: 1, ease: "easeOut" }}
-          className="absolute h-full bg-gradient-to-r from-primary/60 to-primary rounded-full"
-        />
+      <div className="relative h-3 bg-gradient-to-r from-muted via-muted to-muted rounded-full">
+        {/* Static track representing the spectrum between two extremes */}
+        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/20 via-muted to-primary/20" />
+        {/* Position marker */}
         <motion.div
           initial={{ left: '50%' }}
-          animate={{ left: `${result.normalized}%` }}
+          animate={{ left: `${clampedPosition}%` }}
           transition={{ duration: 1, ease: "easeOut" }}
           className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 bg-primary rounded-full border-2 border-background shadow-lg"
         />
@@ -262,10 +261,23 @@ Take the test: ${shareUrl}
             transition={{ delay: 0.25 }}
             className="p-6 rounded-2xl border border-border bg-card"
           >
-            <h3 className="font-semibold mb-4">About You</h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              {archetype.description}
-            </p>
+            <h3 className="font-semibold mb-5">About You</h3>
+            <div className="space-y-4">
+              {archetype.description.split('. ').reduce((acc: string[][], sentence, i, arr) => {
+                // Group sentences into paragraphs of 2-3 sentences
+                const lastGroup = acc[acc.length - 1];
+                if (!lastGroup || lastGroup.length >= 2) {
+                  acc.push([sentence + (i < arr.length - 1 ? '.' : '')]);
+                } else {
+                  lastGroup.push(sentence + (i < arr.length - 1 ? '.' : ''));
+                }
+                return acc;
+              }, []).map((sentences, i) => (
+                <p key={i} className="text-sm leading-relaxed text-muted-foreground">
+                  {sentences.join(' ')}
+                </p>
+              ))}
+            </div>
           </motion.div>
 
           {/* Archetype Card - Strengths & Bottleneck */}

@@ -162,7 +162,7 @@ export function useVoiceController({ onUserTurn, onBotTurn, disabled }: VoiceCon
   // ElevenLabs TTS Playback
   // ============================================================================
   
-  const speakText = async (text: string): Promise<void> {
+  const speakText = async (text: string): Promise<void> => {
     setRecordingState('bot_speaking');
     
     try {
