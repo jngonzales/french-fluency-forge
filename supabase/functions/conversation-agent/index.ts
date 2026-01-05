@@ -2,9 +2,9 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildPersonaSystemPrompt, addRepairEventInstruction, addAntiStallHintInstruction, buildTurnContext } from './promptBuilder.ts';
-import { PERSONA_LIBRARY } from '../../../src/components/assessment/conversation/personaLibrary.ts';
-import { generateRepairEventPrompt, detectResolution, matchRepairPatterns } from '../../../src/components/assessment/conversation/repairEventLibrary.ts';
-import { shouldGiveAntiStallHint, generateAntiStallHint, isOffTopic, generateOffTopicRedirect, shouldEndConversation } from '../../../src/components/assessment/conversation/universalRules.ts';
+import { PERSONA_LIBRARY } from './personaLibrary.ts';
+import { generateRepairEventPrompt, detectResolution, matchRepairPatterns } from './repairEventLibrary.ts';
+import { shouldGiveAntiStallHint, generateAntiStallHint, isOffTopic, generateOffTopicRedirect, shouldEndConversation } from './universalRules.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,14 +38,8 @@ interface EnhancedScenarioConfig {
   context?: string;
 }
 
-// Use 'any' to avoid type mismatch with frontend types
-// The repair_events_introduced is string[] here but RepairEventType[] in frontend
-type LocalUniversalRulesState = {
-  silent_turns_count: number;
-  hint_given: boolean;
-  off_topic_redirect_used: boolean;
-  repair_events_introduced: string[];
-};
+// Import the UniversalRulesState type from local module
+import type { UniversalRulesState } from './universalRules.ts';
 
 interface AgentTurnResponse {
   agentResponse: string;
@@ -104,7 +98,7 @@ async function getEnhancedAgentResponse(
   conversationHistory: ConversationMessage[],
   scenario: EnhancedScenarioConfig,
   turnNumber: number,
-  rulesState: LocalUniversalRulesState,
+  rulesState: UniversalRulesState,
   maxTurns: number = 10
 ): Promise<AgentTurnResponse> {
   console.log(`Getting agent response for turn ${turnNumber}...`);
@@ -148,7 +142,7 @@ async function getEnhancedAgentResponse(
     .slice(-2)
     .map(m => m.content);
     
-  if (shouldGiveAntiStallHint(rulesState as any, recentUserTurns)) {
+  if (shouldGiveAntiStallHint(rulesState, recentUserTurns)) {
     systemPrompt = addAntiStallHintInstruction(systemPrompt, scenario.slots);
     hint_given = true;
   }
@@ -400,7 +394,7 @@ serve(async (req) => {
       }
 
       // Initialize rules state if not provided
-      const currentRulesState: LocalUniversalRulesState = rulesState || {
+      const currentRulesState: UniversalRulesState = rulesState || {
         silent_turns_count: 0,
         hint_given: false,
         off_topic_redirect_used: false,
