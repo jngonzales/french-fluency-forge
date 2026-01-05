@@ -40,8 +40,8 @@ const PronunciationModuleWithPhrases = ({
   const { user } = useAuth();
   const { isAdmin, isDev } = useAdminMode();
 
-  // Dev mode toggle state
-  const [devModeEnabled, setDevModeEnabled] = useState(true);
+  // Dev mode toggle state - default to false
+  const [devModeEnabled, setDevModeEnabled] = useState(false);
   const showDevFeatures = devModeEnabled && (isAdmin || isDev);
 
   // State

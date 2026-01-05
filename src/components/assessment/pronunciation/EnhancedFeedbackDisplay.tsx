@@ -34,7 +34,7 @@ export function EnhancedFeedbackDisplay({
   onContinue, 
   onTryAgain, 
   attemptNumber,
-  showScores = true
+  showScores = false
 }: EnhancedFeedbackDisplayProps) {
   const [showPhonemes, setShowPhonemes] = useState(false);
   const [showPractice, setShowPractice] = useState(false);
