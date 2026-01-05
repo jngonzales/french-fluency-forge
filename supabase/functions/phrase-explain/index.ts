@@ -228,7 +228,8 @@ ${intent ? `Focus on: ${intent}` : ''}`;
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
+  } catch (err) {
+    const error = err as Error;
     console.error('[phrase-explain] Error:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message || 'Internal server error' }),

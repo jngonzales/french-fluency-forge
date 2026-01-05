@@ -71,7 +71,7 @@ async function assessWithSpeechSuper(
     const endpoint = `${apiUrl}v1/pronunciation/assess`; // Update with actual endpoint
     
     const formData = new FormData();
-    formData.append('file', new Blob([audioData], { type: audioFormat }), 'audio.webm');
+    formData.append('file', new Blob([audioData.buffer as ArrayBuffer], { type: audioFormat }), 'audio.webm');
     formData.append('refText', referenceText);
     formData.append('language', 'fr-FR');
     formData.append('coreType', 'phoneme.score');
@@ -137,7 +137,7 @@ async function assessWithSpeechSuper(
               score: phonemeData.score || 0,
               expected: phonemeData.expected || phonemeData.ipa,
               actual: phonemeData.actual || phonemeData.ipa,
-              status: (phonemeData.score >= 70 ? 'correct' : 'incorrect') as PhonemeStatus,
+              status: (phonemeData.score >= 70 ? 'correct' : 'incorrect') as PhonemeDetail['status'],
               quality: getPhonemeQuality(phonemeData.score || 0),
               feedback: generatePhonemeFeedback(phonemeData),
             };
@@ -265,7 +265,7 @@ async function assessWithSpeechSuper(
 /**
  * Helper: Determine word status from API data
  */
-function determineWordStatus(wordData: any): WordStatus {
+function determineWordStatus(wordData: any): WordAnalysis['status'] {
   if (wordData.errorType === 'Omission') return 'omitted';
   if (wordData.errorType === 'Insertion') return 'inserted';
   if (wordData.score < 70) return 'incorrect';

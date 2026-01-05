@@ -142,7 +142,7 @@ function calculateNextReview(
         const intervalMs = intervalDays * 24 * 60 * 60 * 1000;
         return {
           due_at: new Date(now.getTime() + intervalMs).toISOString(),
-          interval_ms,
+          interval_ms: intervalMs,
           scheduler_state: 'review',
           short_term_step_index: undefined,
         };
@@ -349,8 +349,8 @@ serve(async (req) => {
       interval_before_ms: card.interval_ms,
       interval_after_ms: nextReview.interval_ms,
       was_overdue: wasOverdue,
-      overdue_ms,
-      elapsed_ms,
+      overdue_ms: overdueMs,
+      elapsed_ms: elapsedMs,
       speech_used: false,
     });
 
@@ -363,7 +363,8 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
+  } catch (err) {
+    const error = err as Error;
     console.error('[phrases-review-commit] Error:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message || 'Internal server error' }),

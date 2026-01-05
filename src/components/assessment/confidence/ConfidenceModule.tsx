@@ -58,11 +58,11 @@ export function ConfidenceModule({ sessionId, onComplete }: ConfidenceModuleProp
             <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
               <MessageCircle className="h-8 w-8 text-primary" />
             </div>
-            <CardTitle className="text-2xl">{confidenceConfig.title}</CardTitle>
+            <CardTitle className="text-2xl">Confidence Assessment</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <p className="text-center text-muted-foreground">
-              {confidenceConfig.description}
+              Measure your speaking confidence through self-reflection and a realistic phone call simulation.
             </p>
             
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">

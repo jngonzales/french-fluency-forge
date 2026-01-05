@@ -105,12 +105,12 @@ async function assessPronunciation(
       const wordScore = wordAssessment.AccuracyScore ?? word.AccuracyScore ?? 0;
       const errorType = wordAssessment.ErrorType ?? word.ErrorType ?? 'None';
       
-      // OLD FORMAT (for backward compatibility)
-      words.push({
+      // Combined FORMAT for backward compatibility
+      const wordEntry: any = {
         word: word.Word,
         accuracyScore: wordScore,
         errorType,
-      });
+      };
 
       // Extract phonemes
       const wordPhonemes = [];
@@ -140,13 +140,15 @@ async function assessPronunciation(
         }
       }
 
-      // Add NEW FORMAT word
-      words[words.length - 1].score = wordScore;
-      words[words.length - 1].status = 
+      // Add NEW FORMAT properties to word
+      wordEntry.score = wordScore;
+      wordEntry.status = 
         errorType === 'Omission' ? 'omitted' :
         errorType === 'Insertion' ? 'inserted' :
         wordScore < 70 ? 'incorrect' : 'correct';
-      words[words.length - 1].phonemes = wordPhonemes;
+      wordEntry.phonemes = wordPhonemes;
+      
+      words.push(wordEntry);
     }
   }
 
