@@ -21,6 +21,7 @@ import { PronunciationDebugPanel } from "./PronunciationDebugPanel";
 import { EnhancedFeedbackDisplay } from "./EnhancedFeedbackDisplay";
 import { IPADisplay } from "./IPADisplay";
 import { CoverageProgress } from "./CoverageProgress";
+import { ConfettiCelebration } from "./ConfettiCelebration";
 import { selectPhrasesWithCoverage, type PronunciationPhrase } from "@/lib/pronunciation/coverageSampler";
 import { parseIPA, getTargetPhonemes } from "@/lib/pronunciation/ipaParser";
 import { updatePhonemeStats, extractPhonemeScores } from "@/lib/pronunciation/phonemeStats";
@@ -57,6 +58,7 @@ const PronunciationModuleWithPhrases = ({
   // Feedback state
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentResult, setCurrentResult] = useState<any>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
   const {
     isRecording,
     recordingTime,
@@ -232,6 +234,12 @@ const PronunciationModuleWithPhrases = ({
       setCurrentResult(itemResult);
       setShowFeedback(true);
       setProcessingStatus('complete');
+      
+      // Trigger confetti for high scores (95%+) in user mode
+      const overallScore = itemResult.scores?.overall || 0;
+      if (!showDevFeatures && overallScore >= 95) {
+        setShowConfetti(true);
+      }
     } catch (error) {
       console.error("Pronunciation error:", error);
       setProcessingStatus('error');
@@ -273,6 +281,9 @@ const PronunciationModuleWithPhrases = ({
       </div>;
   }
   return <div className="min-h-screen bg-background py-8 px-4">
+      {/* Confetti celebration for high scores */}
+      <ConfettiCelebration show={showConfetti} onComplete={() => setShowConfetti(false)} />
+      
       <div className="max-w-3xl mx-auto space-y-6 py-[30px]">
         {/* Header */}
         <div>
