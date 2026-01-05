@@ -147,7 +147,13 @@ export function ConversationModule({ sessionId, onComplete }: ConversationModule
           scenario: {
             title: scenario.title,
             goal: scenario.goal,
-            slots: scenario.slots
+            slots: scenario.slots,
+            persona_id: scenario.persona_id,
+            tier: scenario.tier,
+            planned_repair_events: scenario.planned_repair_events,
+            required_slots: scenario.required_slots,
+            end_conditions: scenario.end_conditions,
+            context: scenario.context
           },
           turnNumber: newMessages.length
         }
