@@ -30,7 +30,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 type SessionStatus = 'intake' | 'consent' | 'quiz' | 'mic_check' | 'assessment' | 'processing' | 'completed';
-type AssessmentPhase = 'pronunciation' | 'fluency' | 'confidence' | 'syntax' | 'conversation' | 'comprehension';
+// 4 assessment modules:
+// A. Pronunciation - pronunciation exercises
+// B. Comprehension - listening comprehension  
+// C. Confidence - confidence questionnaire + phone call
+// D. Conversation - conversation-agent that evaluates fluency, confidence, conversation and syntax
+type AssessmentPhase = 'pronunciation' | 'comprehension' | 'confidence' | 'conversation';
 
 const STATUS_OPTIONS: { value: SessionStatus; label: string }[] = [
   { value: 'intake', label: 'Intake Form' },
@@ -44,11 +49,9 @@ const STATUS_OPTIONS: { value: SessionStatus; label: string }[] = [
 
 const MODULE_OPTIONS: { value: AssessmentPhase; label: string; icon: string }[] = [
   { value: 'pronunciation', label: 'Pronunciation', icon: '🗣️' },
-  { value: 'fluency', label: 'Fluency', icon: '💬' },
-  { value: 'confidence', label: 'Confidence', icon: '🧠' },
-  { value: 'syntax', label: 'Syntax', icon: '📝' },
-  { value: 'conversation', label: 'Conversation', icon: '🎭' },
   { value: 'comprehension', label: 'Comprehension', icon: '👂' },
+  { value: 'confidence', label: 'Confidence', icon: '🧠' },
+  { value: 'conversation', label: 'Conversation', icon: '🎭' },
 ];
 
 export function AdminToolbar() {
