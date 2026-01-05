@@ -15,6 +15,7 @@ import { ComprehensionModule } from "@/components/assessment/comprehension";
 import { PersonalityQuiz } from "@/components/assessment/personality-quiz";
 import { ProcessingView } from "@/components/assessment/ProcessingView";
 import { LiveDataViewer } from "@/components/LiveDataViewer";
+import { EnhancedLiveDataViewer } from "@/components/EnhancedLiveDataViewer";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
@@ -194,7 +195,7 @@ const Assessment = () => {
       return (
         <AdminPadding>
           {renderModule()}
-          {(isAdmin || isDev) && <LiveDataViewer sessionId={session.id} moduleType={assessmentPhase} />}
+          {(isAdmin || isDev) && <EnhancedLiveDataViewer sessionId={session.id} moduleType={assessmentPhase} />}
         </AdminPadding>
       );
 
