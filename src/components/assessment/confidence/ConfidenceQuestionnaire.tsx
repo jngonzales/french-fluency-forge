@@ -16,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface ConfidenceQuestionnaireProps {
   sessionId: string;
-  onComplete: () => void;
+  onComplete: (normalizedScore: number) => void;
 }
 
 export function ConfidenceQuestionnaire({ sessionId, onComplete }: ConfidenceQuestionnaireProps) {
@@ -68,7 +68,7 @@ export function ConfidenceQuestionnaire({ sessionId, onComplete }: ConfidenceQue
         honesty_flag: honestyFlag
       });
       
-      onComplete();
+      onComplete(normalizedScore);
     } catch (error) {
       console.error('Failed to save questionnaire:', error);
     } finally {

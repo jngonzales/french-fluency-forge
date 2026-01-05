@@ -26,13 +26,15 @@ interface EnhancedFeedbackDisplayProps {
   onContinue: () => void;
   onTryAgain: (() => void) | null;
   attemptNumber: number;
+  showScores?: boolean;
 }
 
 export function EnhancedFeedbackDisplay({ 
   result, 
   onContinue, 
   onTryAgain, 
-  attemptNumber 
+  attemptNumber,
+  showScores = true
 }: EnhancedFeedbackDisplayProps) {
   const [showPhonemes, setShowPhonemes] = useState(false);
   const [showPractice, setShowPractice] = useState(false);
@@ -141,7 +143,7 @@ export function EnhancedFeedbackDisplay({
             <CardTitle className="text-base">Word-by-Word Analysis</CardTitle>
           </CardHeader>
           <CardContent>
-            <EnhancedWordHeatmap words={result.words} />
+            <EnhancedWordHeatmap words={result.words} showScores={showScores} />
           </CardContent>
         </Card>
       )}

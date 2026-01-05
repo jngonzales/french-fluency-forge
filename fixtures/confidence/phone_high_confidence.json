@@ -1,0 +1,78 @@
+{
+  "description": "High confidence - fast starts, minimal long silences, clear ownership + request early, engaged and controlled close",
+  "scenario_id": "CS_T1_CUSTOMER_01",
+  "tier": 1,
+  "turns": [
+    {
+      "turnNumber": 1,
+      "transcript": "Bonjour! Je vous appelle parce que j'ai reçu le mauvais article. J'ai commandé un pull bleu et j'ai reçu une chemise rouge à la place. Je voudrais une solution aujourd'hui si possible. Qu'est-ce que vous pouvez faire pour moi?",
+      "wordTimestamps": [
+        {"word": "Bonjour", "start": 0.3, "end": 0.7},
+        {"word": "Je", "start": 0.8, "end": 0.9},
+        {"word": "vous", "start": 0.9, "end": 1.0},
+        {"word": "appelle", "start": 1.0, "end": 1.4},
+        {"word": "parce", "start": 1.4, "end": 1.6},
+        {"word": "que", "start": 1.6, "end": 1.7},
+        {"word": "j'ai", "start": 1.7, "end": 1.85},
+        {"word": "reçu", "start": 1.85, "end": 2.1},
+        {"word": "le", "start": 2.1, "end": 2.2},
+        {"word": "mauvais", "start": 2.2, "end": 2.5},
+        {"word": "article", "start": 2.5, "end": 2.9}
+      ],
+      "promptEndMs": 1704465600000,
+      "recordingStartMs": 1704465600000,
+      "recordingEndMs": 1704465615000
+    },
+    {
+      "turnNumber": 2,
+      "transcript": "Parfait, je veux un échange. C'est vraiment important pour moi de recevoir le bon article rapidement parce que c'est un cadeau. Combien de temps ça va prendre exactement?",
+      "wordTimestamps": [
+        {"word": "Parfait", "start": 0.5, "end": 0.9},
+        {"word": "je", "start": 1.0, "end": 1.1},
+        {"word": "veux", "start": 1.1, "end": 1.3},
+        {"word": "un", "start": 1.3, "end": 1.4},
+        {"word": "échange", "start": 1.4, "end": 1.8}
+      ],
+      "promptEndMs": 1704465625000,
+      "recordingStartMs": 1704465625000,
+      "recordingEndMs": 1704465638000
+    },
+    {
+      "turnNumber": 3,
+      "transcript": "D'accord, ça me convient. Je vais renvoyer l'article aujourd'hui même. Donc, je résume: vous m'envoyez l'étiquette de retour par email, je renvoie la chemise, et je reçois le pull bleu dans 5 à 7 jours. C'est bien ça?",
+      "wordTimestamps": [
+        {"word": "D'accord", "start": 0.4, "end": 0.8},
+        {"word": "ça", "start": 0.9, "end": 1.0},
+        {"word": "me", "start": 1.0, "end": 1.1},
+        {"word": "convient", "start": 1.1, "end": 1.5}
+      ],
+      "promptEndMs": 1704465650000,
+      "recordingStartMs": 1704465650000,
+      "recordingEndMs": 1704465665000
+    },
+    {
+      "turnNumber": 4,
+      "transcript": "Parfait! Merci beaucoup pour votre aide. Je suis content qu'on ait trouvé une solution rapide. Bonne journée!",
+      "wordTimestamps": [
+        {"word": "Parfait", "start": 0.3, "end": 0.7},
+        {"word": "Merci", "start": 0.8, "end": 1.1},
+        {"word": "beaucoup", "start": 1.1, "end": 1.5},
+        {"word": "pour", "start": 1.5, "end": 1.7},
+        {"word": "votre", "start": 1.7, "end": 1.9},
+        {"word": "aide", "start": 1.9, "end": 2.2}
+      ],
+      "promptEndMs": 1704465675000,
+      "recordingStartMs": 1704465675000,
+      "recordingEndMs": 1704465683000
+    }
+  ],
+  "expected_scores": {
+    "d1": 5,
+    "d2": 5,
+    "d3": 5,
+    "d4": 4,
+    "d5": 5
+  },
+  "expected_overall_range": [85, 95]
+}
+

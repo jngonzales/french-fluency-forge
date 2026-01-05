@@ -1,0 +1,44 @@
+{
+  "description": "Low confidence phone call - high latency, long freezes, many uncertainty markers, avoids requests",
+  "scenario_id": "CS_T1_CUSTOMER_01",
+  "tier": 1,
+  "turns": [
+    {
+      "turnNumber": 1,
+      "transcript": "Euh... bonjour... je sais pas trop comment dire mais... j'ai reçu quelque chose mais c'est pas... enfin... désolé",
+      "wordTimestamps": [
+        {"word": "Euh", "start": 2.5, "end": 2.8},
+        {"word": "bonjour", "start": 5.0, "end": 5.4},
+        {"word": "je", "start": 7.2, "end": 7.3},
+        {"word": "sais", "start": 7.3, "end": 7.5},
+        {"word": "pas", "start": 7.5, "end": 7.7},
+        {"word": "trop", "start": 7.7, "end": 8.0}
+      ],
+      "promptEndMs": 1704465600000,
+      "recordingStartMs": 1704465600000,
+      "recordingEndMs": 1704465612000
+    },
+    {
+      "turnNumber": 2,
+      "transcript": "Ben... je crois que je préfère peut-être un remboursement... si c'est possible... comme vous voulez en fait",
+      "wordTimestamps": [
+        {"word": "Ben", "start": 1.8, "end": 2.0},
+        {"word": "je", "start": 4.5, "end": 4.6},
+        {"word": "crois", "start": 4.6, "end": 4.9},
+        {"word": "que", "start": 4.9, "end": 5.0}
+      ],
+      "promptEndMs": 1704465620000,
+      "recordingStartMs": 1704465620000,
+      "recordingEndMs": 1704465634000
+    }
+  ],
+  "expected_scores": {
+    "d1": 1,
+    "d2": 1,
+    "d3": 1,
+    "d4": 2,
+    "d5": 2
+  },
+  "expected_overall_range": [20, 35]
+}
+

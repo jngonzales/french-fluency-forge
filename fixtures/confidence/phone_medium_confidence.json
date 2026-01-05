@@ -1,0 +1,47 @@
+{
+  "description": "Medium confidence - prompt response most turns, some silences, basic ownership, limited emotional presence",
+  "scenario_id": "CS_T1_CUSTOMER_01",
+  "tier": 1,
+  "turns": [
+    {
+      "turnNumber": 1,
+      "transcript": "Bonjour, je vous appelle parce que j'ai un problème. J'ai commandé un pull bleu mais j'ai reçu une chemise rouge. Je voudrais savoir ce qu'on peut faire.",
+      "wordTimestamps": [
+        {"word": "Bonjour", "start": 0.8, "end": 1.2},
+        {"word": "je", "start": 1.3, "end": 1.4},
+        {"word": "vous", "start": 1.4, "end": 1.6},
+        {"word": "appelle", "start": 1.6, "end": 2.0},
+        {"word": "parce", "start": 2.0, "end": 2.2},
+        {"word": "que", "start": 2.2, "end": 2.3},
+        {"word": "j'ai", "start": 2.3, "end": 2.5},
+        {"word": "un", "start": 2.5, "end": 2.6},
+        {"word": "problème", "start": 2.6, "end": 3.2}
+      ],
+      "promptEndMs": 1704465600000,
+      "recordingStartMs": 1704465600000,
+      "recordingEndMs": 1704465610000
+    },
+    {
+      "turnNumber": 2,
+      "transcript": "Je préfère un échange. C'est possible de faire ça rapidement? J'en ai besoin pour la semaine prochaine.",
+      "wordTimestamps": [
+        {"word": "Je", "start": 1.2, "end": 1.3},
+        {"word": "préfère", "start": 1.3, "end": 1.8},
+        {"word": "un", "start": 1.8, "end": 1.9},
+        {"word": "échange", "start": 1.9, "end": 2.3}
+      ],
+      "promptEndMs": 1704465620000,
+      "recordingStartMs": 1704465620000,
+      "recordingEndMs": 1704465628000
+    }
+  ],
+  "expected_scores": {
+    "d1": 3,
+    "d2": 3,
+    "d3": 3,
+    "d4": 2,
+    "d5": 3
+  },
+  "expected_overall_range": [55, 65]
+}
+

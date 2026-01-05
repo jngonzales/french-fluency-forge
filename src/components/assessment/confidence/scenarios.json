@@ -1,0 +1,150 @@
+{
+  "scenarios": [
+    {
+      "id": "CS_T1_CUSTOMER_01",
+      "tier": 1,
+      "title": "Wrong Item Received",
+      "context": "You ordered a blue sweater online, but you received a red shirt instead. You're calling the customer service to resolve the issue. The service agent is cooperative and wants to help you.",
+      "objectives": [
+        "Explain the problem clearly",
+        "Ask for a solution",
+        "Express your preference (exchange or refund)"
+      ],
+      "turns": [
+        {
+          "turnNumber": 1,
+          "botScript": "Bonjour, service client. Comment puis-je vous aider aujourd'hui?",
+          "expectedDuration": 20,
+          "objective": "Express initial problem",
+          "pushbackLevel": "none"
+        },
+        {
+          "turnNumber": 2,
+          "botScript": "D'accord, je comprends. C'est embêtant. Est-ce que vous préférez un échange ou un remboursement?",
+          "expectedDuration": 30,
+          "objective": "State your preference and ask a question",
+          "pushbackLevel": "none"
+        },
+        {
+          "turnNumber": 3,
+          "botScript": "Parfait. Pour l'échange, il faut d'abord nous renvoyer l'article incorrect. On peut vous envoyer une étiquette de retour gratuite. Ça vous convient?",
+          "expectedDuration": 30,
+          "objective": "Confirm or ask about timeline",
+          "pushbackLevel": "none"
+        },
+        {
+          "turnNumber": 4,
+          "botScript": "Oui, vous allez recevoir le bon article dans 5 à 7 jours ouvrables après qu'on ait reçu le retour. Est-ce qu'il y a autre chose que je peux faire pour vous?",
+          "expectedDuration": 30,
+          "objective": "Confirm understanding and close",
+          "pushbackLevel": "none"
+        }
+      ]
+    },
+    {
+      "id": "CS_T2_BOUNDARY_01",
+      "tier": 2,
+      "title": "Last-Minute Work Request",
+      "context": "It's Friday afternoon and your colleague calls asking you to help with an urgent project this weekend. You have important personal plans. The colleague really needs help but you need to set a boundary.",
+      "objectives": [
+        "Listen to the request",
+        "Set a clear boundary (you can't work this weekend)",
+        "Propose an alternative solution"
+      ],
+      "turns": [
+        {
+          "turnNumber": 1,
+          "botScript": "Salut! Écoute, j'ai vraiment besoin d'aide ce weekend pour finir le projet. Tu peux me donner quelques heures samedi ou dimanche? Ce serait super!",
+          "expectedDuration": 30,
+          "objective": "React to the request",
+          "pushbackLevel": "mild"
+        },
+        {
+          "turnNumber": 2,
+          "botScript": "Je sais que tu es occupé, mais c'est vraiment urgent. Juste deux ou trois heures? Ça m'aiderait énormément.",
+          "expectedDuration": 45,
+          "objective": "Set boundary clearly and explain why",
+          "pushbackLevel": "mild"
+        },
+        {
+          "turnNumber": 3,
+          "botScript": "D'accord, je comprends. Mais alors, qu'est-ce que je fais? J'ai une deadline lundi matin et je ne peux pas tout faire seul.",
+          "expectedDuration": 45,
+          "objective": "Propose an alternative or compromise",
+          "pushbackLevel": "mild"
+        },
+        {
+          "turnNumber": 4,
+          "botScript": "Hmm, lundi matin tôt... C'est possible, oui. Ça pourrait marcher. Vers quelle heure tu peux?",
+          "expectedDuration": 30,
+          "objective": "Confirm the alternative plan",
+          "pushbackLevel": "none"
+        },
+        {
+          "turnNumber": 5,
+          "botScript": "Parfait, on fait comme ça alors. Merci beaucoup! Et désolé de t'avoir mis la pression pour le weekend.",
+          "expectedDuration": 20,
+          "objective": "Close positively",
+          "pushbackLevel": "none"
+        }
+      ]
+    },
+    {
+      "id": "CS_T3_HOTEL_01",
+      "tier": 3,
+      "title": "Hotel Room Issue",
+      "context": "You booked a quiet room with a view for your anniversary, but when you arrive, you're given a noisy room facing the parking lot. The hotel is fully booked for a conference. The receptionist is apologetic but has limited options.",
+      "objectives": [
+        "Explain what you booked vs what you got",
+        "Express how this affects your plans (emotional impact)",
+        "Negotiate for a solution despite constraints",
+        "Make a clear request or set expectations"
+      ],
+      "turns": [
+        {
+          "turnNumber": 1,
+          "botScript": "Bonsoir, bienvenue! Voici votre clé, chambre 203. J'espère que vous passerez un excellent séjour!",
+          "expectedDuration": 30,
+          "objective": "Explain the problem immediately",
+          "pushbackLevel": "none"
+        },
+        {
+          "turnNumber": 2,
+          "botScript": "Oh, je suis vraiment désolée. Laissez-moi vérifier... Ah, je vois le problème. Malheureusement, on a une grande conférence ce weekend et l'hôtel est complet. Je n'ai pas d'autre chambre disponible ce soir.",
+          "expectedDuration": 45,
+          "objective": "Express emotional impact and insist on solution",
+          "pushbackLevel": "strong"
+        },
+        {
+          "turnNumber": 3,
+          "botScript": "Je comprends votre frustration. Ce que je peux faire, c'est vous offrir le petit-déjeuner gratuit et... peut-être un surclassement demain si une chambre se libère. Mais pour ce soir, malheureusement, je n'ai rien d'autre.",
+          "expectedDuration": 45,
+          "objective": "Evaluate offer and counter-negotiate",
+          "pushbackLevel": "strong"
+        },
+        {
+          "turnNumber": 4,
+          "botScript": "Vous voulez dire un remboursement partiel? Je dois en parler à mon manager. Combien est-ce que vous pensez serait juste?",
+          "expectedDuration": 45,
+          "objective": "State specific amount/percentage and reasoning",
+          "pushbackLevel": "mild"
+        },
+        {
+          "turnNumber": 5,
+          "botScript": "Trente pour cent... C'est beaucoup, mais je comprends. Laissez-moi appeler mon manager maintenant. Attendez ici un instant, s'il vous plaît.",
+          "expectedDuration": 30,
+          "objective": "Confirm and maintain position",
+          "pushbackLevel": "none"
+        },
+        {
+          "turnNumber": 6,
+          "botScript": "Bon, mon manager a accepté 20% de remboursement, plus le petit-déjeuner gratuit pour les deux jours, et on garantit le surclassement demain. C'est acceptable?",
+          "expectedDuration": 30,
+          "objective": "Accept or negotiate final terms",
+          "pushbackLevel": "mild"
+        }
+      ]
+    }
+  ]
+}
+

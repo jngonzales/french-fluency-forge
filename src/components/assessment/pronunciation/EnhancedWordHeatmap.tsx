@@ -27,9 +27,10 @@ interface WordAnalysis {
 
 interface EnhancedWordHeatmapProps {
   words: WordAnalysis[];
+  showScores?: boolean;
 }
 
-export function EnhancedWordHeatmap({ words }: EnhancedWordHeatmapProps) {
+export function EnhancedWordHeatmap({ words, showScores = true }: EnhancedWordHeatmapProps) {
   const [selectedWord, setSelectedWord] = useState<WordAnalysis | null>(null);
 
   // Handle empty or invalid words array
@@ -138,7 +139,7 @@ export function EnhancedWordHeatmap({ words }: EnhancedWordHeatmapProps) {
                             {phoneme.quality || phoneme.status}
                           </Badge>
                         </div>
-                        <span className="text-xl font-bold">{phoneme.score}%</span>
+                        {showScores && <span className="text-xl font-bold">{phoneme.score}%</span>}
                       </div>
 
                       {phoneme.expected !== phoneme.actual && (
