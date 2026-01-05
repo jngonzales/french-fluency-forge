@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminMode } from "@/hooks/useAdminMode";
 import { useAudioRecorder, formatTime } from "@/hooks/useAudioRecorder";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -47,6 +48,8 @@ const PronunciationModuleWithPhrases = ({
   onSkip 
 }: PronunciationModuleWithPhrasesProps) => {
   const { user } = useAuth();
+  const { isAdmin, isDev } = useAdminMode();
+  const showDevMode = isAdmin || isDev;
   
   // State
   const [phrases, setPhrases] = useState<PronunciationPhrase[]>([]);
@@ -62,6 +65,9 @@ const PronunciationModuleWithPhrases = ({
   // Feedback state
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentResult, setCurrentResult] = useState<any>(null);
+  
+  // Dev mode toggle
+  const [devModeExpanded, setDevModeExpanded] = useState(false);
 
   const {
     isRecording,
@@ -108,12 +114,16 @@ const PronunciationModuleWithPhrases = ({
   const maxAttemptsReached = currentAttemptCount >= 2;
   const progress = phrases.length > 0 ? ((currentIndex + 1) / phrases.length) * 100 : 0;
 
-  // Update status when recording changes
+  // Auto-submit when recording stops
   useEffect(() => {
     if (isRecording) {
       setProcessingStatus('recording');
     } else if (audioBlob && processingStatus === 'recording') {
       setProcessingStatus('recorded');
+      // Auto-submit after brief delay
+      setTimeout(() => {
+        handleRecordingSubmit();
+      }, 300);
     }
   }, [isRecording, audioBlob]);
 
@@ -274,31 +284,54 @@ const PronunciationModuleWithPhrases = ({
   }
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
+    <div className="min-h-screen bg-background py-8 px-4 pt-24">
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold">🎯 Pronunciation Test 2.0</h1>
-            {processingStatus !== 'idle' && (
-              <StatusBadge status={processingStatus} provider={currentProvider} />
-            )}
+            <h1 className="text-3xl font-bold">🎯 Pronunciation Test</h1>
+            <div className="flex items-center gap-2">
+              {showDevMode && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDevModeExpanded(!devModeExpanded)}
+                  className="text-xs"
+                >
+                  {devModeExpanded ? '🐛 Hide Dev' : '🐛 Dev Mode'}
+                </Button>
+              )}
+              {processingStatus !== 'idle' && !showDevMode && (
+                <StatusBadge status={processingStatus} provider={currentProvider} />
+              )}
+            </div>
           </div>
-          <Progress value={progress} className="h-2 mb-2" />
-          <p className="text-sm text-muted-foreground">
-            Phrase {currentIndex + 1} of {phrases.length}
-          </p>
+          
+          {/* Simple Progress Bar */}
+          <div className="space-y-2">
+            <Progress value={progress} className="h-2" />
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">
+                Phrase {currentIndex + 1} of {phrases.length}
+              </span>
+              <span className="font-semibold text-primary">
+                {testedPhonemes.size}/39 phonemes
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Coverage Progress */}
-        <CoverageProgress 
-          testedPhonemes={testedPhonemes}
-          currentPhrase={currentIndex + 1}
-          totalPhrases={phrases.length}
-        />
+        {/* Dev Mode: Full Coverage Progress */}
+        {showDevMode && devModeExpanded && (
+          <CoverageProgress 
+            testedPhonemes={testedPhonemes}
+            currentPhrase={currentIndex + 1}
+            totalPhrases={phrases.length}
+          />
+        )}
 
-        {/* Status Flow */}
-        {processingStatus !== 'idle' && processingStatus !== 'complete' && (
+        {/* Dev Mode: Status Flow */}
+        {showDevMode && devModeExpanded && processingStatus !== 'idle' && processingStatus !== 'complete' && (
           <StatusIndicator status={processingStatus} provider={currentProvider} />
         )}
 
@@ -320,15 +353,19 @@ const PronunciationModuleWithPhrases = ({
             <IPADisplay
               textFr={currentPhrase.text_fr}
               ipa={currentPhrase.ipa}
-              targetPhonemes={getTargetPhonemes(currentPhrase.ipa)}
-              showTargets={true}
+              targetPhonemes={showDevMode && devModeExpanded ? getTargetPhonemes(currentPhrase.ipa) : []}
+              showTargets={showDevMode && devModeExpanded}
             />
 
             {/* Recording Controls */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Record this phrase</CardTitle>
+                  <CardTitle className="text-lg">
+                    {isRecording ? '🎤 Recording...' : 
+                     processingStatus === 'uploading' || processingStatus === 'processing' ? '⚙️ Analyzing...' :
+                     'Record this phrase'}
+                  </CardTitle>
                   {currentAttemptCount > 0 && (
                     <Badge variant="secondary" className="text-xs">
                       Attempt {currentAttemptCount}/2
@@ -337,17 +374,16 @@ const PronunciationModuleWithPhrases = ({
                 </div>
               </CardHeader>
               <CardContent>
-                <RecordingControls
+                <SimpleRecordingControls
                   isRecording={isRecording}
                   isProcessing={processingStatus !== 'idle' && processingStatus !== 'recorded'}
-                  isConverting={isConverting}
-                  audioBlob={audioBlob}
-                  wavBlob={wavBlob}
                   recordingTime={recordingTime}
                   startRecording={startRecording}
                   stopRecording={stopRecording}
                   resetRecording={resetRecording}
-                  onSubmit={handleRecordingSubmit}
+                  showDevInfo={showDevMode && devModeExpanded}
+                  wavBlob={wavBlob}
+                  isConverting={isConverting}
                 />
               </CardContent>
             </Card>
@@ -363,7 +399,10 @@ const PronunciationModuleWithPhrases = ({
               onTryAgain={maxAttemptsReached ? null : handleTryAgain}
               attemptNumber={currentAttemptCount}
             />
-            <PronunciationDebugPanel result={currentResult} isOpen={false} />
+            {/* Dev Mode Only: Debug Panel */}
+            {showDevMode && devModeExpanded && (
+              <PronunciationDebugPanel result={currentResult} isOpen={true} />
+            )}
           </div>
         )}
 
@@ -373,110 +412,110 @@ const PronunciationModuleWithPhrases = ({
   );
 };
 
-// Recording Controls Component
-interface RecordingControlsProps {
+// Simplified Recording Controls Component
+interface SimpleRecordingControlsProps {
   isRecording: boolean;
   isProcessing: boolean;
-  isConverting: boolean;
-  audioBlob: Blob | null;
-  wavBlob: Blob | null;
   recordingTime: number;
   startRecording: () => void;
   stopRecording: () => void;
   resetRecording: () => void;
-  onSubmit: () => void;
+  showDevInfo: boolean;
+  wavBlob: Blob | null;
+  isConverting: boolean;
 }
 
-function RecordingControls({
+function SimpleRecordingControls({
   isRecording,
   isProcessing,
-  isConverting,
-  audioBlob,
-  wavBlob,
   recordingTime,
   startRecording,
   stopRecording,
   resetRecording,
-  onSubmit,
-}: RecordingControlsProps) {
+  showDevInfo,
+  wavBlob,
+  isConverting,
+}: SimpleRecordingControlsProps) {
   return (
     <div className="flex flex-col items-center space-y-4">
+      {/* Timer */}
       <div className="text-3xl font-mono tabular-nums">
         {formatTime(recordingTime)}
       </div>
 
-      {isConverting && (
+      {/* Dev Mode: Conversion Status */}
+      {showDevInfo && isConverting && (
         <div className="text-sm text-primary flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Converting to WAV for Azure...
+          Converting to WAV...
         </div>
       )}
       
-      {wavBlob && !isConverting && !isRecording && (
+      {showDevInfo && wavBlob && !isConverting && !isRecording && !isProcessing && (
         <div className="text-xs text-green-600 flex items-center gap-1">
           <Check className="h-3 w-3" />
-          Optimized for pronunciation assessment (WAV)
+          WAV optimized
         </div>
       )}
 
+      {/* Recording Button - Auto-submits on stop */}
       <div className="flex items-center gap-4">
-        {!isRecording && !audioBlob && (
-          <Button
-            size="lg"
-            onClick={startRecording}
-            className="h-16 w-16 rounded-full"
-            disabled={isProcessing || isConverting}
-          >
-            <Mic className="h-6 w-6" />
-          </Button>
+        {!isRecording && !isProcessing && (
+          <div className="flex flex-col items-center gap-2">
+            <Button
+              size="lg"
+              onClick={startRecording}
+              className="h-20 w-20 rounded-full"
+              disabled={isProcessing}
+            >
+              <Mic className="h-8 w-8" />
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Click to record
+            </p>
+          </div>
         )}
 
         {isRecording && (
-          <Button
-            size="lg"
-            variant="destructive"
-            onClick={stopRecording}
-            className="h-16 w-16 rounded-full animate-pulse"
-          >
-            <Square className="h-6 w-6" />
-          </Button>
+          <div className="flex flex-col items-center gap-2">
+            <Button
+              size="lg"
+              variant="destructive"
+              onClick={stopRecording}
+              className="h-20 w-20 rounded-full animate-pulse"
+            >
+              <Square className="h-8 w-8" />
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Click to stop (auto-submits)
+            </p>
+          </div>
         )}
 
-        {audioBlob && !isRecording && (
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
-              onClick={resetRecording} 
-              disabled={isProcessing || isConverting}
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Redo
-            </Button>
-            <Button 
-              onClick={onSubmit} 
-              disabled={isProcessing || isConverting} 
-              size="lg"
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing...
-                </>
-              ) : isConverting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Converting...
-                </>
-              ) : (
-                <>
-                  Submit {wavBlob && '(WAV)'}
-                  <ChevronRight className="h-4 w-4 ml-2" />
-                </>
-              )}
-            </Button>
+        {isProcessing && (
+          <div className="flex flex-col items-center gap-2">
+            <div className="h-20 w-20 rounded-full border-4 border-primary/20 border-t-primary flex items-center justify-center animate-spin">
+              <Loader2 className="h-8 w-8" />
+            </div>
+            <p className="text-sm font-medium">
+              {isConverting ? 'Preparing...' : 'Analyzing...'}
+            </p>
           </div>
         )}
       </div>
+
+      {/* Dev Mode: Reset Button */}
+      {showDevInfo && !isRecording && !isProcessing && recordingTime > 0 && (
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={resetRecording}
+          className="text-xs"
+        >
+          <RotateCcw className="h-3 w-3 mr-1" />
+          Reset Recording
+        </Button>
+      )}
     </div>
   );
 }
