@@ -63,7 +63,7 @@ export function EnhancedLiveDataViewer({ sessionId, moduleType }: EnhancedLiveDa
       }
 
       if (data) {
-        setTrace(data.trace_data as ScoringTrace);
+        setTrace(data.trace_data as unknown as ScoringTrace);
       }
     } catch (error) {
       console.error('Error loading trace:', error);
@@ -335,7 +335,10 @@ function SyntaxPanel({ trace }: { trace: ScoringTrace }) {
                       <span className="font-mono">{target}</span>
                     </div>
                     <span className="font-mono text-[10px]">
-                      {syntaxScore[target as keyof typeof syntaxScore]}/{[25,15,25,15,20][[' PC', 'FP', 'OP', 'Q', 'C'].indexOf(target)]}
+                      {(() => {
+                        const val = syntaxScore[target as keyof typeof syntaxScore];
+                        return typeof val === 'number' ? val : '?';
+                      })()}/{[25,15,25,15,20][['PC', 'FP', 'OP', 'Q', 'C'].indexOf(target)]}
                     </span>
                   </div>
                 ))}
