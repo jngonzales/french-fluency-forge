@@ -187,11 +187,20 @@ async function assessPronunciation(
   // Get scores
   let pronScore = assessment.PronScore ?? nBest.PronScore ?? 0;
   let accuracyScore = assessment.AccuracyScore ?? nBest.AccuracyScore ?? 0;
-  let fluencyScore = assessment.FluencyScore ?? nBest.FluencyScore ?? 80;
+  let fluencyScore = assessment.FluencyScore ?? nBest.FluencyScore ?? 0;
   let completenessScore = assessment.CompletenessScore ?? nBest.CompletenessScore ?? 0;
 
-  // Fallback calculation if needed
-  if (pronScore === 0 && words.length > 0) {
+  // If no words recognized properly, set all scores to 0
+  const validWords = words.filter((w: any) => w.accuracyScore > 0 || w.errorType !== 'None');
+  if (validWords.length === 0 || (nBest.Display === '.' && words.length === 0)) {
+    pronScore = 0;
+    accuracyScore = 0;
+    fluencyScore = 0;
+    completenessScore = 0;
+  }
+
+  // Fallback calculation if needed (only if we have actual recognized content)
+  if (pronScore === 0 && validWords.length > 0) {
     const wordScores = words.map((w: any) => w.accuracyScore);
     accuracyScore = wordScores.reduce((a: number, b: number) => a + b, 0) / wordScores.length;
     
