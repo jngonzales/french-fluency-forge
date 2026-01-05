@@ -4,8 +4,8 @@
  */
 
 import { scoreFluencyFromTimestamps, calculateFluencyScore, type FluencyMetrics, type WordTimestamp } from '@/components/assessment/fluency/fluencyScoring';
-import { calculateSyntaxScore, type SyntaxTag } from '@/components/assessment/syntax/syntaxScoring';
-import { scoreConversationPrecise } from '../../../supabase/functions/conversation-agent/conversationScoring';
+import { calculateSyntaxScore } from '@/components/assessment/syntax/syntaxScoring';
+import type { SyntaxTag } from '@/components/assessment/conversation/types';
 import { evaluateConfidenceComplete } from '@/components/assessment/confidence/confidenceEvaluation';
 import type { UnifiedScore, ScenarioExecution, ConversationTurn } from '@/components/assessment/unifiedExam/types';
 import type { ScoringTrace, TurnTrace } from '@/components/assessment/conversation/types';
