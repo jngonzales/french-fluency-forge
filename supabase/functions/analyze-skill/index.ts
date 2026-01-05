@@ -173,6 +173,7 @@ async function analyzeWithAI(transcript: string, moduleType: string, promptText:
   score: number;
   feedback: string;
   breakdown: Record<string, number>;
+  evidence: string[];
 }> {
   console.log(`Analyzing ${moduleType} with AI...`);
   
@@ -299,7 +300,7 @@ async function analyzeWithDeterminismGuard(
   const runMultiple = Deno.env.get('ENABLE_DETERMINISM_GUARD') === 'true';
   
   if (!runMultiple) {
-    return { ...result1, flags: [] };
+    return { ...result1, flags: [], evidence: result1.evidence || [] };
   }
   
   // Run 2 more times
@@ -320,11 +321,12 @@ async function analyzeWithDeterminismGuard(
     return {
       ...medianResult,
       score: medianScore,
-      flags: ['unstable_scoring', `spread=${spread}`]
+      flags: ['unstable_scoring', `spread=${spread}`],
+      evidence: medianResult.evidence || []
     };
   }
   
-  return { ...result1, flags: [] };
+  return { ...result1, flags: [], evidence: result1.evidence || [] };
 }
 
 serve(async (req) => {

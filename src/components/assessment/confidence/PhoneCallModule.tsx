@@ -67,28 +67,17 @@ export function PhoneCallModule({ sessionId, scenario, onComplete, devMode = fal
   });
 
   /**
-   * Initialize phone call (create database record)
+   * Initialize phone call (generate local ID since tables don't exist yet)
    */
   useEffect(() => {
     const initializeCall = async () => {
       if (!user) return;
 
       try {
-        const { data, error } = await supabase
-          .from('confidence_phone_calls')
-          .insert({
-            session_id: sessionId,
-            user_id: user.id,
-            scenario_id: scenario.id,
-            tier: scenario.tier
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        setCallId(data.id);
-        console.log(`[PhoneCall] Initialized call ${data.id} for scenario ${scenario.id}`);
+        // Generate a local call ID since database tables don't exist yet
+        const localCallId = `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        setCallId(localCallId);
+        console.log(`[PhoneCall] Initialized local call ${localCallId} for scenario ${scenario.id}`);
       } catch (error) {
         console.error('[PhoneCall] Failed to initialize call:', error);
         toast({
@@ -100,7 +89,7 @@ export function PhoneCallModule({ sessionId, scenario, onComplete, devMode = fal
     };
 
     initializeCall();
-  }, [sessionId, scenario.id, scenario.tier, user]);
+  }, [sessionId, scenario.id, scenario.tier, user, toast]);
 
   /**
    * Start first turn when TTS is ready
@@ -192,15 +181,13 @@ export function PhoneCallModule({ sessionId, scenario, onComplete, devMode = fal
         end: w.end
       }));
 
-      // Store turn in database
-      await supabase.from('confidence_phone_turns').insert({
+      // Note: Database tables don't exist yet, logging locally only
+      console.log(`[PhoneCall] Turn ${currentTurn.turnNumber} recorded:`, {
         call_id: callId,
         turn_number: currentTurn.turnNumber,
         prompt_end_ts: promptEndTime.toISOString(),
         recording_start_ts: recordingStartTs.toISOString(),
         recording_end_ts: recordingEndTs.toISOString(),
-        user_speech_start_ts: recordingStartTs.toISOString(), // Approximation
-        user_speech_end_ts: recordingEndTs.toISOString(),
         transcript,
         word_timestamps: wordTimestamps
       });
@@ -254,15 +241,13 @@ export function PhoneCallModule({ sessionId, scenario, onComplete, devMode = fal
       recordingEndTs: now
     };
 
-    // Store turn in database
-    await supabase.from('confidence_phone_turns').insert({
+    // Note: Database tables don't exist yet, storing locally only
+    console.log(`[PhoneCall] Text turn ${currentTurn.turnNumber} recorded:`, {
       call_id: callId,
       turn_number: currentTurn.turnNumber,
       prompt_end_ts: promptEndTime.toISOString(),
       recording_start_ts: turnRecording.recordingStartTs.toISOString(),
       recording_end_ts: turnRecording.recordingEndTs.toISOString(),
-      user_speech_start_ts: turnRecording.recordingStartTs.toISOString(),
-      user_speech_end_ts: turnRecording.recordingEndTs.toISOString(),
       transcript: text,
       word_timestamps: []
     });
@@ -320,19 +305,14 @@ export function PhoneCallModule({ sessionId, scenario, onComplete, devMode = fal
 
       const result = await response.json();
 
-      // Update call as completed
-      await supabase
-        .from('confidence_phone_calls')
-        .update({ completed_at: new Date().toISOString() })
-        .eq('id', callId);
-
-      // Store analysis result
-      await supabase.from('confidence_speaking_analysis').insert({
+      // Note: Database tables don't exist yet, logging results only
+      console.log('[PhoneCall] Analysis complete:', result);
+      console.log('[PhoneCall] Call completed:', {
         call_id: callId,
-        ...result.scores,
+        completed_at: new Date().toISOString(),
+        scores: result.scores,
         timing_aggregates: result.timing_aggregates,
-        signals: result.signals,
-        versions: result.versions
+        signals: result.signals
       });
 
       setPhase('completed');
