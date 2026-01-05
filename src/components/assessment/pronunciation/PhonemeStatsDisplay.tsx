@@ -10,7 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { Check, X, AlertTriangle, HelpCircle } from 'lucide-react';
 import { 
   getPhonemeStatsSummary,
-  type UserPhonemeStat 
+  type UserPhonemestat 
 } from '@/lib/pronunciation/phonemeStats';
 import { getPhonemeInfo } from '@/lib/pronunciation/phonemeInventory';
 
@@ -86,7 +86,7 @@ export function PhonemeStatsDisplay({ userId }: PhonemeStatsDisplayProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {hardest.map((stat: UserPhonemeStat) => {
+            {hardest.map((stat: UserPhonemestat) => {
               const info = getPhonemeInfo(stat.phoneme);
               return (
                 <PhonemeStatCard
@@ -111,7 +111,7 @@ export function PhonemeStatsDisplay({ userId }: PhonemeStatsDisplayProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {uncertain.slice(0, 5).map((stat: UserPhonemeStat) => {
+            {uncertain.slice(0, 5).map((stat: UserPhonemestat) => {
               const info = getPhonemeInfo(stat.phoneme);
               const needed = Math.ceil(12 * -Math.log(1 - 0.7)) - stat.attempts; // For 70% confidence
               return (
@@ -138,7 +138,7 @@ export function PhonemeStatsDisplay({ userId }: PhonemeStatsDisplayProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {strongest.map((stat: UserPhonemeStat) => {
+            {strongest.map((stat: UserPhonemestat) => {
               const info = getPhonemeInfo(stat.phoneme);
               return (
                 <PhonemeStatCard
@@ -158,7 +158,7 @@ export function PhonemeStatsDisplay({ userId }: PhonemeStatsDisplayProps) {
 
 // Phoneme Stat Card Component
 interface PhonemeStatCardProps {
-  stat: UserPhonemeStat;
+  stat: UserPhonemestat;
   info: any; // PhonemeInfo
   variant: 'needs_practice' | 'uncertain' | 'strong';
   additionalInfo?: string;

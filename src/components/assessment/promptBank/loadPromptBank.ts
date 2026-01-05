@@ -3,7 +3,10 @@
  * Loads and validates prompt banks from JSON files
  */
 
-import type { PromptBank, ModuleType, Prompt } from './types';
+import type { PromptBank, ModuleType, Prompt, SyntaxPrompt } from './types';
+
+// Re-export types for consumers
+export type { Prompt, SyntaxPrompt, ModuleType } from './types';
 
 // Import prompt banks (we'll create these JSON files next)
 import fluencyBank from './promptBanks/fluency.json';
