@@ -189,15 +189,25 @@ async function assessPronunciation(
     }
   }
 
-  // Get scores - USE ONLY Azure's PronScore as the main score (0-100)
-  let pronScore = assessment.PronScore ?? nBest.PronScore ?? 0;
+  // Get scores from Azure
+  const azurePronScore = assessment.PronScore ?? nBest.PronScore ?? null;
   const accuracyScore = assessment.AccuracyScore ?? nBest.AccuracyScore ?? 0;
   const fluencyScore = assessment.FluencyScore ?? nBest.FluencyScore ?? 0;
   const completenessScore = assessment.CompletenessScore ?? nBest.CompletenessScore ?? 0;
 
+  // Calculate word average as primary score (most reliable)
+  const wordScores = words.map((w: any) => w.accuracyScore).filter((s: number) => s > 0);
+  const wordAverage = wordScores.length > 0 
+    ? Math.round(wordScores.reduce((a: number, b: number) => a + b, 0) / wordScores.length)
+    : 0;
+
+  // Use word average as primary score, fallback to Azure's PronScore
+  let pronScore = wordScores.length > 0 ? wordAverage : (azurePronScore ?? 0);
+  
+  console.log('[Pronunciation] Word scores:', wordScores, 'Average:', wordAverage, 'Azure PronScore:', azurePronScore);
+
   // If no words recognized at all, score is 0
-  const validWords = words.filter((w: any) => w.accuracyScore > 0 || w.errorType !== 'None');
-  if (validWords.length === 0 || (nBest.Display === '.' && words.length === 0)) {
+  if (words.length === 0 || (nBest.Display === '.' && words.length === 0)) {
     pronScore = 0;
   }
 
