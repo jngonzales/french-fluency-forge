@@ -236,7 +236,7 @@ const PronunciationModuleWithPhrases = ({
       </div>;
   }
   return <div className="min-h-screen bg-background py-8 px-4">
-      <div className="max-w-3xl mx-auto space-y-6 py-[20px]">
+      <div className="max-w-3xl mx-auto space-y-6 py-[30px]">
         {/* Header */}
         <div>
           <div className="flex items-center justify-between mb-4">
