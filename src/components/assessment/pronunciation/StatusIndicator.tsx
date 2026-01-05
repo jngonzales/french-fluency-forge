@@ -37,14 +37,12 @@ export function StatusIndicator({ status, provider, className = '', devMode = fa
         { key: 'complete', icon: Sparkles, label: 'Ready' },
       ];
     } else {
-      // Whimsical user-facing labels ✨
+      // Whimsical user-facing labels ✨ (simplified: removed "Almost there" and "Magic")
       return [
         { key: 'recording', icon: Mic, label: 'Listening...' },
         { key: 'recorded', icon: Wand2, label: 'Processing' },
         { key: 'uploading', icon: Brain, label: 'Understanding' },
         { key: 'processing', icon: Zap, label: 'Analyzing' },
-        { key: 'analyzed', icon: Stars, label: 'Almost there' },
-        { key: 'complete', icon: Sparkles, label: 'Magic! ✨' },
       ];
     }
   };
