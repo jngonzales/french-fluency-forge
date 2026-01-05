@@ -76,11 +76,17 @@ const PronunciationModuleEnhanced = ({ sessionId, onComplete, onSkip }: Pronunci
     isRecording,
     recordingTime,
     audioBlob,
+    wavBlob,
+    isConverting,
     error: recordingError,
     startRecording,
     stopRecording,
     resetRecording,
-  } = useAudioRecorder({ maxDuration: 30 });
+    getWavBlob,
+  } = useAudioRecorder({ 
+    maxDuration: 30,
+    convertToWavOnStop: true, // Auto-convert to WAV for Azure
+  });
 
   // Get current items based on section
   const getCurrentItems = useCallback(() => {
@@ -173,17 +179,44 @@ const PronunciationModuleEnhanced = ({ sessionId, onComplete, onSkip }: Pronunci
     
     setProcessingStatus('uploading');
     setShowFeedback(false);
-    toast.info('Sending audio for analysis...');
+    toast.info('Preparing audio for analysis...');
 
     try {
+      // Get or convert to WAV for Azure
+      let audioToSend = wavBlob;
+      let audioFormatToSend = 'audio/wav';
+      
+      if (!audioToSend) {
+        console.log('[Pronunciation] WAV not available, converting now...');
+        toast.info('Converting audio to optimal format...');
+        audioToSend = await getWavBlob();
+      }
+      
+      // Fallback to original if WAV conversion failed
+      if (!audioToSend) {
+        console.warn('[Pronunciation] WAV conversion failed, using original WebM');
+        audioToSend = audioBlob;
+        audioFormatToSend = audioBlob.type || 'audio/webm';
+        toast.warning('Using original audio format (may have limited results)');
+      } else {
+        console.log('[Pronunciation] Using WAV format for Azure');
+        toast.success('Audio optimized for pronunciation assessment');
+      }
+
       // Convert blob to base64
-      const arrayBuffer = await audioBlob.arrayBuffer();
+      const arrayBuffer = await audioToSend.arrayBuffer();
       const bytes = new Uint8Array(arrayBuffer);
       let binary = "";
       for (let i = 0; i < bytes.length; i++) {
         binary += String.fromCharCode(bytes[i]);
       }
       const base64Audio = btoa(binary);
+      
+      console.log('[Pronunciation] Audio prepared:', {
+        format: audioFormatToSend,
+        size: audioToSend.size,
+        base64Length: base64Audio.length,
+      });
 
       const referenceText = currentSection === "reading" 
         ? (currentItem as ReadingItem).referenceText
@@ -208,7 +241,7 @@ const PronunciationModuleEnhanced = ({ sessionId, onComplete, onSkip }: Pronunci
             audio: base64Audio,
             referenceText,
             itemId: currentItem.id,
-            audioFormat: audioBlob.type || 'audio/webm',
+            audioFormat: audioFormatToSend,
           }),
         }
       );
@@ -588,7 +621,9 @@ const PronunciationModuleEnhanced = ({ sessionId, onComplete, onSkip }: Pronunci
 interface RecordingControlsProps {
   isRecording: boolean;
   isProcessing: boolean;
+  isConverting: boolean;
   audioBlob: Blob | null;
+  wavBlob: Blob | null;
   recordingTime: number;
   startRecording: () => void;
   stopRecording: () => void;
@@ -599,7 +634,9 @@ interface RecordingControlsProps {
 function RecordingControls({
   isRecording,
   isProcessing,
+  isConverting,
   audioBlob,
+  wavBlob,
   recordingTime,
   startRecording,
   stopRecording,
@@ -612,13 +649,28 @@ function RecordingControls({
         {formatTime(recordingTime)}
       </div>
 
+      {/* Show WAV conversion status */}
+      {isConverting && (
+        <div className="text-sm text-primary flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Converting to WAV for Azure...
+        </div>
+      )}
+      
+      {wavBlob && !isConverting && (
+        <div className="text-xs text-green-600 flex items-center gap-1">
+          <Check className="h-3 w-3" />
+          Optimized for pronunciation assessment (WAV)
+        </div>
+      )}
+
       <div className="flex items-center gap-4">
         {!isRecording && !audioBlob && (
           <Button
             size="lg"
             onClick={startRecording}
             className="h-16 w-16 rounded-full"
-            disabled={isProcessing}
+            disabled={isProcessing || isConverting}
           >
             <Mic className="h-6 w-6" />
           </Button>
@@ -637,19 +689,24 @@ function RecordingControls({
 
         {audioBlob && !isRecording && (
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={resetRecording} disabled={isProcessing}>
+            <Button variant="outline" onClick={resetRecording} disabled={isProcessing || isConverting}>
               <RotateCcw className="h-4 w-4 mr-2" />
               Redo
             </Button>
-            <Button onClick={onSubmit} disabled={isProcessing} size="lg">
+            <Button onClick={onSubmit} disabled={isProcessing || isConverting} size="lg">
               {isProcessing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Analyzing...
                 </>
+              ) : isConverting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Converting...
+                </>
               ) : (
                 <>
-                  Submit
+                  Submit {wavBlob && '(WAV)'}
                   <ChevronRight className="h-4 w-4 ml-2" />
                 </>
               )}

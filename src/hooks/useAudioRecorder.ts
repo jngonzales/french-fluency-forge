@@ -1,8 +1,10 @@
 import { useState, useRef, useCallback } from "react";
+import { convertToWav, canConvertToWav } from "@/lib/audio/wavConverter";
 
 interface UseAudioRecorderOptions {
   onRecordingComplete?: (blob: Blob) => void;
   maxDuration?: number; // in seconds
+  convertToWavOnStop?: boolean; // Auto-convert to WAV when recording stops
 }
 
 interface UseAudioRecorderReturn {
@@ -11,24 +13,29 @@ interface UseAudioRecorderReturn {
   recordingTime: number;
   audioBlob: Blob | null;
   audioUrl: string | null;
+  wavBlob: Blob | null; // WAV version for Azure
   error: string | null;
+  isConverting: boolean;
   startRecording: () => Promise<void>;
   stopRecording: () => void;
   pauseRecording: () => void;
   resumeRecording: () => void;
   resetRecording: () => void;
+  getWavBlob: () => Promise<Blob | null>; // Manual WAV conversion
 }
 
 export const useAudioRecorder = (
   options: UseAudioRecorderOptions = {}
 ): UseAudioRecorderReturn => {
-  const { onRecordingComplete, maxDuration = 60 } = options;
+  const { onRecordingComplete, maxDuration = 60, convertToWavOnStop = false } = options;
 
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [wavBlob, setWavBlob] = useState<Blob | null>(null);
+  const [isConverting, setIsConverting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -80,11 +87,27 @@ export const useAudioRecorder = (
         }
       };
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         setAudioBlob(blob);
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
+        
+        // Auto-convert to WAV if requested (for Azure)
+        if (convertToWavOnStop && canConvertToWav()) {
+          setIsConverting(true);
+          try {
+            const wav = await convertToWav(blob);
+            setWavBlob(wav);
+            console.log('[Audio Recorder] Auto-converted to WAV:', wav.size, 'bytes');
+          } catch (err) {
+            console.error('[Audio Recorder] WAV conversion failed:', err);
+            // Continue anyway with original blob
+          } finally {
+            setIsConverting(false);
+          }
+        }
+        
         onRecordingComplete?.(blob);
 
         // Clean up stream
@@ -164,10 +187,41 @@ export const useAudioRecorder = (
 
     setAudioBlob(null);
     setAudioUrl(null);
+    setWavBlob(null);
     setRecordingTime(0);
     setError(null);
+    setIsConverting(false);
     chunksRef.current = [];
   }, [audioUrl, stopRecording]);
+
+  // Manual WAV conversion
+  const getWavBlob = useCallback(async (): Promise<Blob | null> => {
+    if (!audioBlob) {
+      return null;
+    }
+
+    if (wavBlob) {
+      return wavBlob; // Return cached version
+    }
+
+    if (!canConvertToWav()) {
+      console.warn('[Audio Recorder] Browser does not support WAV conversion');
+      return null;
+    }
+
+    setIsConverting(true);
+    try {
+      const wav = await convertToWav(audioBlob);
+      setWavBlob(wav);
+      console.log('[Audio Recorder] Converted to WAV:', wav.size, 'bytes');
+      return wav;
+    } catch (err) {
+      console.error('[Audio Recorder] WAV conversion failed:', err);
+      return null;
+    } finally {
+      setIsConverting(false);
+    }
+  }, [audioBlob, wavBlob]);
 
   return {
     isRecording,
@@ -175,12 +229,15 @@ export const useAudioRecorder = (
     recordingTime,
     audioBlob,
     audioUrl,
+    wavBlob,
     error,
+    isConverting,
     startRecording,
     stopRecording,
     pauseRecording,
     resumeRecording,
     resetRecording,
+    getWavBlob,
   };
 };
 
