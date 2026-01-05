@@ -4,9 +4,9 @@ import { useAdminMode } from '@/hooks/useAdminMode';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { RefreshCw, TrendingUp, MessageSquare } from 'lucide-react';
+import { RefreshCw, TrendingUp, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 interface LiveDataViewerProps {
   sessionId: string;
   moduleType?: 'pronunciation' | 'fluency' | 'confidence' | 'syntax' | 'conversation' | 'comprehension';
@@ -27,6 +27,7 @@ export function LiveDataViewer({ sessionId, moduleType }: LiveDataViewerProps) {
   const [recordings, setRecordings] = useState<RecentRecording[]>([]);
   const [loading, setLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [isOpen, setIsOpen] = useState(true);
 
   // Determine visibility (but don't return early before hooks)
   const shouldShow = isAdmin || isDev;
@@ -136,106 +137,122 @@ export function LiveDataViewer({ sessionId, moduleType }: LiveDataViewerProps) {
 
   if (recordings.length === 0) {
     return (
-      <div className="fixed bottom-24 right-4 z-[9996] w-80 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-xl p-3">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-primary" />
-            <span className="text-xs font-bold">LIVE DATA</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            onClick={loadRecordings}
-          >
-            <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <div className="fixed bottom-24 right-4 z-[9996] w-80 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-xl">
+          <CollapsibleTrigger asChild>
+            <div className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                <span className="text-xs font-bold">LIVE DATA</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={(e) => { e.stopPropagation(); loadRecordings(); }}
+                >
+                  <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+                </Button>
+                {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+              </div>
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <p className="text-xs text-muted-foreground text-center py-4 px-3">
+              No recordings yet. Start recording to see live data here.
+            </p>
+          </CollapsibleContent>
         </div>
-        <p className="text-xs text-muted-foreground text-center py-4">
-          No recordings yet. Start recording to see live data here.
-        </p>
-      </div>
+      </Collapsible>
     );
   }
 
   return (
-    <div className="fixed bottom-24 right-4 z-[9996] w-96 max-h-[500px] bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-xl overflow-hidden">
-      <div className="flex items-center justify-between p-3 border-b bg-muted/50">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-primary" />
-          <span className="text-xs font-bold">LIVE DATA</span>
-          <Badge variant="secondary" className="text-[9px] h-4">
-            Last {recordings.length}
-          </Badge>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setAutoRefresh(!autoRefresh)}
-            className="text-[10px] px-2 py-1 rounded hover:bg-muted"
-          >
-            {autoRefresh ? '🟢 Auto' : '⚪ Manual'}
-          </button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            onClick={loadRecordings}
-          >
-            <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
-      </div>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <div className="fixed bottom-24 right-4 z-[9996] w-96 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-xl overflow-hidden">
+        <CollapsibleTrigger asChild>
+          <div className="flex items-center justify-between p-3 border-b bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              <span className="text-xs font-bold">LIVE DATA</span>
+              <Badge variant="secondary" className="text-[9px] h-4">
+                Last {recordings.length}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={(e) => { e.stopPropagation(); setAutoRefresh(!autoRefresh); }}
+                className="text-[10px] px-2 py-1 rounded hover:bg-muted"
+              >
+                {autoRefresh ? '🟢 Auto' : '⚪ Manual'}
+              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={(e) => { e.stopPropagation(); loadRecordings(); }}
+              >
+                <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+              {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </div>
+          </div>
+        </CollapsibleTrigger>
 
-      <ScrollArea className="h-[400px]">
-        <div className="p-2 space-y-2">
-          {recordings.map((rec) => (
-            <Card key={rec.id} className="border-border/50 bg-muted/20">
-              <CardContent className="p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="text-[10px] h-5 capitalize">
-                    {rec.type === 'fluency' ? 'Fluency' : rec.type === 'skill' ? rec.module : 'Comprehension'}
-                  </Badge>
-                  <span className="text-[9px] text-muted-foreground">
-                    {new Date(rec.created_at).toLocaleTimeString()}
-                  </span>
-                </div>
-
-                {/* Score Display */}
-                {rec.score !== null && rec.score !== undefined && (
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-3 w-3 text-green-500" />
-                    <span className="text-sm font-bold text-green-600 dark:text-green-400">
-                      {rec.score}
-                      {rec.type === 'fluency' ? '/100' : '/100'}
-                    </span>
-                    {rec.wpm && (
-                      <span className="text-xs text-muted-foreground">
-                        • {rec.wpm} WPM
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Transcript */}
-                {rec.transcript && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1">
-                      <MessageSquare className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-[9px] text-muted-foreground font-medium">
-                        Transcript:
+        <CollapsibleContent>
+          <ScrollArea className="max-h-[400px]">
+            <div className="p-2 space-y-2">
+              {recordings.map((rec) => (
+                <Card key={rec.id} className="border-border/50 bg-muted/20">
+                  <CardContent className="p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline" className="text-[10px] h-5 capitalize">
+                        {rec.type === 'fluency' ? 'Fluency' : rec.type === 'skill' ? rec.module : 'Comprehension'}
+                      </Badge>
+                      <span className="text-[9px] text-muted-foreground">
+                        {new Date(rec.created_at).toLocaleTimeString()}
                       </span>
                     </div>
-                    <p className="text-[10px] text-foreground bg-muted/40 p-2 rounded leading-relaxed max-h-24 overflow-y-auto">
-                      {rec.transcript}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </ScrollArea>
-    </div>
+
+                    {/* Score Display */}
+                    {rec.score !== null && rec.score !== undefined && (
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-3 w-3 text-green-500" />
+                        <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                          {rec.score}
+                          {rec.type === 'fluency' ? '/100' : '/100'}
+                        </span>
+                        {rec.wpm && (
+                          <span className="text-xs text-muted-foreground">
+                            • {rec.wpm} WPM
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Transcript */}
+                    {rec.transcript && (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1">
+                          <MessageSquare className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-[9px] text-muted-foreground font-medium">
+                            Transcript:
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-foreground bg-muted/40 p-2 rounded leading-relaxed max-h-24 overflow-y-auto">
+                          {rec.transcript}
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
   );
 }
 
