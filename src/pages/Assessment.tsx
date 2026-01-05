@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminMode } from "@/hooks/useAdminMode";
+import { AdminPadding } from "@/components/AdminPadding";
 import IntakeForm from "@/components/assessment/IntakeForm";
 import ConsentForm from "@/components/assessment/ConsentForm";
 import { PronunciationModule } from "@/components/assessment/pronunciation";
@@ -191,10 +192,10 @@ const Assessment = () => {
       };
 
       return (
-        <>
+        <AdminPadding>
           {renderModule()}
           {(isAdmin || isDev) && <LiveDataViewer sessionId={session.id} moduleType={assessmentPhase} />}
-        </>
+        </AdminPadding>
       );
 
     case "processing":
