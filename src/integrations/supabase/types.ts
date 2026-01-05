@@ -180,15 +180,23 @@ export type Database = {
           ai_confidence: number | null
           ai_feedback_fr: string | null
           ai_score: number | null
+          asr_version: string | null
           attempt_number: number
           audio_played_at: string | null
           audio_storage_path: string | null
           completed_at: string | null
+          correct_option_ids: string[] | null
+          correct_selections: string[] | null
           created_at: string
           error_message: string | null
           id: string
+          incorrect_selections: string[] | null
           intent_match: Json | null
           item_id: string
+          missed_selections: string[] | null
+          prompt_version: string | null
+          scorer_version: string | null
+          selected_option_ids: string[] | null
           session_id: string
           status: string
           superseded: boolean
@@ -201,15 +209,23 @@ export type Database = {
           ai_confidence?: number | null
           ai_feedback_fr?: string | null
           ai_score?: number | null
+          asr_version?: string | null
           attempt_number?: number
           audio_played_at?: string | null
           audio_storage_path?: string | null
           completed_at?: string | null
+          correct_option_ids?: string[] | null
+          correct_selections?: string[] | null
           created_at?: string
           error_message?: string | null
           id?: string
+          incorrect_selections?: string[] | null
           intent_match?: Json | null
           item_id: string
+          missed_selections?: string[] | null
+          prompt_version?: string | null
+          scorer_version?: string | null
+          selected_option_ids?: string[] | null
           session_id: string
           status?: string
           superseded?: boolean
@@ -222,15 +238,23 @@ export type Database = {
           ai_confidence?: number | null
           ai_feedback_fr?: string | null
           ai_score?: number | null
+          asr_version?: string | null
           attempt_number?: number
           audio_played_at?: string | null
           audio_storage_path?: string | null
           completed_at?: string | null
+          correct_option_ids?: string[] | null
+          correct_selections?: string[] | null
           created_at?: string
           error_message?: string | null
           id?: string
+          incorrect_selections?: string[] | null
           intent_match?: Json | null
           item_id?: string
+          missed_selections?: string[] | null
+          prompt_version?: string | null
+          scorer_version?: string | null
+          selected_option_ids?: string[] | null
           session_id?: string
           status?: string
           superseded?: boolean
