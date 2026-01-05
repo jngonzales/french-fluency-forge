@@ -20,6 +20,7 @@ import {
 import { PhonemeVisualization } from './PhonemeVisualization';
 import { EnhancedWordHeatmap } from './EnhancedWordHeatmap';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ScoreGauge } from './ScoreGauge';
 
 interface EnhancedFeedbackDisplayProps {
   result: any; // UnifiedPronunciationResult
@@ -65,41 +66,10 @@ export function EnhancedFeedbackDisplay({
   return (
     <div className="space-y-6">
       {/* Main Score Card */}
-      <Card className={`border-2 ${bgColor}`}>
+      <Card className="border-2 border-muted">
         <CardContent className="pt-6">
-          <div className="text-center space-y-4">
-            {/* Icon */}
-            <div className="flex justify-center">
-              {isExcellent ? (
-                <Check className="h-16 w-16 text-green-500" />
-              ) : isGood ? (
-                <TrendingUp className="h-16 w-16 text-blue-500" />
-              ) : (
-                <AlertCircle className="h-16 w-16 text-yellow-500" />
-              )}
-            </div>
-
-            {/* Score */}
-            <div>
-              <div className="text-6xl font-bold mb-2">
-                <span className={scoreColor}>{score}</span>
-                <span className="text-2xl text-muted-foreground">/100</span>
-              </div>
-              <div className="text-sm text-muted-foreground space-x-3">
-                <span>Accuracy: {accuracyScore}%</span>
-                <span>•</span>
-                <span>Fluency: {fluencyScore}%</span>
-                <span>•</span>
-                <span>Complete: {completenessScore}%</span>
-              </div>
-            </div>
-
-            {/* Overall Feedback */}
-            <div className="max-w-lg mx-auto">
-              <p className="text-base font-medium">
-                {result.overallFeedback}
-              </p>
-            </div>
+          <div className="flex justify-center">
+            <ScoreGauge score={score} />
           </div>
         </CardContent>
       </Card>
