@@ -11,7 +11,8 @@ import { buildSessionQueue } from '../data/schedulerMock';
 import { 
   calculateNextReviewFSRS, 
   previewAllIntervalsFSRS,
-  formatIntervalFSRS 
+  formatIntervalFSRS,
+  getFSRSConfigFromSettings,
 } from '../data/fsrsScheduler';
 import { usePhrasesSettings } from './usePhrasesSettings';
 import type { SpeechRecognitionResult } from '../services/speechRecognition';
@@ -157,7 +158,8 @@ export function usePhrasesSession() {
     const difficultyBefore = currentCard.scheduler.difficulty;
 
     // Update card with new scheduling using FSRS
-    const updatedCard = calculateNextReviewFSRS(currentCard, rating, settings, now);
+    const fsrsConfig = getFSRSConfigFromSettings(settings);
+    const { card: updatedCard } = calculateNextReviewFSRS(currentCard, rating, fsrsConfig, now);
     const updatedCards = cards.map((c) => c.id === updatedCard.id ? updatedCard : c);
     saveCards(updatedCards);
 
@@ -331,25 +333,26 @@ export function usePhrasesSession() {
   }, [currentCard, cards, saveCards]);
 
   // Get interval previews for current card (using FSRS)
+  const fsrsConfig = getFSRSConfigFromSettings(settings);
   const intervalPreviews = currentCard 
-    ? previewAllIntervalsFSRS(currentCard, settings)
+    ? previewAllIntervalsFSRS(currentCard, fsrsConfig)
     : null;
   
   const intervals = intervalPreviews
     ? {
-        again: formatIntervalFSRS(intervalPreviews.again.intervalMs),
-        hard: formatIntervalFSRS(intervalPreviews.hard.intervalMs),
-        good: formatIntervalFSRS(intervalPreviews.good.intervalMs),
-        easy: formatIntervalFSRS(intervalPreviews.easy.intervalMs),
+        again: formatIntervalFSRS(intervalPreviews.again.interval_ms),
+        hard: formatIntervalFSRS(intervalPreviews.hard.interval_ms),
+        good: formatIntervalFSRS(intervalPreviews.good.interval_ms),
+        easy: formatIntervalFSRS(intervalPreviews.easy.interval_ms),
       }
     : null;
   
   const exactDueDates = intervalPreviews
     ? {
-        again: intervalPreviews.again.dueAt,
-        hard: intervalPreviews.hard.dueAt,
-        good: intervalPreviews.good.dueAt,
-        easy: intervalPreviews.easy.dueAt,
+        again: new Date(intervalPreviews.again.due_at),
+        hard: new Date(intervalPreviews.hard.due_at),
+        good: new Date(intervalPreviews.good.due_at),
+        easy: new Date(intervalPreviews.easy.due_at),
       }
     : null;
 

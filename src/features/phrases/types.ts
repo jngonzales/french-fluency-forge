@@ -63,6 +63,9 @@ export interface MemberPhraseCard {
     
     // FSRS full state (JSONB)
     scheduler_state_jsonb?: Record<string, any>;
+    
+    // Short-term step tracking
+    short_term_step_index?: number;
   };
   
   // Assist level (0-4)
@@ -76,9 +79,6 @@ export interface MemberPhraseCard {
   // Pause fields
   paused_reason?: string;
   paused_at?: string;
-  
-  // Short-term step tracking
-  short_term_step_index?: number;
   
   // UX/analytics
   lapses: number;

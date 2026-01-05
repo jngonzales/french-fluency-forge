@@ -18,7 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Play, RotateCcw, Download, Save } from 'lucide-react';
-import { calculateNextReviewFSRS, formatIntervalFSRS } from '@/features/phrases/data/fsrsScheduler';
+import { calculateNextReviewFSRS, formatIntervalFSRS, getFSRSConfigFromSettings } from '@/features/phrases/data/fsrsScheduler';
 import { usePhrasesSettings } from '@/features/phrases/hooks/usePhrasesSettings';
 import type { MemberPhraseCard, Rating } from '@/features/phrases/types';
 import { createNewCard } from './SRSLabHelpers';
@@ -93,12 +93,13 @@ export default function SRSLabPage() {
       const wasOverdue = dueBefore < currentTime;
       
       // Apply rating
-      const updatedSettings = {
+      const fsrsConfig = getFSRSConfigFromSettings({
         ...settings,
         target_retention: requestRetention,
-      };
+      });
       
-      card = calculateNextReviewFSRS(card, event.grade, updatedSettings, currentTime);
+      const result = calculateNextReviewFSRS(card, event.grade, fsrsConfig, currentTime);
+      card = result.card;
       
       // Store result
       results.push({

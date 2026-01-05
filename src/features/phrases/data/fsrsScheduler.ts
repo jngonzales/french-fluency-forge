@@ -4,7 +4,7 @@
  * Implements short-term learning steps (micro-steps) for same-session retries
  */
 
-import { createEmptyCard, FSRS, Rating as FSRSRating, Card as FSRSCard } from 'ts-fsrs';
+import { createEmptyCard, FSRS, Rating as FSRSRating, Card as FSRSCard, Grade } from 'ts-fsrs';
 import type { MemberPhraseCard, Rating, SchedulerState, PhraseSettings } from '../types';
 
 // FSRS Configuration
@@ -52,8 +52,8 @@ function formatTimeString(ms: number): string {
   return `${days}d`;
 }
 
-// Convert SOLV Rating to FSRS Rating
-function ratingToFSRS(rating: Rating): FSRSRating {
+// Convert SOLV Rating to FSRS Grade (not Rating, since Grade excludes Manual)
+function ratingToFSRS(rating: Rating): Grade {
   switch (rating) {
     case 'again': return FSRSRating.Again;
     case 'hard': return FSRSRating.Hard;
@@ -218,7 +218,7 @@ export function calculateNextReviewFSRS(
           };
         } else {
           // Graduate to review
-          const scheduled = fsrs.repeat(fsrsCard, fsrsRating, now);
+          const scheduled = fsrs.next(fsrsCard, now, fsrsRating);
           const intervalMs = scheduled.card.due.getTime() - now.getTime();
           
           return {
@@ -240,7 +240,7 @@ export function calculateNextReviewFSRS(
   }
   
   // Standard FSRS scheduling (review state or no short-term)
-  const scheduled = fsrs.repeat(fsrsCard, fsrsRating, now);
+  const scheduled = fsrs.next(fsrsCard, now, fsrsRating);
   const intervalMs = scheduled.card.due.getTime() - now.getTime();
   
   return {
