@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { FLUENCY_PICTURE_CARDS, getRandomPictureCards, type FluencyPictureCard } from "./fluencyPictureCards";
+import { getRandomPrompts, type FluencyPictureCard } from "./fluencyPictureCards";
 import type { RecordingState } from "./FluencyRecordingCard";
 import type { Json } from "@/integrations/supabase/types";
 
-// Number of picture cards per assessment
+// Number of prompts per assessment
 const CARDS_PER_ASSESSMENT = 3;
 
 interface ItemState {
@@ -27,9 +27,9 @@ export function useFluencyModule(sessionId: string) {
   const [allComplete, setAllComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize picture cards on mount
+  // Initialize prompts on mount
   useEffect(() => {
-    const cards = getRandomPictureCards(CARDS_PER_ASSESSMENT);
+    const cards = getRandomPrompts(CARDS_PER_ASSESSMENT);
     setPictureCards(cards);
     
     const initial: Record<string, ItemState> = {};
@@ -274,8 +274,8 @@ export function useFluencyModule(sessionId: string) {
     
     logEvent("fluency_redo_confirmed", undefined, moduleAttemptCount);
     
-    // Get new random cards
-    const newCards = getRandomPictureCards(CARDS_PER_ASSESSMENT);
+    // Get new random prompts
+    const newCards = getRandomPrompts(CARDS_PER_ASSESSMENT);
     setPictureCards(newCards);
     
     // Reset all items

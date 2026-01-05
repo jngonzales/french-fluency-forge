@@ -11,8 +11,7 @@ import {
   AlertCircle, 
   Check,
   RotateCcw,
-  ChevronRight,
-  ImageIcon
+  ChevronRight
 } from "lucide-react";
 import type { FluencyPictureCard } from "./fluencyPictureCards";
 
@@ -61,8 +60,6 @@ export function FluencyRecordingCard({
   pauseSubscore,
 }: Props) {
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const {
@@ -79,12 +76,6 @@ export function FluencyRecordingCard({
   });
 
   const remainingTime = RECORDING_DURATION - recordingTime;
-
-  // Reset image state when card changes
-  useEffect(() => {
-    setImageLoaded(false);
-    setImageError(false);
-  }, [card.id]);
 
   // Cleanup countdown on unmount
   useEffect(() => {
@@ -148,24 +139,12 @@ export function FluencyRecordingCard({
     setRecordingState("ready");
   };
 
-  // Convert OpenClipart detail URL to actual image URL
-  const getImageUrl = (url: string): string => {
-    // OpenClipart detail URLs need to be converted to actual image URLs
-    // Format: https://openclipart.org/detail/191160/messy-room
-    // Actual: https://openclipart.org/image/800px/191160
-    const match = url.match(/\/detail\/(\d+)/);
-    if (match) {
-      return `https://openclipart.org/image/400px/${match[1]}`;
-    }
-    return url;
-  };
-
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-muted-foreground">
-            Picture {questionNumber} of {totalQuestions}
+            Question {questionNumber} of {totalQuestions}
           </span>
           {attemptCount > 1 && (
             <span className="text-xs text-muted-foreground">
@@ -173,40 +152,20 @@ export function FluencyRecordingCard({
             </span>
           )}
         </div>
-        <CardTitle className="text-lg">{card.promptFr}</CardTitle>
+        <CardTitle className="text-xl">Situation</CardTitle>
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {/* Picture Card Image */}
-        <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-          {!imageLoaded && !imageError && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          )}
-          {imageError && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
-              <ImageIcon className="h-12 w-12 mb-2" />
-              <p className="text-sm">Image unavailable</p>
-            </div>
-          )}
-          <img
-            src={getImageUrl(card.image)}
-            alt="Speaking prompt"
-            className={`w-full h-full object-contain transition-opacity duration-300 ${
-              imageLoaded ? "opacity-100" : "opacity-0"
-            }`}
-            onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
-          />
-        </div>
-
-        {/* Follow-up question hint */}
-        <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
-          <p className="text-xs font-medium text-muted-foreground mb-1">
-            Question suivante :
+        {/* Context */}
+        <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+          <p className="text-sm text-muted-foreground italic mb-3">
+            {card.fr.context}
           </p>
-          <p className="text-sm text-foreground">{card.followupFr}</p>
+          <div className="pt-3 border-t border-border/50">
+            <p className="text-base font-medium text-foreground">
+              {card.fr.question}
+            </p>
+          </div>
         </div>
 
         {/* Recording Error */}
@@ -375,7 +334,7 @@ export function FluencyRecordingCard({
                       </>
                     ) : (
                       <>
-                        Image suivante
+                        Question suivante
                         <ChevronRight className="h-4 w-4 ml-2" />
                       </>
                     )}

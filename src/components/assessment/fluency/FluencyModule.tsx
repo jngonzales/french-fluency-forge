@@ -107,7 +107,7 @@ export function FluencyModule({ sessionId, onComplete, onSkip }: FluencyModulePr
               <Check className="h-12 w-12 text-green-500 mx-auto mb-4" />
               <h2 className="text-xl font-bold mb-2">Fluency Complete!</h2>
               <p className="text-muted-foreground">
-                Tu as terminé les {pictureCards.length} images. Prêt(e) à continuer ?
+                Tu as terminé les {pictureCards.length} questions. Prêt(e) à continuer ?
               </p>
             </div>
 

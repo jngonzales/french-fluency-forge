@@ -10,7 +10,7 @@ export function FluencyIntroPanel() {
         <div className="space-y-3 text-sm">
           <div className="flex items-start gap-3">
             <Clock className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <span>2 questions with timed answers (auto-stops when time is up)</span>
+            <span>3 questions with timed answers (auto-stops when time is up)</span>
           </div>
           
           <div className="flex items-start gap-3">
