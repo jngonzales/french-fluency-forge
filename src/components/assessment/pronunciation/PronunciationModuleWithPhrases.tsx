@@ -97,23 +97,22 @@ const PronunciationModuleWithPhrases = ({
   const maxAttemptsReached = currentAttemptCount >= 2;
   const progress = phrases.length > 0 ? (currentIndex + 1) / phrases.length * 100 : 0;
 
-  // Auto-submit when recording stops (user mode only)
-  // In dev mode, show the submit button for manual control
+  // Track recording state
   useEffect(() => {
     if (isRecording) {
       setProcessingStatus('recording');
     } else if (audioBlob && processingStatus === 'recording') {
       setProcessingStatus('recorded');
-      // Auto-submit in user mode (not dev mode)
-      if (!showDevFeatures && !isConverting) {
-        // Small delay to let WAV conversion complete
-        const timer = setTimeout(() => {
-          handleRecordingSubmit();
-        }, 500);
-        return () => clearTimeout(timer);
-      }
     }
-  }, [isRecording, audioBlob, showDevFeatures, isConverting]);
+  }, [isRecording, audioBlob, processingStatus]);
+
+  // Auto-submit when WAV is ready (user mode only)
+  useEffect(() => {
+    if (!showDevFeatures && wavBlob && processingStatus === 'recorded') {
+      console.log('[Pronunciation] WAV ready, auto-submitting...');
+      handleRecordingSubmit();
+    }
+  }, [wavBlob, showDevFeatures, processingStatus]);
   const handleRecordingSubmit = async () => {
     if (!audioBlob || !currentPhrase) return;
     setProcessingStatus('uploading');
