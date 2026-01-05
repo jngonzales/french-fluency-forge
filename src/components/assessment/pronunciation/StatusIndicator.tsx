@@ -3,7 +3,7 @@
  * Shows current processing stage with visual feedback
  */
 
-import { Loader2, Check, Mic, Upload, Globe, Search, Sparkles } from 'lucide-react';
+import { Loader2, Check, Mic, Wand2, Brain, Sparkles, Stars, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export type ProcessingStatus = 
@@ -20,53 +20,46 @@ interface StatusIndicatorProps {
   status: ProcessingStatus;
   provider?: 'speechsuper' | 'azure' | null;
   className?: string;
+  devMode?: boolean;
 }
 
-export function StatusIndicator({ status, provider, className = '' }: StatusIndicatorProps) {
-  const stages = [
-    { 
-      key: 'recording', 
-      icon: Mic, 
-      label: 'Recording', 
-      active: status === 'recording',
-      complete: ['recorded', 'uploading', 'processing', 'analyzed', 'complete'].includes(status),
-    },
-    { 
-      key: 'recorded', 
-      icon: Check, 
-      label: 'Recorded', 
-      active: status === 'recorded',
-      complete: ['uploading', 'processing', 'analyzed', 'complete'].includes(status),
-    },
-    { 
-      key: 'uploading', 
-      icon: Upload, 
-      label: 'Sending', 
-      active: status === 'uploading',
-      complete: ['processing', 'analyzed', 'complete'].includes(status),
-    },
-    { 
-      key: 'processing', 
-      icon: Globe, 
-      label: provider === 'speechsuper' ? 'SpeechSuper' : provider === 'azure' ? 'Azure' : 'API Call', 
-      active: status === 'processing',
-      complete: ['analyzed', 'complete'].includes(status),
-    },
-    { 
-      key: 'analyzed', 
-      icon: Search, 
-      label: 'Analyzing', 
-      active: status === 'analyzed',
-      complete: status === 'complete',
-    },
-    { 
-      key: 'complete', 
-      icon: Sparkles, 
-      label: 'Ready', 
-      active: status === 'complete',
-      complete: status === 'complete',
-    },
-  ];
+export function StatusIndicator({ status, provider, className = '', devMode = false }: StatusIndicatorProps) {
+  // Whimsical user-facing labels vs dev labels
+  const getStages = () => {
+    if (devMode) {
+      // Technical/dev labels
+      return [
+        { key: 'recording', icon: Mic, label: 'Recording' },
+        { key: 'recorded', icon: Check, label: 'Recorded' },
+        { key: 'uploading', icon: Zap, label: 'Sending' },
+        { key: 'processing', icon: Brain, label: provider === 'speechsuper' ? 'SpeechSuper' : provider === 'azure' ? 'Azure' : 'API Call' },
+        { key: 'analyzed', icon: Wand2, label: 'Analyzing' },
+        { key: 'complete', icon: Sparkles, label: 'Ready' },
+      ];
+    } else {
+      // Whimsical user-facing labels ✨
+      return [
+        { key: 'recording', icon: Mic, label: 'Listening...' },
+        { key: 'recorded', icon: Wand2, label: 'Processing' },
+        { key: 'uploading', icon: Brain, label: 'Understanding' },
+        { key: 'processing', icon: Zap, label: 'Analyzing' },
+        { key: 'analyzed', icon: Stars, label: 'Almost there' },
+        { key: 'complete', icon: Sparkles, label: 'Magic! ✨' },
+      ];
+    }
+  };
+
+  const stages = getStages().map(stage => ({
+    ...stage,
+    active: status === stage.key,
+    complete: getCompleteStatuses(stage.key).includes(status),
+  }));
+
+  function getCompleteStatuses(key: string): ProcessingStatus[] {
+    const order: ProcessingStatus[] = ['recording', 'recorded', 'uploading', 'processing', 'analyzed', 'complete'];
+    const idx = order.indexOf(key as ProcessingStatus);
+    return order.slice(idx + 1);
+  }
 
   return (
     <div className={`flex items-center justify-center gap-1 ${className}`}>
@@ -120,8 +113,8 @@ export function StatusIndicator({ status, provider, className = '' }: StatusIndi
 /**
  * Compact status badge (for use in headers)
  */
-export function StatusBadge({ status, provider }: StatusIndicatorProps) {
-  const labels: Record<ProcessingStatus, string> = {
+export function StatusBadge({ status, provider, devMode = false }: StatusIndicatorProps) {
+  const devLabels: Record<ProcessingStatus, string> = {
     idle: 'Ready',
     recording: 'Recording...',
     recorded: 'Recorded ✓',
@@ -133,6 +126,19 @@ export function StatusBadge({ status, provider }: StatusIndicatorProps) {
     complete: 'Complete ✓',
     error: 'Error',
   };
+
+  const userLabels: Record<ProcessingStatus, string> = {
+    idle: 'Ready',
+    recording: '🎤 Listening...',
+    recorded: '✨ Got it!',
+    uploading: '🧠 Processing...',
+    processing: '⚡ Analyzing...',
+    analyzed: '🌟 Almost done...',
+    complete: '✨ Done!',
+    error: 'Oops!',
+  };
+
+  const labels = devMode ? devLabels : userLabels;
 
   const variant = 
     status === 'complete' ? 'default' :

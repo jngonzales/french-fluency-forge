@@ -18,6 +18,7 @@ interface IPADisplayProps {
   ipa: string;
   targetPhonemes?: string[];
   showTargets?: boolean;
+  showIPA?: boolean;
   className?: string;
 }
 
@@ -26,6 +27,7 @@ export function IPADisplay({
   ipa, 
   targetPhonemes = [], 
   showTargets = true,
+  showIPA = true,
   className = '' 
 }: IPADisplayProps) {
   return (
@@ -39,28 +41,30 @@ export function IPADisplay({
           </div>
         </div>
 
-        {/* IPA Notation */}
-        <div className="text-center">
-          <div className="text-sm text-muted-foreground mb-1 flex items-center justify-center gap-1">
-            <span>IPA Notation:</span>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <HelpCircle className="h-3 w-3" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p className="text-xs">
-                    International Phonetic Alphabet - shows the sounds, not the spelling.
-                    Focus on matching these sounds when you speak.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+        {/* IPA Notation - only shown if showIPA is true */}
+        {showIPA && (
+          <div className="text-center">
+            <div className="text-sm text-muted-foreground mb-1 flex items-center justify-center gap-1">
+              <span>IPA Notation:</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <HelpCircle className="h-3 w-3" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-xs">
+                      International Phonetic Alphabet - shows the sounds, not the spelling.
+                      Focus on matching these sounds when you speak.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <div className="text-2xl font-mono text-primary/80 leading-relaxed">
+              {ipa}
+            </div>
           </div>
-          <div className="text-2xl font-mono text-primary/80 leading-relaxed">
-            {ipa}
-          </div>
-        </div>
+        )}
 
         {/* Target Phonemes */}
         {showTargets && targetPhonemes.length > 0 && (
