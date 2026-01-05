@@ -105,7 +105,7 @@ export const ENGAGEMENT_MARKERS = [
   'je suis stressée',
   'je suis frustré',
   'je suis frustrée',
-  'ça m'inquiète',
+  "ça m'inquiète",
   'je suis content',
   'je suis contente',
   'ça me soulage',

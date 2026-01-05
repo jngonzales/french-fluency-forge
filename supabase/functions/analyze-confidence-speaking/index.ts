@@ -25,7 +25,7 @@ const OWNERSHIP_MARKERS = [
 
 const ENGAGEMENT_MARKERS = [
   'je suis stressé', 'je suis stressée', 'je suis frustré', 'je suis frustrée',
-  'ça m'inquiète', 'je suis content', 'je suis contente', 'je comprends',
+  "ça m'inquiète", 'je suis content', 'je suis contente', 'je comprends',
   'je vois', 'je vous remercie', 'merci'
 ];
 
