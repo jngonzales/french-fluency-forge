@@ -12,6 +12,7 @@ import {
   AlertCircle, 
   RotateCcw, 
   ChevronRight,
+  ChevronDown,
   Target,
   Lightbulb,
   TrendingUp,
@@ -36,7 +37,16 @@ export function EnhancedFeedbackDisplay({
   const [showPhonemes, setShowPhonemes] = useState(false);
   const [showPractice, setShowPractice] = useState(false);
 
-  const score = result.scores.overall;
+  // Guard against undefined scores
+  if (!result?.scores) {
+    return (
+      <div className="text-center text-muted-foreground p-4">
+        Loading results...
+      </div>
+    );
+  }
+
+  const score = result.scores.overall ?? 0;
   const isExcellent = score >= 85;
   const isGood = score >= 70 && score < 85;
   const isOk = score >= 50 && score < 70;
