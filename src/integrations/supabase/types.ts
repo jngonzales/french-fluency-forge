@@ -820,6 +820,41 @@ export type Database = {
           },
         ]
       }
+      scoring_traces: {
+        Row: {
+          created_at: string | null
+          id: string
+          module_type: string
+          session_id: string | null
+          trace_data: Json
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          module_type: string
+          session_id?: string | null
+          trace_data: Json
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          module_type?: string
+          session_id?: string | null
+          trace_data?: Json
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scoring_traces_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       skill_recordings: {
         Row: {
           ai_breakdown: Json | null
