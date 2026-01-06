@@ -20,7 +20,7 @@ import { Download, Share2, AlertCircle, Target, ChevronRight, Info } from "lucid
 interface SkillScore {
   skill: string;
   score: number;
-  fullMark: 10;
+  fullMark: 100;
   available: boolean;
   description?: string;
   rawValue?: string;
@@ -48,24 +48,10 @@ const SKILL_DESCRIPTIONS: Record<string, string> = {
   Comprehension: "Understanding of natural spoken French at native speed, including informal speech and varied accents."
 };
 
-// Convert WPM to 1-10 scale (target: 80-150 WPM for French)
-const wpmToScore = (wpm: number | null): number => {
-  if (wpm === null) return 0;
-  // Scale: 0 WPM = 1, 120+ WPM = 10
-  const score = Math.min(10, Math.max(1, Math.round((wpm / 120) * 10)));
-  return score;
-};
-
-// Convert pronunciation similarity (0-100) to 1-10 scale
+// Convert pronunciation similarity (0-100) - already on correct scale
 const pronunciationToScore = (similarity: number | null): number => {
   if (similarity === null) return 0;
-  return Math.min(10, Math.max(1, Math.round(similarity / 10)));
-};
-
-// Convert AI score (0-100) to 1-10 scale
-const aiScoreToScale = (score: number | null): number => {
-  if (score === null) return 0;
-  return Math.min(10, Math.max(1, Math.round(score / 10)));
+  return Math.min(100, Math.max(0, Math.round(similarity)));
 };
 
 const Results = () => {
@@ -215,47 +201,47 @@ const Results = () => {
     { 
       skill: "Pronunciation", 
       score: pronunciationToScore(sessionData.pronunciationScore), 
-      fullMark: 10,
+      fullMark: 100,
       available: sessionData.pronunciationScore !== null,
       description: SKILL_DESCRIPTIONS.Pronunciation,
       rawValue: sessionData.pronunciationScore !== null ? `${sessionData.pronunciationScore}% similarity` : undefined
     },
     { 
       skill: "Fluency", 
-      score: wpmToScore(sessionData.fluencyWpm), 
-      fullMark: 10,
+      score: Math.min(100, sessionData.fluencyWpm ?? 0), 
+      fullMark: 100,
       available: sessionData.fluencyWpm !== null,
       description: SKILL_DESCRIPTIONS.Fluency,
       rawValue: sessionData.fluencyWpm !== null ? `${sessionData.fluencyWpm} WPM` : undefined
     },
     { 
       skill: "Confidence", 
-      score: aiScoreToScale(sessionData.confidenceScore), 
-      fullMark: 10,
+      score: sessionData.confidenceScore ?? 0, 
+      fullMark: 100,
       available: sessionData.confidenceScore !== null,
       description: SKILL_DESCRIPTIONS.Confidence,
       rawValue: sessionData.confidenceScore !== null ? `${sessionData.confidenceScore}/100` : undefined
     },
     { 
       skill: "Comprehension", 
-      score: aiScoreToScale(sessionData.comprehensionScore), 
-      fullMark: 10,
+      score: sessionData.comprehensionScore ?? 0, 
+      fullMark: 100,
       available: sessionData.comprehensionScore !== null,
       description: SKILL_DESCRIPTIONS.Comprehension,
       rawValue: sessionData.comprehensionScore !== null ? `${sessionData.comprehensionScore}/100` : undefined
     },
     { 
       skill: "Syntax", 
-      score: aiScoreToScale(sessionData.syntaxScore), 
-      fullMark: 10,
+      score: sessionData.syntaxScore ?? 0, 
+      fullMark: 100,
       available: sessionData.syntaxScore !== null,
       description: SKILL_DESCRIPTIONS.Syntax,
       rawValue: sessionData.syntaxScore !== null ? `${sessionData.syntaxScore}/100` : undefined
     },
     { 
       skill: "Conversation", 
-      score: aiScoreToScale(sessionData.conversationScore), 
-      fullMark: 10,
+      score: sessionData.conversationScore ?? 0, 
+      fullMark: 100,
       available: sessionData.conversationScore !== null,
       description: SKILL_DESCRIPTIONS.Conversation,
       rawValue: sessionData.conversationScore !== null ? `${sessionData.conversationScore}/100` : undefined
@@ -318,7 +304,7 @@ const Results = () => {
               <CardHeader>
                 <CardTitle className="font-serif text-xl">Skills Overview</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Your performance across 6 key language skills (1-10 scale)
+                  Your performance across 6 key language skills (0-100 scale)
                 </p>
               </CardHeader>
               <CardContent>
@@ -332,7 +318,7 @@ const Results = () => {
                       />
                       <PolarRadiusAxis 
                         angle={30} 
-                        domain={[0, 10]} 
+                        domain={[0, 100]} 
                         tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
                         tickCount={6}
                       />
@@ -353,7 +339,7 @@ const Results = () => {
                         formatter={(value: number, name: string, props: any) => {
                           const item = props.payload;
                           if (!item.available) return ["Not yet assessed", name];
-                          return [value + "/10", name];
+                          return [value + "/100", name];
                         }}
                       />
                     </RadarChart>
@@ -384,7 +370,7 @@ const Results = () => {
                             )}
                           </div>
                           <Badge variant="default" className="text-lg font-bold">
-                            {skill.score}/10
+                            {skill.score}/100
                           </Badge>
                         </div>
                         {skill.description && (
@@ -450,25 +436,25 @@ const Results = () => {
               </CardHeader>
               <CardContent className="space-y-4 text-sm text-muted-foreground">
                 <p>
-                  Your French diagnostic measures 6 key language skills on a scale of 1-10. 
+                  Your French diagnostic measures 6 key language skills on a scale of 0-100. 
                   Each skill is assessed through specific exercises designed to evaluate different 
                   aspects of your French proficiency.
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="p-3 rounded-lg bg-muted/20">
-                    <div className="font-medium text-foreground mb-1">1-3: Beginner</div>
+                    <div className="font-medium text-foreground mb-1">0-30: Beginner</div>
                     <p className="text-xs">Foundation skills, needs significant practice</p>
                   </div>
                   <div className="p-3 rounded-lg bg-muted/20">
-                    <div className="font-medium text-foreground mb-1">4-5: Elementary</div>
+                    <div className="font-medium text-foreground mb-1">31-50: Elementary</div>
                     <p className="text-xs">Basic competency, room for improvement</p>
                   </div>
                   <div className="p-3 rounded-lg bg-muted/20">
-                    <div className="font-medium text-foreground mb-1">6-7: Intermediate</div>
+                    <div className="font-medium text-foreground mb-1">51-70: Intermediate</div>
                     <p className="text-xs">Good working knowledge, can handle most situations</p>
                   </div>
                   <div className="p-3 rounded-lg bg-muted/20">
-                    <div className="font-medium text-foreground mb-1">8-10: Advanced</div>
+                    <div className="font-medium text-foreground mb-1">71-100: Advanced</div>
                     <p className="text-xs">Strong proficiency, near-native competency</p>
                   </div>
                 </div>

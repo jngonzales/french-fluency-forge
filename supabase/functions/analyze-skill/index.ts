@@ -55,70 +55,25 @@ Award 3 points each for confident expressions like:
 
 Do NOT subtract points for grammar mistakes, hesitation words (euh…), or accent.`;
 
-const SYNTAX_PROMPT = `You are a French language evaluator. Your task is to assess the grammatical accuracy and syntactic complexity of the student's spoken French.
+const SYNTAX_PROMPT = `You are evaluating the SYNTAX of a French learner.
 
-Evaluate based on:
+Score 0–100 based on:
+- Verb tense consistency
+- Agreement (gender/number)
+- Sentence structure
+- Use of connectors
 
-## 1. Verb Conjugation Accuracy (0–25 points)
-- Correct tense usage (present, passé composé, imparfait, conditional, future)
-- Subject-verb agreement
-- Proper auxiliary selection (être vs avoir)
+Return JSON only.`;
 
-## 2. Sentence Structure Complexity (0–25 points)
-- Simple sentences only: 0-10 pts
-- Compound sentences with connectors (et, mais, parce que): 10-18 pts
-- Complex sentences with subordinate clauses (qui, que, dont, où): 18-25 pts
+const CONVERSATION_PROMPT = `You are evaluating CONVERSATION skills in spoken French.
 
-## 3. Gender & Agreement (0–20 points)
-- Noun-adjective agreement
-- Article accuracy (le, la, les, un, une, des)
-- Pronoun usage
+Score 0–100 based on:
+- Relevance to the prompt
+- Idea development
+- Clarity and coherence
+- Natural conversational markers
 
-## 4. Preposition & Article Contraction (0–15 points)
-- Correct preposition choice (à, de, pour, avec, etc.)
-- Proper contractions (au, aux, du, des)
-
-## 5. Word Order & Negation (0–15 points)
-- Proper French word order (especially with pronouns)
-- Correct negation structure (ne...pas, ne...jamais, ne...rien)
-
-Focus on PRACTICAL communication. Minor errors that don't impede understanding should be penalized less than errors that cause confusion.`;
-
-const CONVERSATION_PROMPT = `You are a French language evaluator. Your task is to assess the student's conversational skills, including comprehension and how they handle misunderstanding.
-
-## Comprehension Assessment (0-50 points)
-
-Evaluate how well the student understood and responded to the prompt:
-
-- 45-50 pts: Understood correctly and answered sensibly with relevant, on-topic response
-- 35-44 pts: Got the gist but slightly off, answered broadly in line with the topic
-- 25-34 pts: Didn't fully understand but used good repair strategies (see below)
-- 15-24 pts: Said something short and not useful like "je ne comprends pas" without elaboration
-- 0-14 pts: Didn't understand and said nothing, or answered completely off-topic
-
-## Misunderstanding Handling (0-30 points)
-
-If the student showed signs of not understanding, assess their repair strategies:
-
-INCREASE score for phrases like:
-- "Pardon, vous voulez dire que… ?"
-- "Je crois que j'ai compris la première partie, mais pas la suite."
-- "Je ne suis pas sûr de ce que vous entendez par X… vous pouvez expliquer ?"
-- "Vous pouvez reformuler ça ?"
-- "J'ai compris jusqu'à X, mais après j'ai décroché."
-
-DECREASE score for:
-- "Hein ?"
-- "Je sais pas."
-- No response after a complex question
-- Answering completely off-topic
-- Ignoring the confusion and changing subject
-
-## Conversational Flow (0-20 points)
-- Natural turn-taking signals
-- Appropriate length of response
-- Engagement with the topic
-- Use of discourse markers (bon, alors, enfin, bref, etc.)`;
+Return JSON only.`;
 
 async function transcribeAudio(audioBase64: string, audioMimeType?: string): Promise<string> {
   console.log('Starting transcription...');
@@ -225,30 +180,23 @@ Analyze this response and provide your evaluation. Include specific evidence quo
             parameters: {
               type: 'object',
               properties: {
-                total_score: {
+                score: {
                   type: 'number',
-                  description: 'Total score out of 100'
+                  description: 'Score from 0-100'
                 },
                 feedback: {
                   type: 'string',
-                  description: '2-3 sentences of feedback in English explaining what the student did well and what could be improved'
-                },
-                breakdown: {
-                  type: 'object',
-                  description: 'Score breakdown by category',
-                  additionalProperties: {
-                    type: 'number'
-                  }
+                  description: 'Feedback in English explaining what the student did well and what could be improved'
                 },
                 evidence: {
                   type: 'array',
-                  description: 'Evidence quotes from transcript supporting the scores',
+                  description: 'Evidence quotes from transcript supporting the score',
                   items: {
                     type: 'string'
                   }
                 }
               },
-              required: ['total_score', 'feedback', 'breakdown', 'evidence']
+              required: ['score', 'feedback', 'evidence']
             }
           }
         }
@@ -274,9 +222,9 @@ Analyze this response and provide your evaluation. Include specific evidence quo
   const args = JSON.parse(toolCall.function.arguments);
   
   return {
-    score: Math.min(100, Math.max(0, args.total_score)),
+    score: Math.min(100, Math.max(0, args.score)),
     feedback: args.feedback,
-    breakdown: args.breakdown,
+    breakdown: {},
     evidence: args.evidence || []
   };
 }
@@ -399,7 +347,6 @@ serve(async (req) => {
         ai_score: analysis.score,
         ai_feedback: analysis.feedback,
         ai_breakdown: {
-          ...analysis.breakdown,
           evidence: analysis.evidence,
           flags: analysis.flags,
           versions

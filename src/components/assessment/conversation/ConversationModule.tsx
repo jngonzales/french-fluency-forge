@@ -136,32 +136,33 @@ export function ConversationModule({ sessionId, onComplete }: ConversationModule
       throw insertError;
     }
 
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-skill`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          transcript,
-          moduleType,
-          itemId: prompt.id,
-          promptText: prompt.payload.question,
-          recordingId: recording.id,
-        }),
-      }
-    );
+    const { data, error } = await supabase.functions.invoke('analyze-skill', {
+      body: {
+        transcript,
+        moduleType,
+        itemId: prompt.id,
+        promptText: prompt.payload.question,
+        recordingId: recording.id,
+      },
+    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
+    if (error) {
       await supabase
         .from('skill_recordings')
-        .update({ status: 'error', error_message: errorText })
+        .update({ status: 'error', error_message: error.message || 'Failed to analyze skill' })
         .eq('id', recording.id);
+      throw error;
+    }
 
-      throw new Error(errorText || 'Failed to analyze skill');
+    // Verify status is completed
+    const { data: updatedRecording } = await supabase
+      .from('skill_recordings')
+      .select('status')
+      .eq('id', recording.id)
+      .single();
+
+    if (updatedRecording?.status !== 'completed') {
+      throw new Error(`Skill analysis did not complete. Status: ${updatedRecording?.status}`);
     }
   };
 
@@ -204,33 +205,21 @@ export function ConversationModule({ sessionId, onComplete }: ConversationModule
         throw fluencyInsertError;
       }
 
-      const fluencyResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-fluency`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            audio: base64Audio,
-            itemId: prompt.id,
-            recordingDuration: recordingTime,
-          }),
-        }
-      );
+      const { data: fluencyResult, error: fluencyError } = await supabase.functions.invoke('analyze-fluency', {
+        body: {
+          audio: base64Audio,
+          itemId: prompt.id,
+          recordingDuration: recordingTime,
+        },
+      });
 
-      if (!fluencyResponse.ok) {
-        const errorText = await fluencyResponse.text();
+      if (fluencyError) {
         await supabase
           .from('fluency_recordings')
-          .update({ status: 'error', error_message: errorText })
+          .update({ status: 'error', error_message: fluencyError.message || 'Failed to analyze fluency' })
           .eq('id', fluencyRecording.id);
-        throw new Error(errorText || 'Failed to analyze fluency');
+        throw fluencyError;
       }
-
-      const fluencyResult = await fluencyResponse.json();
 
       await supabase
         .from('fluency_recordings')
@@ -321,15 +310,18 @@ export function ConversationModule({ sessionId, onComplete }: ConversationModule
             )}
 
             {!isRecording && audioBlob && (
-              <div className="flex items-center gap-3">
-                <Button variant="outline" onClick={handleReset} className="gap-2">
-                  <RotateCcw className="h-4 w-4" />
-                  Record again
-                </Button>
-                <Button onClick={handleSubmit} disabled={isSubmitting} className="gap-2">
-                  {isSubmitting ? 'Analyzing...' : 'Submit recording'}
-                  <Check className="h-4 w-4" />
-                </Button>
+              <div className="flex flex-col items-center gap-3">
+                <p className="text-sm text-muted-foreground">Recording saved.</p>
+                <div className="flex items-center gap-3">
+                  <Button variant="outline" onClick={handleReset} className="gap-2">
+                    <RotateCcw className="h-4 w-4" />
+                    Record again
+                  </Button>
+                  <Button onClick={handleSubmit} disabled={isSubmitting} className="gap-2">
+                    {isSubmitting ? 'Analyzing...' : 'Submit recording'}
+                    <Check className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
 

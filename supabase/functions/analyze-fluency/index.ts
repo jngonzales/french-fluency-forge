@@ -253,6 +253,7 @@ serve(async (req) => {
       metrics.pauseRatio
     );
     const totalScore = speedSubscore + pauseSubscore;
+    const fluencyScore = Math.min(100, Math.max(0, metrics.articulationWpm));
 
     console.log(`[Fluency] Analysis complete:`, {
       wordCount: metrics.wordCount,
@@ -261,6 +262,7 @@ serve(async (req) => {
       speedSubscore,
       pauseSubscore,
       totalScore,
+      fluencyScore,
     });
 
     // Version tracking
@@ -280,6 +282,7 @@ serve(async (req) => {
         duration: audioDuration,
         speakingTime: metrics.speakingTime,
         articulationWpm: metrics.articulationWpm,
+        wpm: metrics.articulationWpm,
         // Pause analysis
         longPauseCount: metrics.longPauseCount,
         maxPause: metrics.maxPause,
@@ -291,6 +294,7 @@ serve(async (req) => {
         speedSubscore,
         pauseSubscore,
         totalScore,
+        fluencyScore,
         // Versions
         versions,
       }),
