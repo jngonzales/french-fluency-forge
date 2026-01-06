@@ -22,8 +22,8 @@ type SessionStatus = Database["public"]["Enums"]["session_status"];
 // 4 assessment modules:
 // A. Pronunciation - pronunciation exercises
 // B. Comprehension - listening comprehension
-// C. Confidence - confidence questionnaire + phone call
-// D. Conversation - conversation-agent that evaluates fluency, confidence, conversation and syntax
+// C. Confidence - confidence questionnaire only
+// D. Speech test - open-ended prompt for fluency, syntax, conversation skills
 type AssessmentPhase = "pronunciation" | "comprehension" | "confidence" | "conversation";
 interface AssessmentSession {
   id: string;
