@@ -47,19 +47,41 @@ export async function uploadPhraseAudio(
  */
 export async function audioExists(phraseId: string, format: 'mp3' | 'wav' = 'mp3'): Promise<boolean> {
   const fileName = `${phraseId}.${format}`;
-  
+  const publicUrl = getAudioPublicUrl(phraseId, format);
+
+  if (publicUrl) {
+    try {
+      const headResponse = await fetch(publicUrl, { method: 'HEAD' });
+      if (headResponse.ok) {
+        return true;
+      }
+      if (headResponse.status === 405) {
+        const getResponse = await fetch(publicUrl, {
+          method: 'GET',
+          headers: { Range: 'bytes=0-0' },
+        });
+        if (getResponse.ok || getResponse.status === 416) {
+          return true;
+        }
+      }
+      if (headResponse.status === 404) {
+        return false;
+      }
+    } catch (error) {
+      console.warn('Error probing public audio URL:', error);
+    }
+  }
+
   const { data, error } = await supabase.storage
     .from(STORAGE_BUCKET)
-    .list('', {
-      search: fileName,
-    });
+    .download(fileName);
 
   if (error) {
     console.error('Error checking audio existence:', error);
     return false;
   }
 
-  return data && data.length > 0;
+  return Boolean(data);
 }
 
 /**
@@ -111,4 +133,3 @@ export async function ensureStorageBucket(): Promise<void> {
     console.warn(`Storage bucket "${STORAGE_BUCKET}" does not exist. Please create it in Supabase dashboard.`);
   }
 }
-
