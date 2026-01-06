@@ -15,7 +15,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { getAssessmentItems, type ComprehensionItem } from './comprehensionItems';
+import { getAssessmentItems, type ComprehensionItemWithPrompt } from './comprehensionItems';
 
 interface ComprehensionModuleProps {
   sessionId: string;
@@ -35,21 +35,34 @@ type ItemPhase = 'ready' | 'playing' | 'played' | 'answering' | 'processing' | '
 export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModuleProps) {
   const { user } = useAuth();
   const [showIntro, setShowIntro] = useState(true);
-  const [items] = useState<ComprehensionItem[]>(getAssessmentItems());
+  const [items, setItems] = useState<ComprehensionItemWithPrompt[]>([]);
+  const [isLoadingItems, setIsLoadingItems] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [itemPhase, setItemPhase] = useState<ItemPhase>('ready');
   const [results, setResults] = useState<Record<string, MultiSelectResult>>({});
   const [audioPlayedAt, setAudioPlayedAt] = useState<Record<string, Date>>({});
-  const [audioUrls, setAudioUrls] = useState<Record<string, string>>({});
-  const [isLoadingAudio, setIsLoadingAudio] = useState<Record<string, boolean>>({});
   const [selectedOptions, setSelectedOptions] = useState<Record<string, Set<string>>>({});
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  
-  const STORAGE_BUCKET = 'phrases-audio'; // Reusing existing bucket
 
   const currentItem = items[currentIndex];
   const isLastItem = currentIndex === items.length - 1;
+
+  // Load items from database on mount
+  useEffect(() => {
+    async function loadItems() {
+      try {
+        const fetchedItems = await getAssessmentItems();
+        setItems(fetchedItems);
+      } catch (error) {
+        console.error('Failed to load comprehension items:', error);
+        toast.error('Failed to load comprehension exercises');
+      } finally {
+        setIsLoadingItems(false);
+      }
+    }
+    loadItems();
+  }, []);
 
   // Initialize selected options for current item
   useEffect(() => {
@@ -61,97 +74,17 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
     }
   }, [currentItem, selectedOptions]);
 
-  // Load audio: check storage first, then generate if needed
-  const loadAudio = useCallback(async () => {
-    if (!currentItem || audioUrls[currentItem.id] || isLoadingAudio[currentItem.id]) return;
-    
-    setIsLoadingAudio(prev => ({ ...prev, [currentItem.id]: true }));
-    
-    try {
-      // First, check if pre-generated audio exists in storage
-      const fileName = `${currentItem.id}.mp3`;
-      const { data: urlData } = supabase.storage
-        .from(STORAGE_BUCKET)
-        .getPublicUrl(fileName);
-      
-      if (urlData?.publicUrl) {
-        // Check if file actually exists
-        try {
-          const headResponse = await fetch(urlData.publicUrl, { method: 'HEAD' });
-          if (headResponse.ok) {
-            // Pre-generated audio exists - use it!
-            setAudioUrls(prev => ({ ...prev, [currentItem.id]: urlData.publicUrl }));
-            setIsLoadingAudio(prev => ({ ...prev, [currentItem.id]: false }));
-            return;
-          }
-        } catch (e) {
-          // File doesn't exist, fall through to generation
-        }
-      }
-      
-      // Fallback: Generate on-demand
-      const { data, error } = await supabase.functions.invoke('french-tts', {
-        body: { 
-          text: currentItem.transcript_fr,
-          speed: 1.2,
-          stability: 0.35
-        }
-      });
-      
-      if (error) throw error;
-      
-      if (data) {
-        let audioUrl: string;
-        
-        if (data instanceof Blob) {
-          audioUrl = URL.createObjectURL(data);
-        } else if (data instanceof ArrayBuffer) {
-          const blob = new Blob([data], { type: 'audio/mpeg' });
-          audioUrl = URL.createObjectURL(blob);
-        } else if (typeof data === 'object' && data.audioContent) {
-          audioUrl = `data:audio/mp3;base64,${data.audioContent}`;
-        } else {
-          throw new Error('Unexpected audio response format');
-        }
-        
-        setAudioUrls(prev => ({ ...prev, [currentItem.id]: audioUrl }));
-      } else {
-        throw new Error('No audio data received');
-      }
-    } catch (err) {
-      console.error('Error loading audio:', err);
-      toast.error('Failed to load audio');
-    } finally {
-      setIsLoadingAudio(prev => ({ ...prev, [currentItem.id]: false }));
-    }
-  }, [currentItem, audioUrls, isLoadingAudio]);
+  // Audio is already in database, no need to load separately
 
-  // Load audio when item changes
-  useEffect(() => {
-    if (currentItem && !showIntro) {
-      loadAudio();
-    }
-  }, [currentItem, showIntro, loadAudio]);
-
-  const handlePlayAudio = async () => {
-    if (!currentItem) return;
-    
-    // Ensure audio is loaded
-    if (!audioUrls[currentItem.id]) {
-      await loadAudio();
-      // Wait a bit for audio to load
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    const audioUrl = audioUrls[currentItem.id];
-    if (!audioUrl) {
-      toast.error('Audio not ready yet');
+  const handlePlayAudio = () => {
+    if (!currentItem || !currentItem.audio_url) {
+      toast.error('Audio not available');
       return;
     }
     
     setItemPhase('playing');
     
-    const audio = new Audio(audioUrl);
+    const audio = new Audio(currentItem.audio_url);
     audioRef.current = audio;
     
     audio.onended = () => {
@@ -348,8 +281,7 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
 
   const result = results[currentItem.id];
   const hasPlayed = !!audioPlayedAt[currentItem.id];
-  const isAudioReady = !!audioUrls[currentItem.id];
-  const isLoading = isLoadingAudio[currentItem.id] || false;
+  const isAudioReady = !!currentItem?.audio_url;
   const selectedCount = selectedOptions[currentItem.id]?.size || 0;
 
   return (
@@ -372,12 +304,7 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
         <CardContent className="space-y-6">
           {/* Audio section */}
           <div className="bg-muted/30 rounded-lg p-6 text-center space-y-4">
-            {isLoading ? (
-              <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Loading audio...</span>
-              </div>
-            ) : itemPhase === 'playing' ? (
+            {itemPhase === 'playing' ? (
               <div className="flex items-center justify-center gap-3">
                 <Volume2 className="h-6 w-6 text-primary animate-pulse" />
                 <span className="text-lg">Playing audio...</span>
@@ -387,7 +314,7 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
                 size="lg" 
                 onClick={handlePlayAudio}
                 className="gap-2"
-                disabled={!isAudioReady && !isLoading}
+                disabled={!isAudioReady}
               >
                 {isAudioReady ? (
                   <>
@@ -403,7 +330,7 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
               </Button>
             )}
             
-            {(itemPhase === 'answering' || itemPhase === 'processing' || itemPhase === 'complete') && hasPlayed && isAudioReady && (
+            {hasPlayed && isAudioReady && (
               <Button
                 variant="outline"
                 size="sm"
@@ -416,8 +343,8 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
             )}
           </div>
 
-          {/* Multi-select options */}
-          {(itemPhase === 'answering' || itemPhase === 'processing' || itemPhase === 'complete') && hasPlayed && (
+          {/* Multi-select options - Always displayed */}
+          {currentItem && (
             <div className="space-y-4">
               <div className="text-center text-sm text-muted-foreground">
                 Select all statements that are true. You can select multiple options.
@@ -435,29 +362,20 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
                     {option.fr}
                   </Button>
                 ))}
-              </div>
+                </div>
               
-              {itemPhase !== 'complete' && (
+              {itemPhase !== 'complete' && itemPhase !== 'processing' && (
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-sm text-muted-foreground">
                     {selectedCount} option{selectedCount !== 1 ? 's' : ''} selected
                   </span>
                   <Button 
                     onClick={handleSubmit}
-                    disabled={selectedCount === 0 || itemPhase === 'processing'}
+                    disabled={selectedCount === 0 || !hasPlayed}
                     className="gap-2"
                   >
-                    {itemPhase === 'processing' ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        Submit
-                        <Check className="h-4 w-4" />
-                      </>
-                    )}
+                    Submit
+                    <Check className="h-4 w-4" />
                   </Button>
                 </div>
               )}
