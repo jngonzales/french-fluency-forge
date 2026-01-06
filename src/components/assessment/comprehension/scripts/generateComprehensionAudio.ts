@@ -130,7 +130,7 @@ export async function generateAllComprehensionAudio(): Promise<Array<{ itemId: s
   console.log('Starting audio generation for all comprehension items...');
 
   // Fetch items from database that don't have audio yet
-  const { data: items, error: fetchError } = await supabase
+  const { data, error: fetchError } = await supabase
     .from('comprehension_items' as any)
     .select('id, transcript_fr, audio_url')
     .is('audio_url', null);
@@ -139,7 +139,9 @@ export async function generateAllComprehensionAudio(): Promise<Array<{ itemId: s
     throw new Error(`Failed to fetch items: ${fetchError.message}`);
   }
 
-  if (!items || items.length === 0) {
+  const items = (data || []) as unknown as Array<{ id: string; transcript_fr: string; audio_url: string | null }>;
+
+  if (items.length === 0) {
     console.log('No items need audio generation (all items already have audio_url)');
     return [];
   }
