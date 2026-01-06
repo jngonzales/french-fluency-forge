@@ -214,18 +214,51 @@ Analyze this response and provide your evaluation. Include specific evidence quo
   const result = await response.json();
   console.log('AI analysis result:', JSON.stringify(result).substring(0, 500));
   
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/124f6311-db23-45e5-999d-c67603bf859a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'analyze-skill/index.ts:214',message:'AI response received',data:{hasChoices:!!result.choices,choicesLength:result.choices?.length,firstChoice:result.choices?.[0]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+  
   const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/124f6311-db23-45e5-999d-c67603bf859a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'analyze-skill/index.ts:218',message:'Tool call extracted',data:{hasToolCall:!!toolCall,toolCallName:toolCall?.function?.name,hasArguments:!!toolCall?.function?.arguments,argumentsPreview:toolCall?.function?.arguments?.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+  
   if (!toolCall) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/124f6311-db23-45e5-999d-c67603bf859a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'analyze-skill/index.ts:220',message:'No tool call error',data:{fullResult:JSON.stringify(result).substring(0,1000)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     throw new Error('No tool call in AI response');
   }
   
-  const args = JSON.parse(toolCall.function.arguments);
+  let args;
+  try {
+    args = JSON.parse(toolCall.function.arguments);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/124f6311-db23-45e5-999d-c67603bf859a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'analyze-skill/index.ts:225',message:'Args parsed successfully',data:{hasScore:!!args.score,scoreValue:args.score,hasTotalScore:!!args.total_score,totalScoreValue:args.total_score,hasFeedback:!!args.feedback,hasEvidence:!!args.evidence,evidenceIsArray:Array.isArray(args.evidence),allKeys:Object.keys(args)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,C'})}).catch(()=>{});
+    // #endregion
+  } catch (parseError) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/124f6311-db23-45e5-999d-c67603bf859a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'analyze-skill/index.ts:227',message:'JSON parse error',data:{error:parseError instanceof Error ? parseError.message : String(parseError),rawArguments:toolCall.function.arguments?.substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    throw new Error(`Failed to parse tool call arguments: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+  }
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/124f6311-db23-45e5-999d-c67603bf859a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'analyze-skill/index.ts:232',message:'Before score calculation',data:{argsScore:args.score,argsTotalScore:args.total_score,willUseScore:!!args.score,willUseTotalScore:!!args.total_score},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,C'})}).catch(()=>{});
+  // #endregion
+  
+  const finalScore = args.score ?? args.total_score ?? 0;
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/124f6311-db23-45e5-999d-c67603bf859a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'analyze-skill/index.ts:236',message:'Returning result',data:{finalScore,hasFeedback:!!args.feedback,evidenceLength:Array.isArray(args.evidence) ? args.evidence.length : 'not-array'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,C,D'})}).catch(()=>{});
+  // #endregion
   
   return {
-    score: Math.min(100, Math.max(0, args.score)),
-    feedback: args.feedback,
+    score: Math.min(100, Math.max(0, finalScore)),
+    feedback: args.feedback || '',
     breakdown: {},
-    evidence: args.evidence || []
+    evidence: Array.isArray(args.evidence) ? args.evidence : []
   };
 }
 
@@ -283,7 +316,15 @@ serve(async (req) => {
   }
 
   try {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/124f6311-db23-45e5-999d-c67603bf859a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'analyze-skill/index.ts:280',message:'Function entry',data:{method:req.method,hasBody:!!req.body},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'ALL'})}).catch(()=>{});
+    // #endregion
+    
     const { audioBase64, audioMimeType, transcript: directTranscript, moduleType, itemId, promptText, recordingId } = await req.json();
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/124f6311-db23-45e5-999d-c67603bf859a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'analyze-skill/index.ts:286',message:'Request parsed',data:{moduleType,hasTranscript:!!directTranscript,transcriptLength:directTranscript?.length,hasRecordingId:!!recordingId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'ALL'})}).catch(()=>{});
+    // #endregion
 
     // Either audioBase64 or directTranscript is required
     if ((!audioBase64 && !directTranscript) || !moduleType || !itemId || !promptText || !recordingId) {
@@ -329,7 +370,15 @@ serve(async (req) => {
     const wordCount = transcript.split(/\s+/).filter(w => w.length > 0).length;
 
     // Analyze with AI (with determinism guard)
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/124f6311-db23-45e5-999d-c67603bf859a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'analyze-skill/index.ts:384',message:'Before AI analysis',data:{moduleType,transcriptLength:transcript.length,promptTextLength:promptText.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'ALL'})}).catch(()=>{});
+    // #endregion
+    
     const analysis = await analyzeWithDeterminismGuard(transcript, moduleType, promptText);
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/124f6311-db23-45e5-999d-c67603bf859a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'analyze-skill/index.ts:390',message:'AI analysis complete',data:{score:analysis.score,hasFeedback:!!analysis.feedback,evidenceLength:analysis.evidence?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'ALL'})}).catch(()=>{});
+    // #endregion
 
     // Version tracking
     const versions = {
@@ -383,6 +432,10 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in analyze-skill:', error);
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/124f6311-db23-45e5-999d-c67603bf859a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'analyze-skill/index.ts:437',message:'Error caught',data:{errorMessage:error instanceof Error ? error.message : String(error),errorStack:error instanceof Error ? error.stack : 'no-stack',errorType:typeof error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'ALL'})}).catch(()=>{});
+    // #endregion
     
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
