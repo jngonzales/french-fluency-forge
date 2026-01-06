@@ -274,7 +274,7 @@ export function usePhrasesSession() {
     }
 
     return updatedCard;
-  }, [sessionState, currentCard, currentPhrase, cards, saveCards, reviewLogs, saveLogs, memberId, speechResult, settings]);
+  }, [sessionState, currentCard, currentPhrase, cards, persistCards, reviewLogs, persistLogs, memberId, speechResult, settings]);
 
   // Card actions during session
   const buryCard = useCallback(() => {
@@ -298,7 +298,7 @@ export function usePhrasesSession() {
       startTime: Date.now(),
       revealTime: undefined,
     });
-  }, [currentCard, cards, saveCards, sessionState]);
+  }, [currentCard, cards, persistCards, sessionState]);
 
   const suspendCard = useCallback(() => {
     if (!currentCard) return;
@@ -321,7 +321,7 @@ export function usePhrasesSession() {
       startTime: Date.now(),
       revealTime: undefined,
     });
-  }, [currentCard, cards, saveCards, sessionState]);
+  }, [currentCard, cards, persistCards, sessionState]);
 
   const removeCard = useCallback(() => {
     if (!currentCard) return;
@@ -344,7 +344,7 @@ export function usePhrasesSession() {
       startTime: Date.now(),
       revealTime: undefined,
     });
-  }, [currentCard, cards, saveCards, sessionState]);
+  }, [currentCard, cards, persistCards, sessionState]);
 
   const flagCard = useCallback((reason: string) => {
     if (!currentCard) return;
@@ -356,7 +356,7 @@ export function usePhrasesSession() {
     };
     const updatedCards = cards.map((c) => c.id === updatedCard.id ? updatedCard : c);
     persistCards(updatedCards);
-  }, [currentCard, cards, saveCards]);
+  }, [currentCard, cards, persistCards]);
 
   const addNote = useCallback((note: string) => {
     if (!currentCard) return;
@@ -367,8 +367,8 @@ export function usePhrasesSession() {
       updated_at: new Date().toISOString(),
     };
     const updatedCards = cards.map((c) => c.id === updatedCard.id ? updatedCard : c);
-    saveCards(updatedCards);
-  }, [currentCard, cards, saveCards]);
+    persistCards(updatedCards);
+  }, [currentCard, cards, persistCards]);
 
   // Get interval previews for current card (using FSRS)
   const fsrsConfig = getFSRSConfigFromSettings(settings);
