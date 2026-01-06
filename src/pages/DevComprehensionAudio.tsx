@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCircle, XCircle, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { generateAllComprehensionAudio } from '@/components/assessment/comprehension/scripts/generateComprehensionAudio';
+// Audio generation is now done via scripts/generate-comprehension-audio-local.ts
+// This page is kept for reference but the old function is deprecated
 import { getComprehensionItems, type ComprehensionItem } from '@/components/assessment/comprehension/comprehensionItems';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -27,7 +28,7 @@ export default function DevComprehensionAudio() {
           .order('id', { ascending: true });
         
         if (error) throw error;
-        setItems((data || []) as unknown as ComprehensionItem[]);
+        setItems((data || []) as ComprehensionItem[]);
       } catch (error) {
         console.error('Failed to load items:', error);
         toast.error('Failed to load comprehension items');
@@ -57,7 +58,9 @@ export default function DevComprehensionAudio() {
         }
       };
 
-      const genResults = await generateAllComprehensionAudio();
+      // Deprecated: Use scripts/generate-comprehension-audio-local.ts instead
+      toast.error('Use scripts/generate-comprehension-audio-local.ts to generate audio files locally');
+      const genResults: Array<{ itemId: string; success: boolean; audioUrl?: string; error?: string }> = [];
       
       console.log = originalLog;
       setResults(genResults);
@@ -68,7 +71,7 @@ export default function DevComprehensionAudio() {
         .select('*')
         .order('cefr_level', { ascending: true })
         .order('id', { ascending: true });
-      if (data) setItems(data as unknown as ComprehensionItem[]);
+      if (data) setItems(data as ComprehensionItem[]);
       
       const successful = genResults.filter(r => r.success).length;
       toast.success(`Generated audio for ${successful}/${itemsNeedingAudio.length} items`);

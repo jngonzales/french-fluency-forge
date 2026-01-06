@@ -198,23 +198,183 @@ export function ConversationModule({ sessionId, onComplete }: ConversationModule
       payload: { transcript: transcript.substring(0, 100) + '...', moduleType, recordingId: recording.id },
     });
 
-    const { data, error } = await supabase.functions.invoke('analyze-skill', {
-      body: {
-        transcript,
-        moduleType,
-        itemId: prompt.id,
-        promptText: prompt.payload.question,
-        recordingId: recording.id,
-      },
-    });
+    // Try to get the actual response by making a direct fetch call to see what's really happening
+    let directResponseData: any = null;
+    let directResponseStatus: number | null = null;
+    let directResponseText: string | null = null;
+    
+    try {
+      // First, make a direct fetch to see the actual response
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const directResponse = await fetch(`${supabaseUrl}/functions/v1/analyze-skill`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': supabaseKey,
+        },
+        body: JSON.stringify({
+          transcript,
+          moduleType,
+          itemId: prompt.id,
+          promptText: prompt.payload.question,
+          recordingId: recording.id,
+        }),
+      });
 
-    if (error) {
-      updateStep(`${stepId}-edge-function`, 'error', null, error.message || 'Unknown error');
+      directResponseStatus = directResponse.status;
+      directResponseText = await directResponse.text();
+      
+      updateStep(`${stepId}-direct-fetch`, directResponse.ok ? 'success' : 'error', {
+        status: directResponseStatus,
+        statusText: directResponse.statusText,
+        ok: directResponse.ok,
+        responseTextLength: directResponseText.length,
+        responseTextPreview: directResponseText.substring(0, 500),
+      });
+
+      if (directResponse.ok) {
+        try {
+          directResponseData = JSON.parse(directResponseText);
+          updateStep(`${stepId}-direct-fetch-parse`, 'success', {
+            hasData: !!directResponseData,
+            dataKeys: directResponseData ? Object.keys(directResponseData) : [],
+            hasScore: !!directResponseData?.score,
+          });
+        } catch (parseError) {
+          updateStep(`${stepId}-direct-fetch-parse`, 'error', {
+            parseError: parseError instanceof Error ? parseError.message : String(parseError),
+            responseText: directResponseText.substring(0, 1000),
+          });
+        }
+      } else {
+        try {
+          directResponseData = JSON.parse(directResponseText);
+        } catch {
+          directResponseData = { rawText: directResponseText };
+        }
+      }
+    } catch (fetchError) {
+      updateStep(`${stepId}-direct-fetch`, 'error', {
+        fetchError: fetchError instanceof Error ? fetchError.message : String(fetchError),
+      });
+    }
+
+    // Now try the Supabase client invoke
+    let errorResponseBody: any = null;
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-skill', {
+        body: {
+          transcript,
+          moduleType,
+          itemId: prompt.id,
+          promptText: prompt.payload.question,
+          recordingId: recording.id,
+        },
+      });
+
+      updateStep(`${stepId}-supabase-invoke`, error ? 'error' : 'success', {
+        hasData: !!data,
+        hasError: !!error,
+        errorMessage: error?.message,
+        dataKeys: data ? Object.keys(data) : [],
+      });
+
+      if (error) {
+        // Try to fetch the error response directly to get the full error body
+        try {
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+          const directResponse = await fetch(`${supabaseUrl}/functions/v1/analyze-skill`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+              'apikey': supabaseKey,
+            },
+            body: JSON.stringify({
+              transcript,
+              moduleType,
+              itemId: prompt.id,
+              promptText: prompt.payload.question,
+              recordingId: recording.id,
+            }),
+          });
+
+          if (!directResponse.ok) {
+            errorResponseBody = await directResponse.json().catch(() => ({ rawText: await directResponse.text().catch(() => 'Could not read response') }));
+          }
+        } catch (fetchError) {
+          console.error('Failed to fetch error response directly:', fetchError);
+        }
+
+        // Try to extract more details from the error
+        let errorDetails: any = {
+          message: error.message,
+          name: error.name,
+          status: (error as any).status,
+          context: (error as any).context,
+          errorResponseBody: errorResponseBody,
+          directResponseStatus: directResponseStatus,
+          directResponseData: directResponseData,
+          directResponseText: directResponseText?.substring(0, 1000),
+        };
+
+        // If data exists, it might contain error details from the edge function
+        if (data && typeof data === 'object') {
+          errorDetails.edgeFunctionError = data;
+        }
+
+        // If direct fetch was successful but Supabase client sees error, that's the issue
+        if (directResponseStatus === 200 && error) {
+          errorDetails.discrepancy = 'Direct fetch returned 200 OK but Supabase client reports error';
+          errorDetails.directResponseParsed = directResponseData;
+        }
+
+        updateStep(`${stepId}-edge-function`, 'error', {
+          errorMessage: error.message || 'Unknown error',
+          errorDetails: errorDetails,
+          fullErrorObject: JSON.stringify(error, Object.getOwnPropertyNames(error), 2),
+          responseData: data,
+          directErrorResponse: errorResponseBody,
+          directFetchStatus: directResponseStatus,
+          directFetchData: directResponseData,
+        }, error.message || 'Unknown error');
+        
       await supabase
         .from('skill_recordings')
-        .update({ status: 'error', error_message: error.message || 'Failed to analyze skill' })
+          .update({ 
+            status: 'error', 
+            error_message: error.message || 'Failed to analyze skill',
+            ai_breakdown: { errorDetails: errorDetails }
+          })
         .eq('id', recording.id);
-      throw error;
+        throw error;
+      }
+
+      // If direct fetch succeeded but Supabase client also succeeded, compare them
+      if (directResponseStatus === 200 && directResponseData) {
+        updateStep(`${stepId}-response-comparison`, 'success', {
+          directFetchScore: directResponseData.score,
+          supabaseClientScore: data?.score,
+          scoresMatch: directResponseData.score === data?.score,
+        });
+      }
+
+      updateStep(`${stepId}-edge-function`, 'success', {
+        response: data ? { score: data.score, hasFeedback: !!data.feedback } : null,
+        directFetchStatus: directResponseStatus,
+        directFetchScore: directResponseData?.score,
+      });
+    } catch (invokeError) {
+      // Catch any errors from the invoke call itself
+      updateStep(`${stepId}-edge-function-invoke-error`, 'error', {
+        invokeError: invokeError instanceof Error ? invokeError.message : String(invokeError),
+        invokeStack: invokeError instanceof Error ? invokeError.stack : 'no-stack',
+        errorResponseBody: errorResponseBody,
+      });
+      throw invokeError;
     }
 
     updateStep(`${stepId}-edge-function`, 'success', {
@@ -300,9 +460,9 @@ export function ConversationModule({ sessionId, onComplete }: ConversationModule
       });
       const { data: fluencyResult, error: fluencyError } = await supabase.functions.invoke('analyze-fluency', {
         body: {
-          audio: base64Audio,
-          itemId: prompt.id,
-          recordingDuration: recordingTime,
+            audio: base64Audio,
+            itemId: prompt.id,
+            recordingDuration: recordingTime,
         },
       });
 
@@ -438,15 +598,15 @@ export function ConversationModule({ sessionId, onComplete }: ConversationModule
             {!isRecording && audioBlob && (
               <div className="flex flex-col items-center gap-3">
                 <p className="text-sm text-muted-foreground">Recording saved.</p>
-                <div className="flex items-center gap-3">
-                  <Button variant="outline" onClick={handleReset} className="gap-2">
-                    <RotateCcw className="h-4 w-4" />
-                    Record again
-                  </Button>
-                  <Button onClick={handleSubmit} disabled={isSubmitting} className="gap-2">
-                    {isSubmitting ? 'Analyzing...' : 'Submit recording'}
-                    <Check className="h-4 w-4" />
-                  </Button>
+              <div className="flex items-center gap-3">
+                <Button variant="outline" onClick={handleReset} className="gap-2">
+                  <RotateCcw className="h-4 w-4" />
+                  Record again
+                </Button>
+                <Button onClick={handleSubmit} disabled={isSubmitting} className="gap-2">
+                  {isSubmitting ? 'Analyzing...' : 'Submit recording'}
+                  <Check className="h-4 w-4" />
+                </Button>
                 </div>
               </div>
             )}

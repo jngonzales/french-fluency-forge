@@ -63,7 +63,7 @@ Score 0–100 based on:
 - Sentence structure
 - Use of connectors
 
-Return JSON only.`;
+Use the submit_evaluation function to return your evaluation.`;
 
 const CONVERSATION_PROMPT = `You are evaluating CONVERSATION skills in spoken French.
 
@@ -73,7 +73,7 @@ Score 0–100 based on:
 - Clarity and coherence
 - Natural conversational markers
 
-Return JSON only.`;
+Use the submit_evaluation function to return your evaluation.`;
 
 async function transcribeAudio(audioBase64: string, audioMimeType?: string): Promise<string> {
   console.log('Starting transcription...');
@@ -132,6 +132,11 @@ async function analyzeWithAI(transcript: string, moduleType: string, promptText:
 }> {
   console.log(`Analyzing ${moduleType} with AI...`);
   
+  if (!OPENAI_API_KEY) {
+    console.error('OPENAI_API_KEY is not set');
+    throw new Error('OpenAI API key not configured');
+  }
+  
   let systemPrompt = '';
   switch (moduleType) {
     case 'confidence':
@@ -147,6 +152,7 @@ async function analyzeWithAI(transcript: string, moduleType: string, promptText:
       throw new Error(`Unknown module type: ${moduleType}`);
   }
 
+  console.log(`[${moduleType}] Calling OpenAI API with transcript length: ${transcript.length}`);
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -206,13 +212,14 @@ Analyze this response and provide your evaluation. Include specific evidence quo
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    console.error('AI gateway error:', error);
-    throw new Error(`AI analysis failed: ${error}`);
+    const errorText = await response.text();
+    console.error(`[${moduleType}] OpenAI API error (${response.status}):`, errorText);
+    throw new Error(`OpenAI API error (${response.status}): ${errorText.substring(0, 500)}`);
   }
 
   const result = await response.json();
-  console.log('AI analysis result:', JSON.stringify(result).substring(0, 500));
+  console.log(`[${moduleType}] OpenAI API response received, choices: ${result.choices?.length || 0}`);
+  console.log(`[${moduleType}] AI analysis result preview:`, JSON.stringify(result).substring(0, 500));
   
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/124f6311-db23-45e5-999d-c67603bf859a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'analyze-skill/index.ts:214',message:'AI response received',data:{hasChoices:!!result.choices,choicesLength:result.choices?.length,firstChoice:result.choices?.[0]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
@@ -370,15 +377,22 @@ serve(async (req) => {
     const wordCount = transcript.split(/\s+/).filter(w => w.length > 0).length;
 
     // Analyze with AI (with determinism guard)
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/124f6311-db23-45e5-999d-c67603bf859a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'analyze-skill/index.ts:384',message:'Before AI analysis',data:{moduleType,transcriptLength:transcript.length,promptTextLength:promptText.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'ALL'})}).catch(()=>{});
-    // #endregion
+    console.log(`[${moduleType}] Starting AI analysis for recording ${recordingId}`);
+    console.log(`[${moduleType}] Transcript length: ${transcript.length}, Prompt length: ${promptText.length}`);
     
-    const analysis = await analyzeWithDeterminismGuard(transcript, moduleType, promptText);
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/124f6311-db23-45e5-999d-c67603bf859a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'analyze-skill/index.ts:390',message:'AI analysis complete',data:{score:analysis.score,hasFeedback:!!analysis.feedback,evidenceLength:analysis.evidence?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'ALL'})}).catch(()=>{});
-    // #endregion
+    let analysis;
+    try {
+      analysis = await analyzeWithDeterminismGuard(transcript, moduleType, promptText);
+      console.log(`[${moduleType}] AI analysis complete: score=${analysis.score}, hasFeedback=${!!analysis.feedback}`);
+    } catch (analysisError) {
+      console.error(`[${moduleType}] AI analysis failed:`, analysisError);
+      console.error(`[${moduleType}] Error details:`, {
+        message: analysisError instanceof Error ? analysisError.message : String(analysisError),
+        stack: analysisError instanceof Error ? analysisError.stack : 'no-stack',
+        name: analysisError instanceof Error ? analysisError.name : typeof analysisError,
+      });
+      throw analysisError;
+    }
 
     // Version tracking
     const versions = {
@@ -415,8 +429,7 @@ serve(async (req) => {
 
     console.log(`Successfully processed ${moduleType} recording ${recordingId}`);
 
-    return new Response(
-      JSON.stringify({
+    const responseBody = {
         success: true,
         transcript,
         wordCount,
@@ -426,9 +439,28 @@ serve(async (req) => {
         evidence: analysis.evidence,
         flags: analysis.flags,
         versions
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    };
+
+    // Validate response body before sending
+    try {
+      const responseJson = JSON.stringify(responseBody);
+      console.log(`[${moduleType}] Response body size: ${responseJson.length} bytes`);
+      console.log(`[${moduleType}] Response preview: ${responseJson.substring(0, 200)}...`);
+      
+      // Verify JSON is valid
+      JSON.parse(responseJson);
+      
+      return new Response(
+        responseJson,
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    } catch (jsonError) {
+      console.error(`[${moduleType}] Failed to serialize response:`, jsonError);
+      throw new Error(`Response serialization failed: ${jsonError instanceof Error ? jsonError.message : String(jsonError)}`);
+    }
 
   } catch (error) {
     console.error('Error in analyze-skill:', error);
@@ -437,8 +469,19 @@ serve(async (req) => {
     fetch('http://127.0.0.1:7242/ingest/124f6311-db23-45e5-999d-c67603bf859a',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'analyze-skill/index.ts:437',message:'Error caught',data:{errorMessage:error instanceof Error ? error.message : String(error),errorStack:error instanceof Error ? error.stack : 'no-stack',errorType:typeof error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'ALL'})}).catch(()=>{});
     // #endregion
     
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    // Return more detailed error information
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ 
+        error: errorMessage,
+        stack: errorStack,
+        details: error instanceof Error ? {
+          name: error.name,
+          message: error.message,
+        } : { type: typeof error, value: String(error) }
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
