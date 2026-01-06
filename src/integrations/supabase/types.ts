@@ -175,6 +175,51 @@ export type Database = {
           },
         ]
       }
+      comprehension_items: {
+        Row: {
+          answer_key: Json
+          audio_url: string | null
+          cefr_level: string
+          created_at: string
+          estimated_duration_s: number
+          id: string
+          language: string
+          options: Json
+          prompt: Json
+          transcript_fr: string
+          updated_at: string
+          word_count: number
+        }
+        Insert: {
+          answer_key: Json
+          audio_url?: string | null
+          cefr_level: string
+          created_at?: string
+          estimated_duration_s: number
+          id: string
+          language?: string
+          options: Json
+          prompt: Json
+          transcript_fr: string
+          updated_at?: string
+          word_count: number
+        }
+        Update: {
+          answer_key?: Json
+          audio_url?: string | null
+          cefr_level?: string
+          created_at?: string
+          estimated_duration_s?: number
+          id?: string
+          language?: string
+          options?: Json
+          prompt?: Json
+          transcript_fr?: string
+          updated_at?: string
+          word_count?: number
+        }
+        Relationships: []
+      }
       comprehension_recordings: {
         Row: {
           ai_confidence: number | null
