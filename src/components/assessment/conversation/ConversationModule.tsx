@@ -68,22 +68,32 @@ export function ConversationModule({ sessionId, onComplete }: ConversationModule
     return btoa(binary);
   };
 
-  const getNextAttemptNumber = async (table: 'fluency_recordings' | 'skill_recordings', moduleType?: string) => {
+  const getNextAttemptNumber = async (table: 'fluency_recordings' | 'skill_recordings', moduleType?: string): Promise<number> => {
     if (!user) return 1;
 
-    let query = supabase
-      .from(table)
-      .select('attempt_number')
-      .eq('session_id', sessionId)
-      .eq('item_id', prompt.id)
-      .order('attempt_number', { ascending: false })
-      .limit(1);
+    let data: { attempt_number: number }[] | null = null;
 
-    if (table === 'skill_recordings' && moduleType) {
-      query = query.eq('module_type', moduleType);
+    if (table === 'skill_recordings') {
+      const result = await supabase
+        .from('skill_recordings')
+        .select('attempt_number')
+        .eq('session_id', sessionId)
+        .eq('item_id', prompt.id)
+        .eq('module_type', moduleType ?? 'conversation')
+        .order('attempt_number', { ascending: false })
+        .limit(1);
+      data = result.data;
+    } else {
+      const result = await supabase
+        .from('fluency_recordings')
+        .select('attempt_number')
+        .eq('session_id', sessionId)
+        .eq('item_id', prompt.id)
+        .order('attempt_number', { ascending: false })
+        .limit(1);
+      data = result.data;
     }
 
-    const { data } = await query;
     if (data && data.length > 0) {
       return data[0].attempt_number + 1;
     }
