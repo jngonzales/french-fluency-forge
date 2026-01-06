@@ -16,7 +16,8 @@
 import { comprehensionItems } from '../comprehensionItems';
 import { supabase } from '@/integrations/supabase/client';
 
-const STORAGE_BUCKET = 'comprehension-audio'; // Or 'phrases-audio' if reusing
+// Use 'phrases-audio' bucket (already exists) or 'comprehension-audio' if you create it
+const STORAGE_BUCKET = 'phrases-audio'; // Change to 'comprehension-audio' if you create a new bucket
 
 /**
  * Generate audio blob using TTS edge function
@@ -106,7 +107,7 @@ async function ensureStorageBucket(): Promise<void> {
 /**
  * Generate and upload audio for all comprehension items
  */
-export async function generateAllComprehensionAudio(): Promise<void> {
+export async function generateAllComprehensionAudio(): Promise<Array<{ itemId: string; success: boolean; audioUrl?: string; error?: string }>> {
   console.log('Starting audio generation for all comprehension items...');
   console.log(`Total items: ${comprehensionItems.length}`);
 
@@ -170,7 +171,7 @@ export async function generateAllComprehensionAudio(): Promise<void> {
       .forEach(r => console.log(`  ✗ ${r.itemId}: ${r.error}`));
   }
 
-  return;
+  return results;
 }
 
 /**

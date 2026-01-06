@@ -54,7 +54,7 @@ describe('Queue Building', () => {
         createCard('5', 'review', new Date(now.getTime() - 1000), 'buried'), // Buried (should be excluded)
       ];
       
-      const dueCards = getDueCards(cards);
+      const dueCards = getDueCards(cards, now);
       
       expect(dueCards).toHaveLength(2);
       expect(dueCards.map(c => c.id)).toContain('1');
@@ -68,7 +68,7 @@ describe('Queue Building', () => {
         createCard('3', 'review', new Date(now.getTime() - 2000), 'active'),
       ];
       
-      const dueCards = getDueCards(cards);
+      const dueCards = getDueCards(cards, now);
       
       expect(dueCards[0].id).toBe('1'); // Oldest
       expect(dueCards[1].id).toBe('3');
@@ -114,7 +114,7 @@ describe('Queue Building', () => {
       );
       const allCards = [...dueCards, ...newCards];
       
-      const queue = buildSessionQueue(allCards, 10, 10);
+      const queue = buildSessionQueue(allCards, 10, 10, now);
       
       // Should interleave: 2 due, 1 new, 2 due, 1 new, etc.
       // First 3 should be: due, due, new
@@ -132,7 +132,7 @@ describe('Queue Building', () => {
       );
       const allCards = [...dueCards, ...newCards];
       
-      const queue = buildSessionQueue(allCards, 5, 100); // Limit new to 5
+      const queue = buildSessionQueue(allCards, 5, 100, now); // Limit new to 5
       
       const newCardCount = queue.filter(c => c.scheduler.state === 'new').length;
       expect(newCardCount).toBeLessThanOrEqual(5);
@@ -147,14 +147,14 @@ describe('Queue Building', () => {
       );
       const allCards = [...dueCards, ...newCards];
       
-      const queue = buildSessionQueue(allCards, 10, 5); // Limit reviews to 5
+      const queue = buildSessionQueue(allCards, 10, 5, now); // Limit reviews to 5
       
       const dueCardCount = queue.filter(c => c.scheduler.state !== 'new').length;
       expect(dueCardCount).toBeLessThanOrEqual(5);
     });
 
     it('should handle empty queues gracefully', () => {
-      const queue = buildSessionQueue([], 10, 10);
+      const queue = buildSessionQueue([], 10, 10, now);
       expect(queue).toHaveLength(0);
     });
 
@@ -167,7 +167,7 @@ describe('Queue Building', () => {
       );
       const allCards = [...dueCards, ...newCards];
       
-      const queue = buildSessionQueue(allCards, 10, 10);
+      const queue = buildSessionQueue(allCards, 10, 10, now);
       
       // First cards should be due (prioritized)
       expect(queue[0].scheduler.state).not.toBe('new');

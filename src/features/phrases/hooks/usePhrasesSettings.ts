@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import type { PhraseSettings } from '../types';
+import { fetchMemberPhraseSettings, upsertMemberPhraseSettings } from '../services/phrasesApi';
 
 const DEFAULT_SETTINGS: Omit<PhraseSettings, 'member_id'> = {
   new_per_day: 20,
@@ -30,30 +31,40 @@ export function usePhrasesSettings(memberId?: string) {
 
   // Load settings from localStorage
   useEffect(() => {
-    try {
-      const key = `solv_phrases_settings_${effectiveMemberId}`;
-      const stored = localStorage.getItem(key);
-      
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setSettings({
-          member_id: effectiveMemberId,
-          ...DEFAULT_SETTINGS,
-          ...parsed,
-        });
-      } else {
-        setSettings({
-          member_id: effectiveMemberId,
-          ...DEFAULT_SETTINGS,
-        });
+    const load = async () => {
+      try {
+        if (user?.id) {
+          const dbSettings = await fetchMemberPhraseSettings(user.id);
+          setSettings(dbSettings);
+          localStorage.setItem(`solv_phrases_settings_${user.id}`, JSON.stringify(dbSettings));
+        } else {
+          const key = `solv_phrases_settings_${effectiveMemberId}`;
+          const stored = localStorage.getItem(key);
+          
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            setSettings({
+              member_id: effectiveMemberId,
+              ...DEFAULT_SETTINGS,
+              ...parsed,
+            });
+          } else {
+            setSettings({
+              member_id: effectiveMemberId,
+              ...DEFAULT_SETTINGS,
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load phrase settings:', err);
+        setError('Failed to load settings');
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('Failed to load phrase settings:', err);
-      setError('Failed to load settings');
-    } finally {
-      setLoading(false);
-    }
-  }, [effectiveMemberId]);
+    };
+
+    load();
+  }, [effectiveMemberId, user?.id]);
 
   // Update settings
   const updateSettings = (updates: Partial<Omit<PhraseSettings, 'member_id'>>) => {
@@ -74,12 +85,14 @@ export function usePhrasesSettings(memberId?: string) {
         throw new Error('Target retention must be between 0.75 and 0.95');
       }
 
-      // Save to state
       setSettings(newSettings);
 
-      // Save to localStorage
       const key = `solv_phrases_settings_${effectiveMemberId}`;
       localStorage.setItem(key, JSON.stringify(newSettings));
+
+      if (user?.id) {
+        void upsertMemberPhraseSettings(newSettings as PhraseSettings);
+      }
 
       setError(null);
       return true;
@@ -92,7 +105,7 @@ export function usePhrasesSettings(memberId?: string) {
 
   // Reset to defaults
   const resetSettings = () => {
-    const newSettings = {
+    const newSettings: PhraseSettings = {
       member_id: effectiveMemberId,
       ...DEFAULT_SETTINGS,
     };
@@ -100,6 +113,10 @@ export function usePhrasesSettings(memberId?: string) {
     
     const key = `solv_phrases_settings_${effectiveMemberId}`;
     localStorage.setItem(key, JSON.stringify(newSettings));
+
+    if (user?.id) {
+      void upsertMemberPhraseSettings(newSettings);
+    }
   };
 
   return {

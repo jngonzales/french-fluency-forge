@@ -6,13 +6,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import type { MemberPhraseCard, Phrase, LibraryFilters, PhraseStats } from '../types';
-import { MOCK_PHRASES, getPhraseById } from '../data/mockPhrasesData';
+import { getPhraseById } from '../data/mockPhrasesData';
+import { fetchMemberCardsWithPhrases, upsertMemberCards } from '../services/phrasesApi';
+import { runMigrationIfNeeded } from '../utils/migrateLocalStorage';
 
 export function usePhrasesLibrary(memberId?: string) {
   const { user } = useAuth();
   const effectiveMemberId = memberId || user?.id || 'guest';
   
   const [cards, setCards] = useState<MemberPhraseCard[]>([]);
+  const [phraseMap, setPhraseMap] = useState<Record<string, Phrase>>({});
   const [filters, setFilters] = useState<LibraryFilters>({
     search: '',
     mode: 'all',
@@ -22,34 +25,59 @@ export function usePhrasesLibrary(memberId?: string) {
   });
   const [loading, setLoading] = useState(true);
 
-  // Load cards from localStorage
+  // Load cards from Supabase (or localStorage for guests)
   useEffect(() => {
-    const key = `solv_phrases_cards_${effectiveMemberId}`;
-    const stored = localStorage.getItem(key);
-    
-    if (stored) {
+    let isActive = true;
+    const load = async () => {
+      setLoading(true);
       try {
-        const parsed = JSON.parse(stored);
-        setCards(parsed);
-      } catch (err) {
-        console.error('Failed to load phrase cards:', err);
-        setCards([]);
+        if (user?.id) {
+          await runMigrationIfNeeded(user.id);
+          const { cards: dbCards, phraseMap: dbPhrases } = await fetchMemberCardsWithPhrases(user.id);
+          if (!isActive) return;
+          setCards(dbCards);
+          setPhraseMap(dbPhrases);
+          localStorage.setItem(`solv_phrases_cards_${user.id}`, JSON.stringify(dbCards));
+        } else {
+          const key = `solv_phrases_cards_${effectiveMemberId}`;
+          const stored = localStorage.getItem(key);
+          
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              setCards(parsed);
+            } catch (err) {
+              console.error('Failed to load phrase cards:', err);
+              setCards([]);
+            }
+          }
+        }
+      } finally {
+        if (isActive) {
+          setLoading(false);
+        }
       }
-    }
-    setLoading(false);
-  }, [effectiveMemberId]);
+    };
 
-  // Save cards to localStorage whenever they change
+    load();
+    return () => { isActive = false; };
+  }, [effectiveMemberId, user?.id]);
+
+  // Save cards (Supabase for authed, local cache for guests)
   const saveCards = (updatedCards: MemberPhraseCard[]) => {
     setCards(updatedCards);
     const key = `solv_phrases_cards_${effectiveMemberId}`;
     localStorage.setItem(key, JSON.stringify(updatedCards));
+
+    if (user?.id) {
+      void upsertMemberCards(updatedCards);
+    }
   };
 
   // Filter cards based on current filters
   const filteredCards = useMemo(() => {
     return cards.filter((card) => {
-      const phrase = getPhraseById(card.phrase_id);
+      const phrase = phraseMap[card.phrase_id] || getPhraseById(card.phrase_id);
       if (!phrase) return false;
 
       // Search filter
@@ -99,7 +127,7 @@ export function usePhrasesLibrary(memberId?: string) {
 
       return true;
     });
-  }, [cards, filters]);
+  }, [cards, filters, phraseMap]);
 
   // Calculate stats
   const stats: PhraseStats = useMemo(() => {
@@ -113,15 +141,15 @@ export function usePhrasesLibrary(memberId?: string) {
       suspended: cards.filter((c) => c.status === 'suspended').length,
       buried: cards.filter((c) => c.status === 'buried').length,
       known_recall: cards.filter((c) => {
-        const phrase = getPhraseById(c.phrase_id);
+        const phrase = phraseMap[c.phrase_id] || getPhraseById(c.phrase_id);
         return phrase?.mode === 'recall' && c.scheduler.state === 'review' && (c.scheduler.interval_days || 0) >= 21;
       }).length,
       known_recognition: cards.filter((c) => {
-        const phrase = getPhraseById(c.phrase_id);
+        const phrase = phraseMap[c.phrase_id] || getPhraseById(c.phrase_id);
         return phrase?.mode === 'recognition' && c.scheduler.state === 'review' && (c.scheduler.interval_days || 0) >= 21;
       }).length,
     };
-  }, [cards]);
+  }, [cards, phraseMap]);
 
   // Actions
   const buryCard = (cardId: string) => {
@@ -182,11 +210,11 @@ export function usePhrasesLibrary(memberId?: string) {
   const enrichedCards = useMemo(() => {
     return filteredCards.map((card) => ({
       card,
-      phrase: getPhraseById(card.phrase_id),
+      phrase: phraseMap[card.phrase_id] || getPhraseById(card.phrase_id),
     })).filter((item): item is { card: MemberPhraseCard; phrase: Phrase } => 
       item.phrase !== undefined
     );
-  }, [filteredCards]);
+  }, [filteredCards, phraseMap]);
 
   return {
     cards: enrichedCards,

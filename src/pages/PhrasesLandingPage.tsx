@@ -15,6 +15,8 @@ import { usePhrasesLibrary } from '@/features/phrases/hooks/usePhrasesLibrary';
 import { useToast } from '@/hooks/use-toast';
 import { getPhrasesByPackId } from '@/features/phrases/data/mockPhrasesData';
 import type { MemberPhraseCard } from '@/features/phrases/types';
+import { upsertMemberCards } from '@/features/phrases/services/phrasesApi';
+import { runMigrationIfNeeded } from '@/features/phrases/utils/migrateLocalStorage';
 
 export default function PhrasesLandingPage() {
   const navigate = useNavigate();
@@ -24,14 +26,14 @@ export default function PhrasesLandingPage() {
   
   const memberId = user?.id || 'guest';
 
-  const handleSeedStarterPack = () => {
+  const handleSeedStarterPack = async () => {
     // Get first 10 phrases from "Small talk starter" pack
     const starterPhrases = getPhrasesByPackId('pack-001').slice(0, 10);
     
     // Create cards for each phrase
     const now = new Date();
     const newCards: MemberPhraseCard[] = starterPhrases.map((phrase, index) => ({
-      id: `card-${Date.now()}-${index}`,
+      id: `card-${memberId}-${phrase.id}`,
       member_id: memberId,
       phrase_id: phrase.id,
       status: 'active',
@@ -50,14 +52,20 @@ export default function PhrasesLandingPage() {
       updated_at: now.toISOString(),
     }));
 
-    // Load existing cards
-    const key = `solv_phrases_cards_${memberId}`;
-    const stored = localStorage.getItem(key);
-    const existingCards = stored ? JSON.parse(stored) : [];
-    
-    // Merge and save
-    const allCards = [...existingCards, ...newCards];
-    localStorage.setItem(key, JSON.stringify(allCards));
+    if (user?.id) {
+      await runMigrationIfNeeded(user.id);
+      await upsertMemberCards(newCards);
+      localStorage.setItem(`solv_phrases_cards_${user.id}`, JSON.stringify(newCards));
+    } else {
+      // Load existing cards
+      const key = `solv_phrases_cards_${memberId}`;
+      const stored = localStorage.getItem(key);
+      const existingCards = stored ? JSON.parse(stored) : [];
+      
+      // Merge and save
+      const allCards = [...existingCards, ...newCards];
+      localStorage.setItem(key, JSON.stringify(allCards));
+    }
 
     toast({
       title: 'Starter pack added!',

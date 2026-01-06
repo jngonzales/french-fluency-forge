@@ -22,6 +22,7 @@ const mainRoutes = [
   { path: "/admin/systemeio-products", label: "Admin Products" },
   { path: "/dev", label: "Dev Preview" },
   { path: "/dev/pronunciation-test", label: "🧪 Pronunciation QA" },
+  { path: "/dev/comprehension-audio", label: "🎵 Generate Comprehension Audio" },
 ];
 
 const assessmentPhases: { status: SessionStatus; label: string }[] = [

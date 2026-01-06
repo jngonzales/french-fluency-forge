@@ -118,13 +118,16 @@ export function previewIntervals(card: MemberPhraseCard): Record<Rating, string>
 }
 
 /**
- * Get cards due for review (based on due_at and status)
+ * Get cards due for review (based on due_at, status, and state)
+ * `now` parameter is injectable to keep tests deterministic.
  */
-export function getDueCards(cards: MemberPhraseCard[]): MemberPhraseCard[] {
-  const now = new Date();
+export function getDueCards(cards: MemberPhraseCard[], now: Date = new Date()): MemberPhraseCard[] {
+  const nowTime = now.getTime();
   return cards
     .filter((card) => card.status === 'active')
-    .filter((card) => new Date(card.scheduler.due_at) <= now)
+    // New cards are governed by new_per_day, not due logic
+    .filter((card) => card.scheduler.state !== 'new')
+    .filter((card) => new Date(card.scheduler.due_at).getTime() <= nowTime)
     .sort((a, b) => {
       // Sort by due date (oldest first)
       return new Date(a.scheduler.due_at).getTime() - new Date(b.scheduler.due_at).getTime();
@@ -150,9 +153,10 @@ export function getNewCards(
 export function buildSessionQueue(
   cards: MemberPhraseCard[],
   newPerDay: number,
-  reviewsPerDay: number
+  reviewsPerDay: number,
+  now: Date = new Date()
 ): MemberPhraseCard[] {
-  const dueCards = getDueCards(cards).slice(0, reviewsPerDay);
+  const dueCards = getDueCards(cards, now).slice(0, reviewsPerDay);
   const newCards = getNewCards(cards, newPerDay);
   
   // Interleave: 2 reviews, 1 new (if available)

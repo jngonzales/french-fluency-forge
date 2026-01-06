@@ -40,11 +40,13 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
   const [itemPhase, setItemPhase] = useState<ItemPhase>('ready');
   const [results, setResults] = useState<Record<string, MultiSelectResult>>({});
   const [audioPlayedAt, setAudioPlayedAt] = useState<Record<string, Date>>({});
-  const [generatedAudio, setGeneratedAudio] = useState<Record<string, string>>({});
-  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [audioUrls, setAudioUrls] = useState<Record<string, string>>({});
+  const [isLoadingAudio, setIsLoadingAudio] = useState<Record<string, boolean>>({});
   const [selectedOptions, setSelectedOptions] = useState<Record<string, Set<string>>>({});
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  const STORAGE_BUCKET = 'phrases-audio'; // Reusing existing bucket
 
   const currentItem = items[currentIndex];
   const isLastItem = currentIndex === items.length - 1;
@@ -59,63 +61,89 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
     }
   }, [currentItem, selectedOptions]);
 
-  // Generate TTS audio for current item
-  const generateAudio = useCallback(async () => {
-    if (!currentItem || generatedAudio[currentItem.id]) return;
+  // Load audio: check storage first, then generate if needed
+  const loadAudio = useCallback(async () => {
+    if (!currentItem || audioUrls[currentItem.id] || isLoadingAudio[currentItem.id]) return;
     
-    setIsGeneratingAudio(true);
+    setIsLoadingAudio(prev => ({ ...prev, [currentItem.id]: true }));
+    
     try {
+      // First, check if pre-generated audio exists in storage
+      const fileName = `${currentItem.id}.mp3`;
+      const { data: urlData } = supabase.storage
+        .from(STORAGE_BUCKET)
+        .getPublicUrl(fileName);
+      
+      if (urlData?.publicUrl) {
+        // Check if file actually exists
+        try {
+          const headResponse = await fetch(urlData.publicUrl, { method: 'HEAD' });
+          if (headResponse.ok) {
+            // Pre-generated audio exists - use it!
+            setAudioUrls(prev => ({ ...prev, [currentItem.id]: urlData.publicUrl }));
+            setIsLoadingAudio(prev => ({ ...prev, [currentItem.id]: false }));
+            return;
+          }
+        } catch (e) {
+          // File doesn't exist, fall through to generation
+        }
+      }
+      
+      // Fallback: Generate on-demand
       const { data, error } = await supabase.functions.invoke('french-tts', {
         body: { 
           text: currentItem.transcript_fr,
-          speed: 1.2,  // Slightly fast, natural pace
-          stability: 0.35  // More natural variation
+          speed: 1.2,
+          stability: 0.35
         }
       });
       
       if (error) throw error;
       
-      // The response is binary audio data (ArrayBuffer or Blob)
       if (data) {
         let audioUrl: string;
         
         if (data instanceof Blob) {
-          // Convert Blob to URL
           audioUrl = URL.createObjectURL(data);
         } else if (data instanceof ArrayBuffer) {
-          // Convert ArrayBuffer to Blob then URL
           const blob = new Blob([data], { type: 'audio/mpeg' });
           audioUrl = URL.createObjectURL(blob);
         } else if (typeof data === 'object' && data.audioContent) {
-          // Legacy format: base64 encoded
           audioUrl = `data:audio/mp3;base64,${data.audioContent}`;
         } else {
           throw new Error('Unexpected audio response format');
         }
         
-        setGeneratedAudio(prev => ({ ...prev, [currentItem.id]: audioUrl }));
+        setAudioUrls(prev => ({ ...prev, [currentItem.id]: audioUrl }));
       } else {
         throw new Error('No audio data received');
       }
     } catch (err) {
-      console.error('Error generating audio:', err);
-      toast.error('Failed to generate audio');
+      console.error('Error loading audio:', err);
+      toast.error('Failed to load audio');
     } finally {
-      setIsGeneratingAudio(false);
+      setIsLoadingAudio(prev => ({ ...prev, [currentItem.id]: false }));
     }
-  }, [currentItem, generatedAudio]);
+  }, [currentItem, audioUrls, isLoadingAudio]);
 
-  // Pre-generate audio when item changes
+  // Load audio when item changes
   useEffect(() => {
     if (currentItem && !showIntro) {
-      generateAudio();
+      loadAudio();
     }
-  }, [currentItem, showIntro, generateAudio]);
+  }, [currentItem, showIntro, loadAudio]);
 
-  const handlePlayAudio = () => {
+  const handlePlayAudio = async () => {
     if (!currentItem) return;
     
-    const audioUrl = generatedAudio[currentItem.id];
+    // Ensure audio is loaded
+    if (!audioUrls[currentItem.id]) {
+      await loadAudio();
+      // Wait a bit for audio to load
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    const audioUrl = audioUrls[currentItem.id];
     if (!audioUrl) {
       toast.error('Audio not ready yet');
       return;
@@ -320,7 +348,8 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
 
   const result = results[currentItem.id];
   const hasPlayed = !!audioPlayedAt[currentItem.id];
-  const isAudioReady = !!generatedAudio[currentItem.id];
+  const isAudioReady = !!audioUrls[currentItem.id];
+  const isLoading = isLoadingAudio[currentItem.id] || false;
   const selectedCount = selectedOptions[currentItem.id]?.size || 0;
 
   return (
@@ -343,52 +372,47 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
         <CardContent className="space-y-6">
           {/* Audio section */}
           <div className="bg-muted/30 rounded-lg p-6 text-center space-y-4">
-            {itemPhase === 'ready' && (
-              <>
-                {isGeneratingAudio ? (
-                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>Preparing audio...</span>
-                  </div>
-                ) : !isAudioReady ? (
-                  <Button onClick={generateAudio} variant="outline" className="gap-2">
-                    <RefreshCw className="h-4 w-4" />
-                    Load Audio
-                  </Button>
-                ) : (
-                  <Button 
-                    size="lg" 
-                    onClick={handlePlayAudio}
-                    className="gap-2"
-                  >
-                    <Play className="h-5 w-5" />
-                    Play Audio
-                  </Button>
-                )}
-              </>
-            )}
-            
-            {itemPhase === 'playing' && (
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Loading audio...</span>
+              </div>
+            ) : itemPhase === 'playing' ? (
               <div className="flex items-center justify-center gap-3">
                 <Volume2 className="h-6 w-6 text-primary animate-pulse" />
                 <span className="text-lg">Playing audio...</span>
               </div>
+            ) : (
+              <Button 
+                size="lg" 
+                onClick={handlePlayAudio}
+                className="gap-2"
+                disabled={!isAudioReady && !isLoading}
+              >
+                {isAudioReady ? (
+                  <>
+                    <Play className="h-5 w-5" />
+                    Play Audio
+                  </>
+                ) : (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Loading...
+                  </>
+                )}
+              </Button>
             )}
             
-            {(itemPhase === 'answering' || itemPhase === 'processing' || itemPhase === 'complete') && hasPlayed && (
-              <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                <VolumeX className="h-5 w-5" />
-                <span className="text-sm">Audio played</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handlePlayAudio}
-                  className="ml-2"
-                >
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  Replay
-                </Button>
-              </div>
+            {(itemPhase === 'answering' || itemPhase === 'processing' || itemPhase === 'complete') && hasPlayed && isAudioReady && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePlayAudio}
+                className="mt-2"
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Replay Audio
+              </Button>
             )}
           </div>
 

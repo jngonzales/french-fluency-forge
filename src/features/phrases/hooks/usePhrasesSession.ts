@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import type { MemberPhraseCard, Rating, PhraseReviewLog, SessionState } from '../types';
+import type { MemberPhraseCard, Rating, PhraseReviewLog, SessionState, Phrase } from '../types';
 import { getPhraseById } from '../data/mockPhrasesData';
 import { buildSessionQueue } from '../data/schedulerMock';
 import { 
@@ -16,7 +16,8 @@ import {
 } from '../data/fsrsScheduler';
 import { usePhrasesSettings } from './usePhrasesSettings';
 import type { SpeechRecognitionResult } from '../services/speechRecognition';
-import { isSimilarityGoodEnough } from '../utils/similarityCalculation';
+import { fetchMemberCardsWithPhrases, insertReviewLog, upsertMemberCards } from '../services/phrasesApi';
+import { runMigrationIfNeeded } from '../utils/migrateLocalStorage';
 
 export function usePhrasesSession() {
   const { user } = useAuth();
@@ -28,47 +29,82 @@ export function usePhrasesSession() {
   const [reviewLogs, setReviewLogs] = useState<PhraseReviewLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [speechResult, setSpeechResult] = useState<SpeechRecognitionResult | null>(null);
+  const [phraseMap, setPhraseMap] = useState<Record<string, Phrase>>({});
 
-  // Load cards and logs from localStorage
+  // Load cards and logs from Supabase (or localStorage for guests)
   useEffect(() => {
-    const cardsKey = `solv_phrases_cards_${memberId}`;
-    const logsKey = `solv_phrases_logs_${memberId}`;
-    
-    const storedCards = localStorage.getItem(cardsKey);
-    const storedLogs = localStorage.getItem(logsKey);
-    
-    if (storedCards) {
+    let isActive = true;
+    const load = async () => {
+      setLoading(true);
       try {
-        setCards(JSON.parse(storedCards));
-      } catch (err) {
-        console.error('Failed to load cards:', err);
+        if (user?.id) {
+          await runMigrationIfNeeded(user.id);
+          const { cards: dbCards, phraseMap: dbPhrases } = await fetchMemberCardsWithPhrases(user.id);
+          if (!isActive) return;
+          setCards(dbCards);
+          setPhraseMap(dbPhrases);
+          localStorage.setItem(`solv_phrases_cards_${user.id}`, JSON.stringify(dbCards));
+        } else {
+          const cardsKey = `solv_phrases_cards_${memberId}`;
+          const logsKey = `solv_phrases_logs_${memberId}`;
+          
+          const storedCards = localStorage.getItem(cardsKey);
+          const storedLogs = localStorage.getItem(logsKey);
+          
+          if (storedCards) {
+            try {
+              setCards(JSON.parse(storedCards));
+            } catch (err) {
+              console.error('Failed to load cards:', err);
+            }
+          }
+          
+          if (storedLogs) {
+            try {
+              setReviewLogs(JSON.parse(storedLogs));
+            } catch (err) {
+              console.error('Failed to load logs:', err);
+            }
+          }
+        }
+      } finally {
+        if (isActive) {
+          setLoading(false);
+        }
       }
-    }
-    
-    if (storedLogs) {
-      try {
-        setReviewLogs(JSON.parse(storedLogs));
-      } catch (err) {
-        console.error('Failed to load logs:', err);
-      }
-    }
-    
-    setLoading(false);
-  }, [memberId]);
+    };
 
-  // Save cards to localStorage
-  const saveCards = useCallback((updatedCards: MemberPhraseCard[]) => {
+    load();
+
+    return () => {
+      isActive = false;
+    };
+  }, [memberId, user?.id]);
+
+  // Persist cards (Supabase for authed users, local cache for guests)
+  const persistCards = useCallback((updatedCards: MemberPhraseCard[]) => {
     setCards(updatedCards);
     const key = `solv_phrases_cards_${memberId}`;
     localStorage.setItem(key, JSON.stringify(updatedCards));
-  }, [memberId]);
 
-  // Save logs to localStorage
-  const saveLogs = useCallback((updatedLogs: PhraseReviewLog[]) => {
+    if (user?.id) {
+      void upsertMemberCards(updatedCards);
+    }
+  }, [memberId, user?.id]);
+
+  // Persist logs (append-only); Supabase for authed users, local otherwise
+  const persistLogs = useCallback((updatedLogs: PhraseReviewLog[]) => {
     setReviewLogs(updatedLogs);
     const key = `solv_phrases_logs_${memberId}`;
     localStorage.setItem(key, JSON.stringify(updatedLogs));
-  }, [memberId]);
+
+    if (user?.id) {
+      const latest = updatedLogs[updatedLogs.length - 1];
+      if (latest) {
+        void insertReviewLog(latest);
+      }
+    }
+  }, [memberId, user?.id]);
 
   // Start a new session
   const startSession = useCallback(() => {
@@ -96,7 +132,9 @@ export function usePhrasesSession() {
     ? sessionState.queue[sessionState.currentIndex]
     : null;
 
-  const currentPhrase = currentCard ? getPhraseById(currentCard.phrase_id) : null;
+  const currentPhrase = currentCard
+    ? phraseMap[currentCard.phrase_id] || getPhraseById(currentCard.phrase_id)
+    : null;
 
   // Reveal card
   const revealCard = useCallback(() => {
@@ -161,7 +199,7 @@ export function usePhrasesSession() {
     const fsrsConfig = getFSRSConfigFromSettings(settings);
     const { card: updatedCard } = calculateNextReviewFSRS(currentCard, rating, fsrsConfig, now);
     const updatedCards = cards.map((c) => c.id === updatedCard.id ? updatedCard : c);
-    saveCards(updatedCards);
+    persistCards(updatedCards);
 
     // Enhanced review log with all FSRS fields
     const log: PhraseReviewLog = {
@@ -207,7 +245,7 @@ export function usePhrasesSession() {
       auto_assessed: settings.auto_assess_enabled && speechResult !== null,
       suggested_rating: (speechResult as any)?.suggestedRating,
     };
-    saveLogs([...reviewLogs, log]);
+    persistLogs([...reviewLogs, log]);
     
     // Clear speech result for next card
     setSpeechResult(null);
@@ -248,7 +286,7 @@ export function usePhrasesSession() {
       updated_at: new Date().toISOString(),
     };
     const updatedCards = cards.map((c) => c.id === updatedCard.id ? updatedCard : c);
-    saveCards(updatedCards);
+    persistCards(updatedCards);
 
     // Remove from queue and move to next
     const newQueue = sessionState!.queue.filter((_, i) => i !== sessionState!.currentIndex);
@@ -271,7 +309,7 @@ export function usePhrasesSession() {
       updated_at: new Date().toISOString(),
     };
     const updatedCards = cards.map((c) => c.id === updatedCard.id ? updatedCard : c);
-    saveCards(updatedCards);
+    persistCards(updatedCards);
 
     // Remove from queue and move to next
     const newQueue = sessionState!.queue.filter((_, i) => i !== sessionState!.currentIndex);
@@ -294,7 +332,7 @@ export function usePhrasesSession() {
       updated_at: new Date().toISOString(),
     };
     const updatedCards = cards.map((c) => c.id === updatedCard.id ? updatedCard : c);
-    saveCards(updatedCards);
+    persistCards(updatedCards);
 
     // Remove from queue and move to next
     const newQueue = sessionState!.queue.filter((_, i) => i !== sessionState!.currentIndex);
@@ -317,7 +355,7 @@ export function usePhrasesSession() {
       updated_at: new Date().toISOString(),
     };
     const updatedCards = cards.map((c) => c.id === updatedCard.id ? updatedCard : c);
-    saveCards(updatedCards);
+    persistCards(updatedCards);
   }, [currentCard, cards, saveCards]);
 
   const addNote = useCallback((note: string) => {
