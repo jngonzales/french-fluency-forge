@@ -28,7 +28,7 @@ export default function DevComprehensionAudio() {
           .order('id', { ascending: true });
         
         if (error) throw error;
-        setItems((data || []) as ComprehensionItem[]);
+        setItems((data || []) as unknown as ComprehensionItem[]);
       } catch (error) {
         console.error('Failed to load items:', error);
         toast.error('Failed to load comprehension items');
@@ -71,7 +71,7 @@ export default function DevComprehensionAudio() {
         .select('*')
         .order('cefr_level', { ascending: true })
         .order('id', { ascending: true });
-      if (data) setItems(data as ComprehensionItem[]);
+      if (data) setItems(data as unknown as ComprehensionItem[]);
       
       const successful = genResults.filter(r => r.success).length;
       toast.success(`Generated audio for ${successful}/${itemsNeedingAudio.length} items`);
