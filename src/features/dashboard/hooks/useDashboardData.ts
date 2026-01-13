@@ -169,7 +169,7 @@ export function useDashboardData(viewingUserId?: string) {
         loadedHabits = generateMockHabits();
         loadedHabitGrid = generateMockHabitGrid(loadedHabits);
       } else if (habitsData && habitsData.length > 0) {
-        loadedHabits = habitsData.map((row: HabitRow) => habitRowToHabit(row));
+        loadedHabits = habitsData.map((row) => habitRowToHabit(row as unknown as HabitRow));
         
         // Fetch habit cells for these habits
         const habitIds = loadedHabits.map(h => h.id);
@@ -182,7 +182,7 @@ export function useDashboardData(viewingUserId?: string) {
           console.error('Error fetching habit cells:', cellsError);
           loadedHabitGrid = generateMockHabitGrid(loadedHabits);
         } else {
-          loadedHabitGrid = (cellsData || []).map((row: HabitCellRow) => habitCellRowToHabitCell(row));
+          loadedHabitGrid = (cellsData || []).map((row) => habitCellRowToHabitCell(row as unknown as HabitCellRow));
         }
       } else {
         // No habits in DB, use mock data for demo
@@ -206,7 +206,7 @@ export function useDashboardData(viewingUserId?: string) {
         // Fall back to mock data if table doesn't exist yet
         loadedGoals = generateMockGoals();
       } else if (goalsData && goalsData.length > 0) {
-        loadedGoals = goalsData.map((row: GoalRow) => goalRowToGoal(row));
+        loadedGoals = goalsData.map((row) => goalRowToGoal(row as unknown as GoalRow));
       } else {
         // No goals in DB, use mock data for demo
         loadedGoals = generateMockGoals();
