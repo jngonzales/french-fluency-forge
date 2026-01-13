@@ -55,7 +55,7 @@ export function EnhancedLiveDataViewer({ sessionId, moduleType }: EnhancedLiveDa
         .eq('session_id', sessionId)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 rows gracefully
 
       if (error) {
         console.error('Error loading trace:', error);

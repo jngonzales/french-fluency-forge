@@ -2,15 +2,28 @@
 
 Hey Tom! Here are the database migrations you need to run to enable the new features I built.
 
-## 🎯 What You Need to Run
+## 🚀 QUICKSTART - Just Run ONE File!
 
-Run these 3 files **in order**. Just copy-paste each one into Supabase SQL Editor and click "Run":
+**If you haven't run any migrations yet, just run this ONE file:**
+
+| File | What it does |
+|------|--------------|
+| `04_all_required_tables.sql` | Creates ALL tables + seed data you need |
+
+Copy-paste it into **Supabase SQL Editor** and click **Run**. Done!
+
+---
+
+## 📋 Individual Files (Alternative)
+
+If you prefer to run them one at a time, here's the order:
 
 | # | File | What it does |
 |---|------|--------------|
 | 1 | `01_habits_goals.sql` | Creates `habits`, `habit_cells`, `goals` tables |
 | 2 | `02_phrases_write_policies.sql` | Fixes TSV import (adds INSERT/UPDATE/DELETE to phrases) |
 | 3 | `03_phrases_audio_bucket.sql` | Creates storage bucket for audio files |
+| 4 | `04_all_required_tables.sql` | Section 4 tables + comprehension seed data |
 
 ## ✅ Safe to Run
 
@@ -54,6 +67,16 @@ Verify everything worked:
 ---
 
 ## 📁 File Descriptions
+
+### 04_all_required_tables.sql ⭐ RECOMMENDED
+**This is the "run everything" file.** It includes:
+- `scoring_traces` table (for the Calibration Console)
+- `comprehension_items` table structure
+- **12 seed items** for Listening Comprehension (so it doesn't say "Loading..." forever)
+- Audio URLs for the comprehension items
+- All proper RLS policies
+
+**Run this if you want everything to just work.**
 
 ### 01_habits_goals.sql
 Creates the tables for the Habits Tracker and Goals features:
