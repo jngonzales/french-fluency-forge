@@ -30,6 +30,7 @@ import PhrasesSettingsPage from "./pages/PhrasesSettingsPage";
 import PhrasesCoachPage from "./pages/PhrasesCoachPage";
 import PhrasesReviewLogsPage from "./pages/phrases/PhrasesReviewLogsPage";
 import SRSLabPage from "./pages/admin/SRSLabPage";
+import FluencyAnalyzerLandingPage from "./pages/FluencyAnalyzerLandingPage";
 
 const queryClient = new QueryClient();
 
@@ -136,6 +137,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <SRSLabPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/fluency-analyzer" 
+              element={
+                <ProtectedRoute>
+                  <FluencyAnalyzerLandingPage />
                 </ProtectedRoute>
               } 
             />

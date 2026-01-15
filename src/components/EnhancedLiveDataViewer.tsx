@@ -49,6 +49,7 @@ export function EnhancedLiveDataViewer({ sessionId, moduleType }: EnhancedLiveDa
     setLoading(true);
     try {
       // Load latest trace for this session
+      // Note: scoring_traces table may not exist in all environments
       const { data, error } = await supabase
         .from('scoring_traces')
         .select('*')
@@ -58,6 +59,12 @@ export function EnhancedLiveDataViewer({ sessionId, moduleType }: EnhancedLiveDa
         .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 rows gracefully
 
       if (error) {
+        // Silently ignore 406 errors (table doesn't exist or no rows)
+        // and 42P01 (relation does not exist) errors
+        if (error.code === 'PGRST116' || error.code === '42P01' || error.message?.includes('406')) {
+          // Table doesn't exist or no data - this is expected in some environments
+          return;
+        }
         console.error('Error loading trace:', error);
         return;
       }
@@ -66,7 +73,8 @@ export function EnhancedLiveDataViewer({ sessionId, moduleType }: EnhancedLiveDa
         setTrace(data.trace_data as unknown as ScoringTrace);
       }
     } catch (error) {
-      console.error('Error loading trace:', error);
+      // Silently fail - calibration console is optional
+      console.debug('Calibration trace not available:', error);
     } finally {
       setLoading(false);
     }

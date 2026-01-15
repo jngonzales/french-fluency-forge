@@ -15,6 +15,7 @@ import { HabitGridCard } from '@/features/dashboard/components/HabitGridCard';
 import { GoalsCard } from '@/features/dashboard/components/GoalsCard';
 import { PhraseStatsCard } from '@/features/dashboard/components/PhraseStatsCard';
 import { BadgesCard } from '@/features/dashboard/components/BadgesCard';
+import { FlashcardStatsCard } from '@/features/dashboard/components/FlashcardStatsCard';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -126,16 +127,19 @@ export default function DashboardPage() {
                     </SheetHeader>
                     <div className="space-y-1">
                       {FEATURE_LIST.map((feature) => {
-                        // For v0, phrases is always accessible regardless of plan
-                        const isUnlocked = feature.key === 'phrases' ? true : data.member.features[feature.key as keyof PlanFeatures];
+                        // For v0, phrases and fluencyAnalyzer are always accessible regardless of plan
+                        const isUnlocked = feature.key === 'phrases' || feature.key === 'fluencyAnalyzer' 
+                          ? true 
+                          : data.member.features[feature.key as keyof PlanFeatures];
                         const Icon = feature.icon;
                         
-                        // Use Link for phrases, button for others
-                        if (feature.key === 'phrases' && isUnlocked) {
+                        // Use Link for phrases and fluencyAnalyzer
+                        if ((feature.key === 'phrases' || feature.key === 'fluencyAnalyzer') && isUnlocked) {
+                          const linkTo = feature.key === 'phrases' ? '/phrases' : '/fluency-analyzer';
                           return (
                             <Link
                               key={feature.key}
-                              to="/phrases"
+                              to={linkTo}
                               onClick={() => setResourcesOpen(false)}
                               className="w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group hover:bg-primary/5 text-foreground cursor-pointer hover:translate-x-1"
                             >
@@ -256,8 +260,8 @@ export default function DashboardPage() {
             isAdmin={isAdmin}
           />
 
-          {/* Phrase Stats */}
-          <PhraseStatsCard phrases={data.phrases} />
+          {/* Phrase Stats - Scheduled vs Learned */}
+          <FlashcardStatsCard />
         </main>
       </div>
     </AdminPadding>
