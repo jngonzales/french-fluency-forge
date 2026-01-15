@@ -515,10 +515,20 @@ export function ConversationModule({ sessionId, onComplete }: ConversationModule
       onComplete();
     } catch (error) {
       console.error('Speaking assessment error:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Something went wrong.';
+      // User-friendly error messages
+      let errorMsg = 'Something went wrong. Please try again.';
+      if (error instanceof Error) {
+        if (error.message.includes('non-2xx') || error.message.includes('Edge Function')) {
+          errorMsg = 'Analysis is taking longer than expected. Please try submitting again.';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMsg = 'Network error. Please check your connection and try again.';
+        } else {
+          errorMsg = error.message;
+        }
+      }
       setErrorMessage(errorMsg);
       updateStep('error-caught', 'error', null, errorMsg);
-      toast.error('Failed to analyze your recording.');
+      toast.error('Failed to analyze your recording. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

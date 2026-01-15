@@ -1,21 +1,56 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminMode } from "@/hooks/useAdminMode";
 import { Button } from "@/components/ui/button";
 import { LogOut, ArrowRight } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const navigate = useNavigate();
   const { user, isLoading, signOut } = useAuth();
   const { showDevTools } = useAdminMode();
+  const [checkingAssessment, setCheckingAssessment] = useState(true);
+
+  // Check if returning user has completed an assessment - redirect to dashboard
+  useEffect(() => {
+    const checkCompletedAssessment = async () => {
+      if (!user) {
+        setCheckingAssessment(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await (supabase as any)
+          .from('assessment_sessions')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          // Returning user with completed assessment → go to dashboard
+          navigate('/dashboard', { replace: true });
+          return;
+        }
+      } catch (err) {
+        console.error('Error checking assessment status:', err);
+      }
+
+      setCheckingAssessment(false);
+    };
+
+    if (!isLoading) {
+      checkCompletedAssessment();
+    }
+  }, [user, isLoading, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/login");
   };
 
-  if (isLoading) {
+  if (isLoading || checkingAssessment) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />

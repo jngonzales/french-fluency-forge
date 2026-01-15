@@ -52,7 +52,7 @@ const planNames: Record<PlanKey, string> = {
 };
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { isAdmin } = useAdminMode();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -204,7 +204,12 @@ export default function DashboardPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-popover">
                     <DropdownMenuItem disabled>Account</DropdownMenuItem>
-                    <DropdownMenuItem disabled>Logout</DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={signOut} 
+                      className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950"
+                    >
+                      Logout
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

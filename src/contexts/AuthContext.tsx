@@ -37,7 +37,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Always clear local state first
+    setUser(null);
+    setSession(null);
+    
+    try {
+      // Try to sign out from Supabase
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (error) {
+      // Ignore API errors
+      console.log('[Auth] Supabase signout API failed, clearing storage manually');
+    }
+    
+    // Manually clear Supabase tokens from localStorage to prevent auto-restore on refresh
+    // This ensures signout works even if the API call fails
+    const storageKey = `sb-${import.meta.env.VITE_SUPABASE_PROJECT_ID || 'fmdoypqhegjiuvodfyqm'}-auth-token`;
+    localStorage.removeItem(storageKey);
   };
 
   return (

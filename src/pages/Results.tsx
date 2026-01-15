@@ -14,8 +14,9 @@ import {
   ResponsiveContainer,
   Tooltip
 } from "recharts";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Share2, AlertCircle, Target, ChevronRight, Info } from "lucide-react";
+import { Download, Share2, AlertCircle, Target, ChevronRight, Info, ArrowLeft, Home } from "lucide-react";
 
 interface SkillScore {
   skill: string;
@@ -73,6 +74,7 @@ const Results = () => {
   };
 
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   const [sessionData, setSessionData] = useState<SessionData>({
     fluencyWpm: null,
     pronunciationScore: null,
@@ -268,20 +270,40 @@ const Results = () => {
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-serif text-2xl font-bold text-foreground">Your French Diagnostic</h1>
-              <p className="text-muted-foreground">
-                {isDemoMode ? (
-                  <span className="flex items-center gap-2">
-                    Demo Mode — Sample Results
-                    <Badge variant="secondary" className="text-xs">Preview</Badge>
-                  </span>
-                ) : (
-                  "Results from your assessment"
-                )}
-              </p>
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate('/fluency-analyzer')}
+                className="gap-1.5"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+              <div>
+                <h1 className="font-serif text-2xl font-bold text-foreground">Your French Diagnostic</h1>
+                <p className="text-muted-foreground">
+                  {isDemoMode ? (
+                    <span className="flex items-center gap-2">
+                      Demo Mode — Sample Results
+                      <Badge variant="secondary" className="text-xs">Preview</Badge>
+                    </span>
+                  ) : (
+                    "Results from your assessment"
+                  )}
+                </p>
+              </div>
             </div>
             <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/dashboard')}
+                className="gap-1.5"
+              >
+                <Home className="h-4 w-4" />
+                Dashboard
+              </Button>
               <Button variant="outline" size="sm" disabled>
                 <Download className="h-4 w-4 mr-2" />
                 Export
