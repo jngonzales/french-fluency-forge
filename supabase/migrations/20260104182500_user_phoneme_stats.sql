@@ -41,15 +41,20 @@ CREATE INDEX IF NOT EXISTS idx_user_phoneme_stats_attempts
   ON public.user_phoneme_stats(user_id, attempts ASC);
 
 -- ============================================================================
--- EXTEND PRONUNCIATION RECORDINGS
+-- EXTEND PRONUNCIATION RECORDINGS (only if table exists)
 -- ============================================================================
 
--- Add phoneme data to pronunciation recordings
-ALTER TABLE public.pronunciation_recordings
-  ADD COLUMN IF NOT EXISTS phoneme_scores JSONB,
-  ADD COLUMN IF NOT EXISTS phoneme_coverage JSONB,
-  ADD COLUMN IF NOT EXISTS phrase_id TEXT,
-  ADD COLUMN IF NOT EXISTS phrase_ipa TEXT;
+-- Add phoneme data to pronunciation recordings (conditional - table may not exist)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'pronunciation_recordings') THEN
+    ALTER TABLE public.pronunciation_recordings
+      ADD COLUMN IF NOT EXISTS phoneme_scores JSONB,
+      ADD COLUMN IF NOT EXISTS phoneme_coverage JSONB,
+      ADD COLUMN IF NOT EXISTS phrase_id TEXT,
+      ADD COLUMN IF NOT EXISTS phrase_ipa TEXT;
+  END IF;
+END $$;
 
 -- ============================================================================
 -- ROW LEVEL SECURITY
@@ -58,16 +63,19 @@ ALTER TABLE public.pronunciation_recordings
 ALTER TABLE public.user_phoneme_stats ENABLE ROW LEVEL SECURITY;
 
 -- Users can view their own phoneme stats
+DROP POLICY IF EXISTS "Users can view own phoneme stats" ON public.user_phoneme_stats;
 CREATE POLICY "Users can view own phoneme stats" 
   ON public.user_phoneme_stats
   FOR SELECT USING (auth.uid() = user_id);
 
 -- Users can insert their own phoneme stats
+DROP POLICY IF EXISTS "Users can insert own phoneme stats" ON public.user_phoneme_stats;
 CREATE POLICY "Users can insert own phoneme stats" 
   ON public.user_phoneme_stats
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Users can update their own phoneme stats
+DROP POLICY IF EXISTS "Users can update own phoneme stats" ON public.user_phoneme_stats;
 CREATE POLICY "Users can update own phoneme stats" 
   ON public.user_phoneme_stats
   FOR UPDATE USING (auth.uid() = user_id);
@@ -137,6 +145,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- TRIGGER FOR UPDATED_AT
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS update_user_phoneme_stats_updated_at ON public.user_phoneme_stats;
 CREATE TRIGGER update_user_phoneme_stats_updated_at
   BEFORE UPDATE ON public.user_phoneme_stats
   FOR EACH ROW
@@ -147,7 +156,7 @@ CREATE TRIGGER update_user_phoneme_stats_updated_at
 -- ============================================================================
 
 COMMENT ON TABLE public.user_phoneme_stats IS 'Tracks per-user pronunciation accuracy for each French phoneme over time';
-COMMENT ON COLUMN public.user_phoneme_stats.phoneme IS 'IPA symbol (e.g., /u/, /ʁ/, /ɛ̃/)';
+COMMENT ON COLUMN public.user_phoneme_stats.phoneme IS 'IPA symbol (e.g., /u/, /ÃƒÅ Ã‚Â/, /Ãƒâ€°Ã¢â‚¬ÂºÃƒÅ’Ã†â€™/)';
 COMMENT ON COLUMN public.user_phoneme_stats.attempts IS 'Number of times this phoneme has been tested';
 COMMENT ON COLUMN public.user_phoneme_stats.mean_accuracy IS 'Average accuracy score 0-100 (online mean)';
 COMMENT ON COLUMN public.user_phoneme_stats.confidence IS 'Confidence in the mean (0-1), formula: 1 - exp(-attempts/12)';

@@ -130,19 +130,23 @@ ALTER TABLE public.speaking_assessment_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.speaking_assessment_items ENABLE ROW LEVEL SECURITY;
 
 -- Speaking assessment sessions policies
+DROP POLICY IF EXISTS "Users can view own speaking sessions" ON public.speaking_assessment_sessions;
 CREATE POLICY "Users can view own speaking sessions" 
   ON public.speaking_assessment_sessions
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own speaking sessions" ON public.speaking_assessment_sessions;
 CREATE POLICY "Users can insert own speaking sessions" 
   ON public.speaking_assessment_sessions
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own speaking sessions" ON public.speaking_assessment_sessions;
 CREATE POLICY "Users can update own speaking sessions" 
   ON public.speaking_assessment_sessions
   FOR UPDATE USING (auth.uid() = user_id);
 
 -- Speaking assessment items policies
+DROP POLICY IF EXISTS "Users can view own speaking items" ON public.speaking_assessment_items;
 CREATE POLICY "Users can view own speaking items" 
   ON public.speaking_assessment_items
   FOR SELECT USING (
@@ -153,6 +157,7 @@ CREATE POLICY "Users can view own speaking items"
     )
   );
 
+DROP POLICY IF EXISTS "Users can insert speaking items via sessions" ON public.speaking_assessment_items;
 CREATE POLICY "Users can insert speaking items via sessions" 
   ON public.speaking_assessment_items
   FOR INSERT WITH CHECK (
@@ -163,6 +168,7 @@ CREATE POLICY "Users can insert speaking items via sessions"
     )
   );
 
+DROP POLICY IF EXISTS "Users can update own speaking items" ON public.speaking_assessment_items;
 CREATE POLICY "Users can update own speaking items" 
   ON public.speaking_assessment_items
   FOR UPDATE USING (
@@ -187,11 +193,13 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Triggers for updated_at
+DROP TRIGGER IF EXISTS update_speaking_sessions_updated_at ON public.speaking_assessment_sessions;
 CREATE TRIGGER update_speaking_sessions_updated_at
   BEFORE UPDATE ON public.speaking_assessment_sessions
   FOR EACH ROW
   EXECUTE FUNCTION public.update_speaking_assessment_updated_at();
 
+DROP TRIGGER IF EXISTS update_speaking_items_updated_at ON public.speaking_assessment_items;
 CREATE TRIGGER update_speaking_items_updated_at
   BEFORE UPDATE ON public.speaking_assessment_items
   FOR EACH ROW

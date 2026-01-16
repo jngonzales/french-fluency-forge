@@ -34,22 +34,25 @@ ALTER TABLE public.assessment_sessions
 ALTER TABLE public.skill_recordings ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies for skill_recordings
+DROP POLICY IF EXISTS "Users can insert own skill recordings" ON public.skill_recordings;
 CREATE POLICY "Users can insert own skill recordings"
 ON public.skill_recordings
 FOR INSERT
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can view own skill recordings" ON public.skill_recordings;
 CREATE POLICY "Users can view own skill recordings"
 ON public.skill_recordings
 FOR SELECT
 USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own skill recordings" ON public.skill_recordings;
 CREATE POLICY "Users can update own skill recordings"
 ON public.skill_recordings
 FOR UPDATE
 USING (auth.uid() = user_id);
 
 -- Create indexes for performance
-CREATE INDEX idx_skill_recordings_session_id ON public.skill_recordings(session_id);
-CREATE INDEX idx_skill_recordings_user_id ON public.skill_recordings(user_id);
-CREATE INDEX idx_skill_recordings_module_type ON public.skill_recordings(module_type);
+CREATE INDEX IF NOT EXISTS idx_skill_recordings_session_id ON public.skill_recordings(session_id);
+CREATE INDEX IF NOT EXISTS idx_skill_recordings_user_id ON public.skill_recordings(user_id);
+CREATE INDEX IF NOT EXISTS idx_skill_recordings_module_type ON public.skill_recordings(module_type);

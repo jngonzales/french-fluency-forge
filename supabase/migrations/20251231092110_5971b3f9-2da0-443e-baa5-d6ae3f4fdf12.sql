@@ -30,22 +30,25 @@ CREATE TABLE IF NOT EXISTS public.comprehension_recordings (
 ALTER TABLE public.comprehension_recordings ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for comprehension_recordings
+DROP POLICY IF EXISTS "Users can insert own comprehension recordings" ON public.comprehension_recordings;
 CREATE POLICY "Users can insert own comprehension recordings" 
 ON public.comprehension_recordings 
 FOR INSERT 
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own comprehension recordings" ON public.comprehension_recordings;
 CREATE POLICY "Users can update own comprehension recordings" 
 ON public.comprehension_recordings 
 FOR UPDATE 
 USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can view own comprehension recordings" ON public.comprehension_recordings;
 CREATE POLICY "Users can view own comprehension recordings" 
 ON public.comprehension_recordings 
 FOR SELECT 
 USING (auth.uid() = user_id);
 
--- Create index for efficient lookups
+-- CREATE INDEX IF NOT EXISTS for efficient lookups
 CREATE INDEX IF NOT EXISTS idx_comprehension_recordings_session 
 ON public.comprehension_recordings(session_id);
 

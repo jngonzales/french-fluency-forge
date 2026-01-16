@@ -70,30 +70,38 @@ ALTER TABLE public.consent_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assessment_sessions ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
 CREATE POLICY "Users can view own profile" ON public.profiles
   FOR SELECT USING (auth.uid() = id);
   
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile" ON public.profiles
   FOR UPDATE USING (auth.uid() = id);
 
 -- Purchases policies (users see their own, service can create)
+DROP POLICY IF EXISTS "Users can view own purchases" ON public.purchases;
 CREATE POLICY "Users can view own purchases" ON public.purchases
   FOR SELECT USING (auth.uid() = user_id);
 
 -- Consent policies
+DROP POLICY IF EXISTS "Users can view own consent" ON public.consent_records;
 CREATE POLICY "Users can view own consent" ON public.consent_records
   FOR SELECT USING (auth.uid() = user_id);
   
+DROP POLICY IF EXISTS "Users can insert own consent" ON public.consent_records;
 CREATE POLICY "Users can insert own consent" ON public.consent_records
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Assessment session policies
+DROP POLICY IF EXISTS "Users can view own sessions" ON public.assessment_sessions;
 CREATE POLICY "Users can view own sessions" ON public.assessment_sessions
   FOR SELECT USING (auth.uid() = user_id);
   
+DROP POLICY IF EXISTS "Users can insert own sessions" ON public.assessment_sessions;
 CREATE POLICY "Users can insert own sessions" ON public.assessment_sessions
   FOR INSERT WITH CHECK (auth.uid() = user_id);
   
+DROP POLICY IF EXISTS "Users can update own sessions" ON public.assessment_sessions;
 CREATE POLICY "Users can update own sessions" ON public.assessment_sessions
   FOR UPDATE USING (auth.uid() = user_id);
 
@@ -111,6 +119,7 @@ END;
 $$;
 
 -- Trigger for new user signup
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
@@ -127,10 +136,12 @@ END;
 $$;
 
 -- Triggers for updated_at
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
 CREATE TRIGGER update_profiles_updated_at
   BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
+DROP TRIGGER IF EXISTS update_assessment_sessions_updated_at ON public.assessment_sessions;
 CREATE TRIGGER update_assessment_sessions_updated_at
   BEFORE UPDATE ON public.assessment_sessions
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();

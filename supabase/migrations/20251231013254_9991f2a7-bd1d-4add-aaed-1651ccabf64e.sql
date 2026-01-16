@@ -12,17 +12,19 @@ CREATE TABLE public.archetype_feedback (
 ALTER TABLE public.archetype_feedback ENABLE ROW LEVEL SECURITY;
 
 -- Users can insert their own feedback
+DROP POLICY IF EXISTS "Users can insert own feedback" ON public.archetype_feedback;
 CREATE POLICY "Users can insert own feedback"
 ON public.archetype_feedback
 FOR INSERT
 WITH CHECK (auth.uid() = user_id);
 
 -- Users can view their own feedback
+DROP POLICY IF EXISTS "Users can view own feedback" ON public.archetype_feedback;
 CREATE POLICY "Users can view own feedback"
 ON public.archetype_feedback
 FOR SELECT
 USING (auth.uid() = user_id);
 
--- Create index for faster queries
-CREATE INDEX idx_archetype_feedback_user ON public.archetype_feedback(user_id);
-CREATE INDEX idx_archetype_feedback_session ON public.archetype_feedback(session_id);
+-- CREATE INDEX IF NOT EXISTS for faster queries
+CREATE INDEX IF NOT EXISTS idx_archetype_feedback_user ON public.archetype_feedback(user_id);
+CREATE INDEX IF NOT EXISTS idx_archetype_feedback_session ON public.archetype_feedback(session_id);

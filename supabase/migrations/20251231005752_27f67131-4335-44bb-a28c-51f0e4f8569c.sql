@@ -36,25 +36,28 @@ ALTER TABLE public.assessment_sessions
 ADD COLUMN fluency_locked BOOLEAN NOT NULL DEFAULT false,
 ADD COLUMN fluency_locked_at TIMESTAMP WITH TIME ZONE;
 
--- Create index for efficient queries
-CREATE INDEX idx_fluency_recordings_session ON public.fluency_recordings(session_id);
-CREATE INDEX idx_fluency_recordings_user ON public.fluency_recordings(user_id);
-CREATE INDEX idx_fluency_recordings_scoring ON public.fluency_recordings(session_id, item_id, used_for_scoring) WHERE used_for_scoring = true;
+-- CREATE INDEX IF NOT EXISTS for efficient queries
+CREATE INDEX IF NOT EXISTS idx_fluency_recordings_session ON public.fluency_recordings(session_id);
+CREATE INDEX IF NOT EXISTS idx_fluency_recordings_user ON public.fluency_recordings(user_id);
+CREATE INDEX IF NOT EXISTS idx_fluency_recordings_scoring ON public.fluency_recordings(session_id, item_id, used_for_scoring) WHERE used_for_scoring = true;
 
 -- Enable RLS
 ALTER TABLE public.fluency_recordings ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies: users can only access their own recordings
+DROP POLICY IF EXISTS "Users can view own fluency recordings" ON public.fluency_recordings;
 CREATE POLICY "Users can view own fluency recordings"
 ON public.fluency_recordings
 FOR SELECT
 USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own fluency recordings" ON public.fluency_recordings;
 CREATE POLICY "Users can insert own fluency recordings"
 ON public.fluency_recordings
 FOR INSERT
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own fluency recordings" ON public.fluency_recordings;
 CREATE POLICY "Users can update own fluency recordings"
 ON public.fluency_recordings
 FOR UPDATE
@@ -79,18 +82,20 @@ CREATE TABLE public.fluency_events (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
--- Create index for efficient event queries
-CREATE INDEX idx_fluency_events_session ON public.fluency_events(session_id);
+-- CREATE INDEX IF NOT EXISTS for efficient event queries
+CREATE INDEX IF NOT EXISTS idx_fluency_events_session ON public.fluency_events(session_id);
 
 -- Enable RLS on events
 ALTER TABLE public.fluency_events ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies for events
+DROP POLICY IF EXISTS "Users can view own fluency events" ON public.fluency_events;
 CREATE POLICY "Users can view own fluency events"
 ON public.fluency_events
 FOR SELECT
 USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own fluency events" ON public.fluency_events;
 CREATE POLICY "Users can insert own fluency events"
 ON public.fluency_events
 FOR INSERT

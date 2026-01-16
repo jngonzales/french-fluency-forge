@@ -14,9 +14,9 @@ CREATE TABLE IF NOT EXISTS confidence_phone_calls (
 );
 
 -- Add indexes for common queries
-CREATE INDEX idx_confidence_phone_calls_session ON confidence_phone_calls(session_id);
-CREATE INDEX idx_confidence_phone_calls_user ON confidence_phone_calls(user_id);
-CREATE INDEX idx_confidence_phone_calls_scenario ON confidence_phone_calls(scenario_id);
+CREATE INDEX IF NOT EXISTS idx_confidence_phone_calls_session ON confidence_phone_calls(session_id);
+CREATE INDEX IF NOT EXISTS idx_confidence_phone_calls_user ON confidence_phone_calls(user_id);
+CREATE INDEX IF NOT EXISTS idx_confidence_phone_calls_scenario ON confidence_phone_calls(scenario_id);
 
 -- Store per-turn recordings with timing
 CREATE TABLE IF NOT EXISTS confidence_phone_turns (
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS confidence_phone_turns (
 );
 
 -- Add index for turn retrieval
-CREATE INDEX idx_confidence_phone_turns_call ON confidence_phone_turns(call_id);
+CREATE INDEX IF NOT EXISTS idx_confidence_phone_turns_call ON confidence_phone_turns(call_id);
 
 -- Store final analysis results
 CREATE TABLE IF NOT EXISTS confidence_speaking_analysis (
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS confidence_speaking_analysis (
 );
 
 -- Add index for analysis retrieval
-CREATE INDEX idx_confidence_speaking_analysis_call ON confidence_speaking_analysis(call_id);
+CREATE INDEX IF NOT EXISTS idx_confidence_speaking_analysis_call ON confidence_speaking_analysis(call_id);
 
 -- Enable Row Level Security
 ALTER TABLE confidence_phone_calls ENABLE ROW LEVEL SECURITY;
@@ -79,19 +79,23 @@ ALTER TABLE confidence_speaking_analysis ENABLE ROW LEVEL SECURITY;
 -- RLS Policies: Users can only access their own data
 
 -- confidence_phone_calls policies
+DROP POLICY IF EXISTS "Users can view own phone calls" ON confidence_phone_calls;
 CREATE POLICY "Users can view own phone calls"
   ON confidence_phone_calls FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own phone calls" ON confidence_phone_calls;
 CREATE POLICY "Users can insert own phone calls"
   ON confidence_phone_calls FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own phone calls" ON confidence_phone_calls;
 CREATE POLICY "Users can update own phone calls"
   ON confidence_phone_calls FOR UPDATE
   USING (auth.uid() = user_id);
 
 -- confidence_phone_turns policies
+DROP POLICY IF EXISTS "Users can view own turns" ON confidence_phone_turns;
 CREATE POLICY "Users can view own turns"
   ON confidence_phone_turns FOR SELECT
   USING (
@@ -102,6 +106,7 @@ CREATE POLICY "Users can view own turns"
     )
   );
 
+DROP POLICY IF EXISTS "Users can insert own turns" ON confidence_phone_turns;
 CREATE POLICY "Users can insert own turns"
   ON confidence_phone_turns FOR INSERT
   WITH CHECK (
@@ -112,6 +117,7 @@ CREATE POLICY "Users can insert own turns"
     )
   );
 
+DROP POLICY IF EXISTS "Users can update own turns" ON confidence_phone_turns;
 CREATE POLICY "Users can update own turns"
   ON confidence_phone_turns FOR UPDATE
   USING (
@@ -123,6 +129,7 @@ CREATE POLICY "Users can update own turns"
   );
 
 -- confidence_speaking_analysis policies
+DROP POLICY IF EXISTS "Users can view own analysis" ON confidence_speaking_analysis;
 CREATE POLICY "Users can view own analysis"
   ON confidence_speaking_analysis FOR SELECT
   USING (
@@ -133,10 +140,12 @@ CREATE POLICY "Users can view own analysis"
     )
   );
 
+DROP POLICY IF EXISTS "Service role can insert analysis" ON confidence_speaking_analysis;
 CREATE POLICY "Service role can insert analysis"
   ON confidence_speaking_analysis FOR INSERT
   WITH CHECK (true); -- Service role can insert
 
+DROP POLICY IF EXISTS "Users can view their analysis" ON confidence_speaking_analysis;
 CREATE POLICY "Users can view their analysis"
   ON confidence_speaking_analysis FOR SELECT
   USING (

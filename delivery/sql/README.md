@@ -2,13 +2,25 @@
 
 Hey Tom! Here are the database migrations you need to run to enable the new features I built.
 
-## 🚀 QUICKSTART - Just Run ONE File!
+## 🚀 QUICKSTART - For FRESH Supabase Project
 
-**If you haven't run any migrations yet, just run this ONE file:**
+**Run this ONE file in Supabase SQL Editor:**
+
+| File | Size | What it does |
+|------|------|--------------|
+| `TOMS_COMPLETE_SETUP.sql` | ~133 KB | Creates ALL tables, seed data, storage buckets |
+
+Just copy-paste and click **Run**. Done!
+
+---
+
+## 🚀 ALTERNATIVE - For Existing Supabase (Already Has Some Tables)
+
+If you already ran migrations before, this is safer (all statements are idempotent):
 
 | File | What it does |
 |------|--------------|
-| `04_all_required_tables.sql` | Creates ALL tables + seed data you need |
+| `04_all_required_tables.sql` | Creates ALL tables + seed data (idempotent) |
 
 Copy-paste it into **Supabase SQL Editor** and click **Run**. Done!
 

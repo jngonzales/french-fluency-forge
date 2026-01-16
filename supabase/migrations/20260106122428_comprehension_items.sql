@@ -28,7 +28,8 @@ ON public.comprehension_items(cefr_level);
 -- Enable RLS
 ALTER TABLE public.comprehension_items ENABLE ROW LEVEL SECURITY;
 
--- Public read access (items are not user-specific)
+-- Public read access (items are not user-specific) - idempotent
+DROP POLICY IF EXISTS "Anyone can read comprehension items" ON public.comprehension_items;
 CREATE POLICY "Anyone can read comprehension items" 
 ON public.comprehension_items 
 FOR SELECT 

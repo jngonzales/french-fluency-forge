@@ -7,7 +7,7 @@
 -- Keeping this file as documentation
 
 -- To create manually:
--- 1. Go to Supabase Dashboard → Storage
+-- 1. Go to Supabase Dashboard ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Storage
 -- 2. Click "New bucket"
 -- 3. Name: phrases-audio
 -- 4. Public: Yes
@@ -29,12 +29,14 @@ VALUES (
 ON CONFLICT (id) DO NOTHING;
 
 -- Public read policy
+DROP POLICY IF EXISTS "Public read access for phrases-audio" ON storage.objects;
 CREATE POLICY "Public read access for phrases-audio"
 ON storage.objects
 FOR SELECT
 USING (bucket_id = 'phrases-audio');
 
 -- Authenticated users can upload
+DROP POLICY IF EXISTS "Authenticated users can upload to phrases-audio" ON storage.objects;
 CREATE POLICY "Authenticated users can upload to phrases-audio"
 ON storage.objects
 FOR INSERT
@@ -44,6 +46,7 @@ WITH CHECK (
 );
 
 -- Users can update their own files
+DROP POLICY IF EXISTS "Users can update their own files in phrases-audio" ON storage.objects;
 CREATE POLICY "Users can update their own files in phrases-audio"
 ON storage.objects
 FOR UPDATE
@@ -53,6 +56,7 @@ USING (
 );
 
 -- Users can delete their own files
+DROP POLICY IF EXISTS "Users can delete their own files in phrases-audio" ON storage.objects;
 CREATE POLICY "Users can delete their own files in phrases-audio"
 ON storage.objects
 FOR DELETE

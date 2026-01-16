@@ -199,6 +199,7 @@ CREATE INDEX IF NOT EXISTS idx_phrase_struggle_events_resolved_at ON public.phra
 -- Phrases: everyone can read
 ALTER TABLE public.phrases ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Phrases are viewable by everyone" ON public.phrases;
 CREATE POLICY "Phrases are viewable by everyone"
   ON public.phrases FOR SELECT
   USING (true);
@@ -206,19 +207,23 @@ CREATE POLICY "Phrases are viewable by everyone"
 -- Member phrase cards: members see their own
 ALTER TABLE public.member_phrase_cards ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view their own cards" ON public.member_phrase_cards;
 CREATE POLICY "Members can view their own cards"
   ON public.member_phrase_cards FOR SELECT
   USING (auth.uid() = member_id);
 
+DROP POLICY IF EXISTS "Members can insert their own cards" ON public.member_phrase_cards;
 CREATE POLICY "Members can insert their own cards"
   ON public.member_phrase_cards FOR INSERT
   WITH CHECK (auth.uid() = member_id);
 
+DROP POLICY IF EXISTS "Members can update their own cards" ON public.member_phrase_cards;
 CREATE POLICY "Members can update their own cards"
   ON public.member_phrase_cards FOR UPDATE
   USING (auth.uid() = member_id)
   WITH CHECK (auth.uid() = member_id);
 
+DROP POLICY IF EXISTS "Members can delete their own cards" ON public.member_phrase_cards;
 CREATE POLICY "Members can delete their own cards"
   ON public.member_phrase_cards FOR DELETE
   USING (auth.uid() = member_id);
@@ -226,6 +231,7 @@ CREATE POLICY "Members can delete their own cards"
 -- Phrase explanations: everyone can read
 ALTER TABLE public.phrase_explanations ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Phrase explanations are viewable by everyone" ON public.phrase_explanations;
 CREATE POLICY "Phrase explanations are viewable by everyone"
   ON public.phrase_explanations FOR SELECT
   USING (true);
@@ -233,6 +239,7 @@ CREATE POLICY "Phrase explanations are viewable by everyone"
 -- Phrase struggle events: members see their own, coaches see assigned members
 ALTER TABLE public.phrase_struggle_events ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view their own struggle events" ON public.phrase_struggle_events;
 CREATE POLICY "Members can view their own struggle events"
   ON public.phrase_struggle_events FOR SELECT
   USING (auth.uid() = member_id);
@@ -243,10 +250,12 @@ CREATE POLICY "Members can view their own struggle events"
 -- Phrase review logs: members see their own
 ALTER TABLE public.phrase_review_logs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view their own review logs" ON public.phrase_review_logs;
 CREATE POLICY "Members can view their own review logs"
   ON public.phrase_review_logs FOR SELECT
   USING (auth.uid() = member_id);
 
+DROP POLICY IF EXISTS "Members can insert their own review logs" ON public.phrase_review_logs;
 CREATE POLICY "Members can insert their own review logs"
   ON public.phrase_review_logs FOR INSERT
   WITH CHECK (auth.uid() = member_id);
@@ -254,14 +263,17 @@ CREATE POLICY "Members can insert their own review logs"
 -- Member phrase settings: members see and update their own
 ALTER TABLE public.member_phrase_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view their own settings" ON public.member_phrase_settings;
 CREATE POLICY "Members can view their own settings"
   ON public.member_phrase_settings FOR SELECT
   USING (auth.uid() = member_id);
 
+DROP POLICY IF EXISTS "Members can insert their own settings" ON public.member_phrase_settings;
 CREATE POLICY "Members can insert their own settings"
   ON public.member_phrase_settings FOR INSERT
   WITH CHECK (auth.uid() = member_id);
 
+DROP POLICY IF EXISTS "Members can update their own settings" ON public.member_phrase_settings;
 CREATE POLICY "Members can update their own settings"
   ON public.member_phrase_settings FOR UPDATE
   USING (auth.uid() = member_id)
@@ -276,21 +288,25 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_phrases_updated_at ON public.phrases;
 CREATE TRIGGER update_phrases_updated_at
   BEFORE UPDATE ON public.phrases
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_member_phrase_cards_updated_at ON public.member_phrase_cards;
 CREATE TRIGGER update_member_phrase_cards_updated_at
   BEFORE UPDATE ON public.member_phrase_cards
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_phrase_explanations_updated_at ON public.phrase_explanations;
 CREATE TRIGGER update_phrase_explanations_updated_at
   BEFORE UPDATE ON public.phrase_explanations
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_member_phrase_settings_updated_at ON public.member_phrase_settings;
 CREATE TRIGGER update_member_phrase_settings_updated_at
   BEFORE UPDATE ON public.member_phrase_settings
   FOR EACH ROW

@@ -15,16 +15,19 @@ CREATE TABLE public.confidence_questionnaire_responses (
 ALTER TABLE public.confidence_questionnaire_responses ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies
+DROP POLICY IF EXISTS "Users can insert own questionnaire responses" ON public.confidence_questionnaire_responses;
 CREATE POLICY "Users can insert own questionnaire responses"
 ON public.confidence_questionnaire_responses
 FOR INSERT
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can view own questionnaire responses" ON public.confidence_questionnaire_responses;
 CREATE POLICY "Users can view own questionnaire responses"
 ON public.confidence_questionnaire_responses
 FOR SELECT
 USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own questionnaire responses" ON public.confidence_questionnaire_responses;
 CREATE POLICY "Users can update own questionnaire responses"
 ON public.confidence_questionnaire_responses
 FOR UPDATE

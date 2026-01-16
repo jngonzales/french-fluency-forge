@@ -51,36 +51,40 @@ CREATE TABLE IF NOT EXISTS unified_exam_sessions (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_unified_exam_user ON unified_exam_sessions(user_id);
-CREATE INDEX idx_unified_exam_session ON unified_exam_sessions(session_id);
-CREATE INDEX idx_unified_exam_official ON unified_exam_sessions(user_id, is_official, completed_at DESC);
-CREATE INDEX idx_unified_exam_created ON unified_exam_sessions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_unified_exam_user ON unified_exam_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_unified_exam_session ON unified_exam_sessions(session_id);
+CREATE INDEX IF NOT EXISTS idx_unified_exam_official ON unified_exam_sessions(user_id, is_official, completed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_unified_exam_created ON unified_exam_sessions(created_at DESC);
 
 -- Index on proficiency level for analytics
-CREATE INDEX idx_unified_exam_level ON unified_exam_sessions(proficiency_level);
+CREATE INDEX IF NOT EXISTS idx_unified_exam_level ON unified_exam_sessions(proficiency_level);
 
 -- RLS Policies
 ALTER TABLE unified_exam_sessions ENABLE ROW LEVEL SECURITY;
 
 -- Users can read their own exam sessions
+DROP POLICY IF EXISTS "Users can read own unified exam sessions" ON unified_exam_sessions;
 CREATE POLICY "Users can read own unified exam sessions"
   ON unified_exam_sessions
   FOR SELECT
   USING (user_id = auth.uid());
 
 -- Users can insert their own exam sessions
+DROP POLICY IF EXISTS "Users can insert own unified exam sessions" ON unified_exam_sessions;
 CREATE POLICY "Users can insert own unified exam sessions"
   ON unified_exam_sessions
   FOR INSERT
   WITH CHECK (user_id = auth.uid());
 
 -- Users can update their own exam sessions (for completing them)
+DROP POLICY IF EXISTS "Users can update own unified exam sessions" ON unified_exam_sessions;
 CREATE POLICY "Users can update own unified exam sessions"
   ON unified_exam_sessions
   FOR UPDATE
   USING (user_id = auth.uid());
 
 -- Service role can do everything (for edge functions)
+DROP POLICY IF EXISTS "Service role full access to unified exam sessions" ON unified_exam_sessions;
 CREATE POLICY "Service role full access to unified exam sessions"
   ON unified_exam_sessions
   FOR ALL
@@ -95,6 +99,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS unified_exam_updated_at ON unified_exam_sessions;
 CREATE TRIGGER unified_exam_updated_at
   BEFORE UPDATE ON unified_exam_sessions
   FOR EACH ROW

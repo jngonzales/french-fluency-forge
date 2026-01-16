@@ -11,18 +11,19 @@ CREATE TABLE IF NOT EXISTS scoring_traces (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_scoring_traces_session ON scoring_traces(session_id);
-CREATE INDEX idx_scoring_traces_module ON scoring_traces(module_type);
-CREATE INDEX idx_scoring_traces_created ON scoring_traces(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_scoring_traces_session ON scoring_traces(session_id);
+CREATE INDEX IF NOT EXISTS idx_scoring_traces_module ON scoring_traces(module_type);
+CREATE INDEX IF NOT EXISTS idx_scoring_traces_created ON scoring_traces(created_at DESC);
 
 -- Index on JSONB fields for common queries
-CREATE INDEX idx_scoring_traces_scenario_id ON scoring_traces((trace_data->'meta'->>'scenario_id'));
-CREATE INDEX idx_scoring_traces_persona_id ON scoring_traces((trace_data->'meta'->>'persona_id'));
+CREATE INDEX IF NOT EXISTS idx_scoring_traces_scenario_id ON scoring_traces((trace_data->'meta'->>'scenario_id'));
+CREATE INDEX IF NOT EXISTS idx_scoring_traces_persona_id ON scoring_traces((trace_data->'meta'->>'persona_id'));
 
 -- RLS Policies
 ALTER TABLE scoring_traces ENABLE ROW LEVEL SECURITY;
 
--- Users can read their own traces
+-- Users can read their own traces (idempotent)
+DROP POLICY IF EXISTS "Users can read own scoring traces" ON scoring_traces;
 CREATE POLICY "Users can read own scoring traces"
   ON scoring_traces
   FOR SELECT
@@ -32,7 +33,8 @@ CREATE POLICY "Users can read own scoring traces"
     )
   );
 
--- Users can insert their own traces
+-- Users can insert their own traces (idempotent)
+DROP POLICY IF EXISTS "Users can insert own scoring traces" ON scoring_traces;
 CREATE POLICY "Users can insert own scoring traces"
   ON scoring_traces
   FOR INSERT
@@ -42,7 +44,8 @@ CREATE POLICY "Users can insert own scoring traces"
     )
   );
 
--- Service role can do everything (for edge functions)
+-- Service role can do everything (for edge functions) (idempotent)
+DROP POLICY IF EXISTS "Service role full access to scoring traces" ON scoring_traces;
 CREATE POLICY "Service role full access to scoring traces"
   ON scoring_traces
   FOR ALL
@@ -57,6 +60,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS scoring_traces_updated_at ON scoring_traces;
 CREATE TRIGGER scoring_traces_updated_at
   BEFORE UPDATE ON scoring_traces
   FOR EACH ROW

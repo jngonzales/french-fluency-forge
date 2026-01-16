@@ -1,26 +1,33 @@
 -- Sales Copilot Migration
 -- Creates tables for leads, calls, and playbook management
+-- NOTE: This file is now IDEMPOTENT (safe to run multiple times)
 
--- Enums for call stages and outcomes
-CREATE TYPE public.call_stage AS ENUM (
-  'rapport',
-  'diagnose',
-  'qualify',
-  'present',
-  'objections',
-  'close',
-  'next_steps'
-);
+-- Enums for call stages and outcomes (wrapped in exception handlers)
+DO $$ BEGIN
+  CREATE TYPE public.call_stage AS ENUM (
+    'rapport',
+    'diagnose',
+    'qualify',
+    'present',
+    'objections',
+    'close',
+    'next_steps'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE public.call_outcome AS ENUM (
-  'won',
-  'lost',
-  'follow_up',
-  'refer_out'
-);
+DO $$ BEGIN
+  CREATE TYPE public.call_outcome AS ENUM (
+    'won',
+    'lost',
+    'follow_up',
+    'refer_out'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Sales Leads table
-CREATE TABLE public.sales_leads (
+CREATE TABLE IF NOT EXISTS public.sales_leads (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT,
   email TEXT,
@@ -44,7 +51,7 @@ CREATE TABLE public.sales_leads (
 );
 
 -- Sales Calls table
-CREATE TABLE public.sales_calls (
+CREATE TABLE IF NOT EXISTS public.sales_calls (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   lead_id UUID REFERENCES public.sales_leads(id) ON DELETE CASCADE NOT NULL,
   stage call_stage NOT NULL DEFAULT 'rapport',
@@ -62,7 +69,7 @@ CREATE TABLE public.sales_calls (
 );
 
 -- Sales Playbook table
-CREATE TABLE public.sales_playbook (
+CREATE TABLE IF NOT EXISTS public.sales_playbook (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   version TEXT NOT NULL,
   name TEXT NOT NULL,
@@ -73,11 +80,11 @@ CREATE TABLE public.sales_playbook (
   created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL
 );
 
--- Indexes
-CREATE INDEX idx_sales_leads_email ON public.sales_leads(email);
-CREATE INDEX idx_sales_leads_linked_user ON public.sales_leads(linked_user_id);
-CREATE INDEX idx_sales_calls_lead ON public.sales_calls(lead_id);
-CREATE INDEX idx_sales_playbook_active ON public.sales_playbook(is_active) WHERE is_active = true;
+-- Indexes (IF NOT EXISTS)
+CREATE INDEX IF NOT EXISTS idx_sales_leads_email ON public.sales_leads(email);
+CREATE INDEX IF NOT EXISTS idx_sales_leads_linked_user ON public.sales_leads(linked_user_id);
+CREATE INDEX IF NOT EXISTS idx_sales_calls_lead ON public.sales_calls(lead_id);
+CREATE INDEX IF NOT EXISTS idx_sales_playbook_active ON public.sales_playbook(is_active) WHERE is_active = true;
 
 -- Enable RLS
 ALTER TABLE public.sales_leads ENABLE ROW LEVEL SECURITY;
@@ -103,7 +110,8 @@ BEGIN
 END;
 $$;
 
--- RLS Policies for sales_leads
+-- RLS Policies for sales_leads (idempotent with DROP IF EXISTS)
+DROP POLICY IF EXISTS "Admins can view all leads" ON public.sales_leads;
 CREATE POLICY "Admins can view all leads" ON public.sales_leads
   FOR SELECT
   USING (
@@ -114,6 +122,7 @@ CREATE POLICY "Admins can view all leads" ON public.sales_leads
     )
   );
 
+DROP POLICY IF EXISTS "Admins can insert leads" ON public.sales_leads;
 CREATE POLICY "Admins can insert leads" ON public.sales_leads
   FOR INSERT
   WITH CHECK (
@@ -124,6 +133,7 @@ CREATE POLICY "Admins can insert leads" ON public.sales_leads
     )
   );
 
+DROP POLICY IF EXISTS "Admins can update leads" ON public.sales_leads;
 CREATE POLICY "Admins can update leads" ON public.sales_leads
   FOR UPDATE
   USING (
@@ -134,7 +144,8 @@ CREATE POLICY "Admins can update leads" ON public.sales_leads
     )
   );
 
--- RLS Policies for sales_calls
+-- RLS Policies for sales_calls (idempotent with DROP IF EXISTS)
+DROP POLICY IF EXISTS "Admins can view all calls" ON public.sales_calls;
 CREATE POLICY "Admins can view all calls" ON public.sales_calls
   FOR SELECT
   USING (
@@ -145,6 +156,7 @@ CREATE POLICY "Admins can view all calls" ON public.sales_calls
     )
   );
 
+DROP POLICY IF EXISTS "Admins can insert calls" ON public.sales_calls;
 CREATE POLICY "Admins can insert calls" ON public.sales_calls
   FOR INSERT
   WITH CHECK (
@@ -155,6 +167,7 @@ CREATE POLICY "Admins can insert calls" ON public.sales_calls
     )
   );
 
+DROP POLICY IF EXISTS "Admins can update calls" ON public.sales_calls;
 CREATE POLICY "Admins can update calls" ON public.sales_calls
   FOR UPDATE
   USING (
@@ -165,7 +178,8 @@ CREATE POLICY "Admins can update calls" ON public.sales_calls
     )
   );
 
--- RLS Policies for sales_playbook
+-- RLS Policies for sales_playbook (idempotent with DROP IF EXISTS)
+DROP POLICY IF EXISTS "Admins can view all playbooks" ON public.sales_playbook;
 CREATE POLICY "Admins can view all playbooks" ON public.sales_playbook
   FOR SELECT
   USING (
@@ -176,6 +190,7 @@ CREATE POLICY "Admins can view all playbooks" ON public.sales_playbook
     )
   );
 
+DROP POLICY IF EXISTS "Admins can insert playbooks" ON public.sales_playbook;
 CREATE POLICY "Admins can insert playbooks" ON public.sales_playbook
   FOR INSERT
   WITH CHECK (
@@ -186,6 +201,7 @@ CREATE POLICY "Admins can insert playbooks" ON public.sales_playbook
     )
   );
 
+DROP POLICY IF EXISTS "Admins can update playbooks" ON public.sales_playbook;
 CREATE POLICY "Admins can update playbooks" ON public.sales_playbook
   FOR UPDATE
   USING (
@@ -212,25 +228,29 @@ BEGIN
 END;
 $$;
 
--- Trigger to auto-link on insert/update
+-- Trigger to auto-link on insert/update (idempotent)
+DROP TRIGGER IF EXISTS auto_link_lead_trigger ON public.sales_leads;
 CREATE TRIGGER auto_link_lead_trigger
   BEFORE INSERT OR UPDATE ON public.sales_leads
   FOR EACH ROW
   EXECUTE FUNCTION public.auto_link_lead_to_user();
 
--- Trigger for updated_at on sales_leads
+-- Trigger for updated_at on sales_leads (idempotent)
+DROP TRIGGER IF EXISTS update_sales_leads_updated_at ON public.sales_leads;
 CREATE TRIGGER update_sales_leads_updated_at
   BEFORE UPDATE ON public.sales_leads
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at();
 
--- Trigger for updated_at on sales_calls
+-- Trigger for updated_at on sales_calls (idempotent)
+DROP TRIGGER IF EXISTS update_sales_calls_updated_at ON public.sales_calls;
 CREATE TRIGGER update_sales_calls_updated_at
   BEFORE UPDATE ON public.sales_calls
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at();
 
--- Trigger for updated_at on sales_playbook
+-- Trigger for updated_at on sales_playbook (idempotent)
+DROP TRIGGER IF EXISTS update_sales_playbook_updated_at ON public.sales_playbook;
 CREATE TRIGGER update_sales_playbook_updated_at
   BEFORE UPDATE ON public.sales_playbook
   FOR EACH ROW

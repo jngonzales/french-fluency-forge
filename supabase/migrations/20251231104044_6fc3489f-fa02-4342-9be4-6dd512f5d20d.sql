@@ -62,12 +62,14 @@ ALTER TABLE public.credit_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.systemeio_product_map ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for app_accounts (users can view their own account via user_id link)
+DROP POLICY IF EXISTS "Users can view own app_account" ON public.app_accounts;
 CREATE POLICY "Users can view own app_account"
   ON public.app_accounts
   FOR SELECT
   USING (auth.uid() = user_id);
 
 -- RLS Policies for credit_wallets (users can view their own wallet)
+DROP POLICY IF EXISTS "Users can view own credit_wallet" ON public.credit_wallets;
 CREATE POLICY "Users can view own credit_wallet"
   ON public.credit_wallets
   FOR SELECT
@@ -78,6 +80,7 @@ CREATE POLICY "Users can view own credit_wallet"
   );
 
 -- RLS Policies for credit_transactions (users can view their own transactions)
+DROP POLICY IF EXISTS "Users can view own credit_transactions" ON public.credit_transactions;
 CREATE POLICY "Users can view own credit_transactions"
   ON public.credit_transactions
   FOR SELECT
@@ -98,12 +101,14 @@ CREATE INDEX IF NOT EXISTS idx_credit_transactions_account_id ON public.credit_t
 CREATE INDEX IF NOT EXISTS idx_credit_transactions_created ON public.credit_transactions(account_id, created_at DESC);
 
 -- Trigger to update updated_at on app_accounts
+DROP TRIGGER IF EXISTS update_app_accounts_updated_at ON public.app_accounts;
 CREATE TRIGGER update_app_accounts_updated_at
   BEFORE UPDATE ON public.app_accounts
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at();
 
 -- Trigger to update updated_at on credit_wallets
+DROP TRIGGER IF EXISTS update_credit_wallets_updated_at ON public.credit_wallets;
 CREATE TRIGGER update_credit_wallets_updated_at
   BEFORE UPDATE ON public.credit_wallets
   FOR EACH ROW
