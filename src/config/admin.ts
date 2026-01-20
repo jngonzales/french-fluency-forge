@@ -8,6 +8,7 @@
 export const ADMIN_EMAILS = [
   'tom@solvlanguages.com',
   'jngonzales.dev@gmail.com',
+  'tomgauthier0@gmail.com'
 ];
 
 /**

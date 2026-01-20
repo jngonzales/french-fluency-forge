@@ -1,5 +1,3 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminMode } from "@/hooks/useAdminMode";
 import { 
@@ -13,17 +11,10 @@ import {
 } from "@/components/landing";
 
 const Index = () => {
-  const navigate = useNavigate();
-  const { user, isLoading } = useAuth();
+  const { isLoading } = useAuth();
   const { showDevTools } = useAdminMode();
 
-  // v0 demo: Always redirect logged-in users to Dashboard
-  useEffect(() => {
-    if (!isLoading && user) {
-      navigate('/dashboard', { replace: true });
-      return;
-    }
-  }, [user, isLoading, navigate]);
+  // Don't redirect logged-in users - they should be able to view the landing page
 
   if (isLoading) {
     return (
