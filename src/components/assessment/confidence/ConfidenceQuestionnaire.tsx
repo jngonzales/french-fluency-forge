@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { ArrowRight, ArrowLeft, ClipboardList, Info } from 'lucide-react';
 import { 
   confidenceQuestions, 
   calculateQuestionnaireScore,
+  calculatePartialQuestionnaireScore,
   type ConfidenceQuestionConfig,
   type ScenarioOption
 } from './confidenceQuestions';
@@ -17,9 +18,10 @@ import { useAuth } from '@/contexts/AuthContext';
 interface ConfidenceQuestionnaireProps {
   sessionId: string;
   onComplete: (normalizedScore: number) => void;
+  registerSavePartial?: (fn: () => Promise<void>) => void;
 }
 
-export function ConfidenceQuestionnaire({ sessionId, onComplete }: ConfidenceQuestionnaireProps) {
+export function ConfidenceQuestionnaire({ sessionId, onComplete, registerSavePartial }: ConfidenceQuestionnaireProps) {
   const { user } = useAuth();
   const [showIntro, setShowIntro] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -30,6 +32,49 @@ export function ConfidenceQuestionnaire({ sessionId, onComplete }: ConfidenceQue
   const progress = ((currentIndex + 1) / confidenceQuestions.length) * 100;
   const isLastQuestion = currentIndex === confidenceQuestions.length - 1;
   const hasAnswer = responses[currentQuestion?.id] !== undefined;
+
+  // Save partial responses (for skip functionality)
+  const savePartialResponses = useCallback(async () => {
+    if (!user) return;
+    
+    // Check if there are any responses to save
+    const answeredQuestions = Object.keys(responses).filter(k => responses[k] !== undefined);
+    if (answeredQuestions.length === 0) {
+      console.log('[Confidence] No responses to save');
+      return;
+    }
+    
+    const { rawScore, normalizedScore, honestyFlag, answeredCount, totalQuestions } = 
+      calculatePartialQuestionnaireScore(responses);
+    
+    console.log(`[Confidence] Saving partial: ${answeredCount}/${totalQuestions} questions, score: ${normalizedScore}`);
+    
+    await supabase.from('confidence_questionnaire_responses').insert({
+      session_id: sessionId,
+      user_id: user.id,
+      responses: responses,
+      raw_score: rawScore,
+      normalized_score: normalizedScore,
+      honesty_flag: honestyFlag
+    });
+  }, [user, responses, sessionId]);
+
+  // Register partial save function with parent
+  useEffect(() => {
+    if (registerSavePartial) {
+      registerSavePartial(savePartialResponses);
+    }
+  }, [savePartialResponses, registerSavePartial]);
+
+  // Auto-initialize slider questions with default value (5) so user can proceed without dragging
+  useEffect(() => {
+    if (currentQuestion?.type === 'slider' && responses[currentQuestion.id] === undefined) {
+      setResponses(prev => ({
+        ...prev,
+        [currentQuestion.id]: 5
+      }));
+    }
+  }, [currentQuestion, responses]);
 
   const handleAnswer = (value: number | string) => {
     setResponses(prev => ({

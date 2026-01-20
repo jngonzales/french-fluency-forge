@@ -31,7 +31,8 @@ const Signup = () => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate("/");
+        // v0 demo: Always go to dashboard after signup
+        navigate("/dashboard");
       }
     };
     checkSession();
@@ -39,7 +40,8 @@ const Signup = () => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        navigate("/");
+        // v0 demo: Always go to dashboard after signup
+        navigate("/dashboard");
       }
     });
 
@@ -84,7 +86,8 @@ const Signup = () => {
       }
 
       toast.success("Account created successfully!");
-      navigate("/");
+      // v0 demo: Always go to dashboard after signup
+      navigate("/dashboard");
     } catch (error) {
       toast.error("An unexpected error occurred. Please try again.");
     } finally {

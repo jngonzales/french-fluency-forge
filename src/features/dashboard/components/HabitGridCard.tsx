@@ -23,9 +23,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Flame } from 'lucide-react';
+import { Plus, Flame, Settings, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { calculateCurrentStreak } from '../data/mockData';
+import { getLocalToday, getLocalDateRange, isDateFuture } from '@/lib/dateUtils';
 import type { Habit, HabitCell, HabitFrequency, HabitCellStatus, TimeRange } from '../types';
 
 interface HabitGridCardProps {
@@ -34,6 +35,8 @@ interface HabitGridCardProps {
   range: TimeRange;
   onCellToggle: (habitId: string, date: string, status: HabitCellStatus, intensity?: number) => void;
   onAddHabit: (habit: Habit) => void;
+  onUpdateHabit?: (habitId: string, updates: Partial<Habit>) => void;
+  onDeleteHabit?: (habitId: string) => void;
   onBadgeUnlock: (badgeId: string) => void;
 }
 
@@ -43,11 +46,51 @@ export function HabitGridCard({
   range,
   onCellToggle,
   onAddHabit,
+  onUpdateHabit,
+  onDeleteHabit,
   onBadgeUnlock,
 }: HabitGridCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newHabitName, setNewHabitName] = useState('');
   const [newHabitFrequency, setNewHabitFrequency] = useState<HabitFrequency>('daily');
+  
+  // Edit habit state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
+  const [editHabitName, setEditHabitName] = useState('');
+  const [editHabitFrequency, setEditHabitFrequency] = useState<HabitFrequency>('daily');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleEditHabit = (habit: Habit) => {
+    setEditingHabit(habit);
+    setEditHabitName(habit.name);
+    setEditHabitFrequency(habit.frequency);
+    setShowDeleteConfirm(false);
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingHabit || !editHabitName.trim() || !onUpdateHabit) return;
+    
+    onUpdateHabit(editingHabit.id, {
+      name: editHabitName.trim(),
+      frequency: editHabitFrequency,
+    });
+    
+    setEditDialogOpen(false);
+    setEditingHabit(null);
+    toast.success('Practice updated!');
+  };
+
+  const handleDeleteHabit = () => {
+    if (!editingHabit || !onDeleteHabit) return;
+    
+    onDeleteHabit(editingHabit.id);
+    setEditDialogOpen(false);
+    setEditingHabit(null);
+    setShowDeleteConfirm(false);
+    toast.success('Practice removed from tracker');
+  };
 
   // Get days to show based on range
   const getDaysCount = () => {
@@ -64,20 +107,12 @@ export function HabitGridCard({
   };
 
   const daysCount = getDaysCount();
-  const today = new Date();
-  const dates: string[] = [];
-
-  for (let i = daysCount - 1; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    dates.push(date.toISOString().split('T')[0]);
-  }
+  // Use local timezone dates (not UTC)
+  const dates: string[] = getLocalDateRange(daysCount);
+  const todayStr = getLocalToday();
 
   const handleCellClick = (habitId: string, date: string, currentStatus: HabitCellStatus) => {
-    const todayStr = today.toISOString().split('T')[0];
-    const isFuture = date > todayStr;
-
-    if (isFuture) {
+    if (isDateFuture(date)) {
       toast.error("You can't track future progress yet!");
       return;
     }
@@ -118,7 +153,6 @@ export function HabitGridCard({
       );
 
       // Check for 3 days in a row (including today/the clicked day)
-      let streakCount = 0;
       let hasThreeDayStreak = false;
       
       // Sort all "done" cells by date
@@ -221,8 +255,8 @@ export function HabitGridCard({
                 <div className="flex mb-3">
                   <div className="w-52 flex-shrink-0 pr-4" />
                   {dates.map((date) => {
-                    const d = new Date(date);
-                    const isToday = date === today.toISOString().split('T')[0];
+                    const d = new Date(date + 'T12:00:00'); // Parse as noon local to avoid timezone shift
+                    const isToday = date === todayStr;
                     return (
                       <div
                         key={date}
@@ -238,14 +272,27 @@ export function HabitGridCard({
 
                 {/* Habit Rows */}
                 {habits.map((habit) => (
-                  <div key={habit.id} className="flex items-center mb-3 group">
-                    <div className="w-52 flex-shrink-0 pr-4">
-                      <p className="text-sm font-medium text-foreground leading-tight truncate" title={habit.name}>
-                        {habit.name}
-                      </p>
-                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 mt-1 h-4">
-                        {habit.frequency}
-                      </Badge>
+                  <div key={habit.id} className="flex items-center mb-3 group/row">
+                    <div className="w-52 flex-shrink-0 pr-4 flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground leading-tight truncate" title={habit.name}>
+                          {habit.name}
+                        </p>
+                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 mt-1 h-4">
+                          {habit.frequency}
+                        </Badge>
+                      </div>
+                      {/* Edit button - appears on hover */}
+                      {onUpdateHabit && onDeleteHabit && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0"
+                          onClick={() => handleEditHabit(habit)}
+                        >
+                          <Settings className="w-3.5 h-3.5 text-muted-foreground" />
+                        </Button>
+                      )}
                     </div>
                     <div className="flex gap-1">
                       {dates.map((date) => {
@@ -283,11 +330,11 @@ export function HabitGridCard({
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Habit</DialogTitle>
+            <DialogTitle>Add Practice</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="habitName">Habit Name</Label>
+              <Label htmlFor="habitName">Practice Name</Label>
               <Input
                 id="habitName"
                 value={newHabitName}
@@ -316,7 +363,74 @@ export function HabitGridCard({
               Cancel
             </Button>
             <Button onClick={handleAddHabit} disabled={!newHabitName.trim()}>
-              Add Habit
+              Add Practice
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Habit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Practice</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="editHabitName">Practice Name</Label>
+              <Input
+                id="editHabitName"
+                value={editHabitName}
+                onChange={(e) => setEditHabitName(e.target.value)}
+                placeholder="e.g., Morning phrases session"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editFrequency">Frequency</Label>
+              <Select
+                value={editHabitFrequency}
+                onValueChange={(v) => setEditHabitFrequency(v as HabitFrequency)}
+              >
+                <SelectTrigger id="editFrequency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {/* Delete button */}
+            <div className="flex-1 flex justify-start">
+              {showDeleteConfirm ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-destructive">Delete this practice?</span>
+                  <Button variant="destructive" size="sm" onClick={handleDeleteHabit}>
+                    Yes, delete
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              )}
+            </div>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={!editHabitName.trim()}>
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>

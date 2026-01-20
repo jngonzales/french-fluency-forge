@@ -29,6 +29,10 @@ interface AssessmentSession {
   id: string;
   status: SessionStatus;
   fluency_locked?: boolean;
+  current_module?: string | null;
+  current_item_index?: number | null;
+  phrase_seed?: number | null;
+  selected_phrase_ids?: string[] | null;
 }
 
 const Assessment = () => {
@@ -38,15 +42,7 @@ const Assessment = () => {
   
   const [session, setSession] = useState<AssessmentSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [assessmentPhase, setAssessmentPhase] = useState<AssessmentPhase>(() => {
-    // Check for dev override
-    const devPhase = sessionStorage.getItem("dev_assessment_phase");
-    if (devPhase && ["pronunciation", "comprehension", "confidence", "conversation"].includes(devPhase)) {
-      sessionStorage.removeItem("dev_assessment_phase"); // Clear after reading
-      return devPhase as AssessmentPhase;
-    }
-    return "pronunciation";
-  });
+  const [assessmentPhase, setAssessmentPhase] = useState<AssessmentPhase | null>(null);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -58,9 +54,17 @@ const Assessment = () => {
     if (!user) return;
 
     try {
+      // Check for dev override first
+      const devPhase = sessionStorage.getItem("dev_assessment_phase");
+      if (devPhase && ["pronunciation", "comprehension", "confidence", "conversation"].includes(devPhase)) {
+        sessionStorage.removeItem("dev_assessment_phase");
+        setAssessmentPhase(devPhase as AssessmentPhase);
+      }
+
+      // Query for existing session - use * to get all columns including new ones
       const { data: existingSession, error: fetchError } = await supabase
         .from("assessment_sessions")
-        .select("id, status, fluency_locked")
+        .select("*")
         .eq("user_id", user.id)
         .in("status", ["intake", "consent", "quiz", "mic_check", "assessment", "processing"])
         .order("created_at", { ascending: false })
@@ -70,16 +74,36 @@ const Assessment = () => {
       if (fetchError) throw fetchError;
 
       if (existingSession) {
-        setSession(existingSession);
+        const sessionData = existingSession as AssessmentSession;
+        setSession(sessionData);
+        // Restore the module from session if not overridden by dev
+        if (!devPhase && sessionData.current_module) {
+          setAssessmentPhase(sessionData.current_module as AssessmentPhase);
+        } else if (!devPhase) {
+          setAssessmentPhase("pronunciation");
+        }
       } else {
+        // v0 demo: Skip intake/consent/quiz/mic_check - go straight to assessment
         const { data: newSession, error: createError } = await supabase
           .from("assessment_sessions")
-          .insert({ user_id: user.id, status: "intake" as SessionStatus })
-          .select("id, status")
+          .insert({ 
+            user_id: user.id, 
+            status: "assessment" as SessionStatus,
+            // These columns may not exist yet - will be added by migration
+          })
+          .select("*")
           .single();
 
         if (createError) throw createError;
-        setSession(newSession);
+        const sessionData = newSession as AssessmentSession;
+        setSession(sessionData);
+        setAssessmentPhase("pronunciation");
+        
+        // Try to update current_module (ignore error if column doesn't exist yet)
+        await supabase
+          .from("assessment_sessions")
+          .update({ current_module: "pronunciation", current_item_index: 0 } as any)
+          .eq("id", sessionData.id);
       }
     } catch (error) {
       console.error("Error loading session:", error);
@@ -93,10 +117,10 @@ const Assessment = () => {
     if (!session) return;
     const { data, error } = await supabase
       .from("assessment_sessions")
-      .select("id, status, fluency_locked")
+      .select("*")
       .eq("id", session.id)
       .single();
-    if (!error && data) setSession(data);
+    if (!error && data) setSession(data as AssessmentSession);
   };
 
   const handleStepComplete = () => refreshSession();
@@ -108,7 +132,7 @@ const Assessment = () => {
     refreshSession();
   };
 
-  if (authLoading || isLoading) {
+  if (authLoading || isLoading || !assessmentPhase) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
@@ -136,7 +160,13 @@ const Assessment = () => {
   const advancePhase = async () => {
     const currentIdx = phaseOrder.indexOf(assessmentPhase);
     if (currentIdx < phaseOrder.length - 1) {
-      setAssessmentPhase(phaseOrder[currentIdx + 1]);
+      const nextPhase = phaseOrder[currentIdx + 1];
+      setAssessmentPhase(nextPhase);
+      // Save progress to database (ignore error if column doesn't exist)
+      await supabase
+        .from("assessment_sessions")
+        .update({ current_module: nextPhase, current_item_index: 0 } as any)
+        .eq("id", session.id);
     } else {
       await skipToStatus("processing");
     }
@@ -175,20 +205,28 @@ const Assessment = () => {
         </div>
       );
 
-    case "assessment":
+    case "assessment": {
       const moduleProps = { sessionId: session.id, onComplete: advancePhase };
       
       const renderModule = () => {
         switch (assessmentPhase) {
           case "pronunciation":
-            return <PronunciationModule {...moduleProps} onSkip={advancePhase} />;
+            return (
+              <PronunciationModule 
+                {...moduleProps} 
+                onSkip={advancePhase}
+                initialItemIndex={session.current_item_index ?? 0}
+                phraseSeed={session.phrase_seed ?? undefined}
+                selectedPhraseIds={session.selected_phrase_ids ?? undefined}
+              />
+            );
           case "comprehension":
-            return <ComprehensionModule {...moduleProps} />;
+            return <ComprehensionModule {...moduleProps} onSkip={advancePhase} />;
           case "confidence":
-            return <ConfidenceModule {...moduleProps} />;
+            return <ConfidenceModule {...moduleProps} onSkip={advancePhase} />;
           case "conversation":
             // Conversation-agent evaluates: fluency, confidence, conversation, and syntax
-            return <ConversationModule {...moduleProps} />;
+            return <ConversationModule {...moduleProps} onSkip={advancePhase} />;
         }
       };
 
@@ -199,18 +237,22 @@ const Assessment = () => {
           {(isAdmin || isDev) && <EnhancedLiveDataViewer sessionId={session.id} moduleType={assessmentPhase} />}
         </AdminPadding>
       );
+    }
 
     case "processing":
       return (
         <ProcessingView
           sessionId={session.id}
           onComplete={async () => {
-            await supabase.from("assessment_sessions").update({ status: "completed" }).eq("id", session.id);
+            await supabase.from("assessment_sessions").update({ 
+              status: "completed",
+              completed_at: new Date().toISOString()
+            }).eq("id", session.id);
             navigate("/results?session=" + session.id);
           }}
           onStartFresh={async () => {
             const { data } = await supabase.from("assessment_sessions").insert({ user_id: user!.id, status: "intake" as SessionStatus }).select("id, status").single();
-            if (data) { setSession(data); setAssessmentPhase("pronunciation"); }
+            if (data) { setSession(data as AssessmentSession); setAssessmentPhase("pronunciation"); }
           }}
         />
       );

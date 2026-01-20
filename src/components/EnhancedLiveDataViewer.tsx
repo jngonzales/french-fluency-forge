@@ -96,7 +96,7 @@ export function EnhancedLiveDataViewer({ sessionId, moduleType }: EnhancedLiveDa
   if (!trace) {
     return (
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <div className="fixed bottom-24 right-4 z-[9996] w-96 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-xl">
+        <div className="fixed bottom-4 left-4 z-[9996] w-96 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-xl">
           <CollapsibleTrigger asChild>
             <div className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors">
               <div className="flex items-center gap-2">
@@ -134,7 +134,7 @@ export function EnhancedLiveDataViewer({ sessionId, moduleType }: EnhancedLiveDa
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div className="fixed bottom-24 right-4 z-[9996] w-[600px] max-h-[700px] bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-xl overflow-hidden">
+      <div className="fixed bottom-4 left-4 z-[9996] w-[600px] max-h-[700px] bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-xl overflow-hidden">
         <CollapsibleTrigger asChild>
           <div className="flex items-center justify-between p-3 border-b bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors">
             <div className="flex items-center gap-2">

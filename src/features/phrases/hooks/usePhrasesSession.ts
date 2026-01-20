@@ -18,6 +18,7 @@ import { usePhrasesSettings } from './usePhrasesSettings';
 import type { SpeechRecognitionResult } from '../services/speechRecognition';
 import { fetchMemberCardsWithPhrases, insertReviewLog, upsertMemberCards } from '../services/phrasesApi';
 import { runMigrationIfNeeded } from '../utils/migrateLocalStorage';
+import { preloadAudioForPhrases, preloadNextAudio, clearAudioPreloads } from '../utils/audioPreload';
 
 export function usePhrasesSession() {
   const { user } = useAuth();
@@ -160,6 +161,8 @@ export function usePhrasesSession() {
 
     return () => {
       isActive = false;
+      // Cleanup preloaded audio when component unmounts
+      clearAudioPreloads();
     };
   }, [memberId, user?.id]);
 
@@ -206,8 +209,19 @@ export function usePhrasesSession() {
     };
 
     setSessionState(newSession);
+    
+    // OPTIMIZATION: Preload audio for first 5 phrases in queue
+    const upcomingPhrases = queue
+      .slice(0, 5)
+      .map(card => phraseMap[card.phrase_id] || getPhraseById(card.phrase_id))
+      .filter((phrase): phrase is Phrase => phrase !== null);
+    
+    if (upcomingPhrases.length > 0) {
+      preloadAudioForPhrases(upcomingPhrases, 5);
+    }
+    
     return newSession;
-  }, [cards, settings]);
+  }, [cards, settings, phraseMap]);
 
   // Get current card
   const currentCard = sessionState && sessionState.currentIndex < sessionState.queue.length
@@ -336,7 +350,8 @@ export function usePhrasesSession() {
     const nextIndex = sessionState.currentIndex + 1;
     
     if (nextIndex >= sessionState.queue.length) {
-      // Session complete
+      // Session complete - clear preloaded audio
+      clearAudioPreloads();
       setSessionState({
         ...sessionState,
         currentIndex: nextIndex,
@@ -344,7 +359,16 @@ export function usePhrasesSession() {
         isRevealed: false,
       });
     } else {
-      // Next card
+      // Next card - preload audio for the upcoming card
+      const nextCard = sessionState.queue[nextIndex];
+      const nextPhrase = nextCard 
+        ? phraseMap[nextCard.phrase_id] || getPhraseById(nextCard.phrase_id)
+        : null;
+      
+      if (nextPhrase) {
+        preloadNextAudio(nextPhrase);
+      }
+      
       setSessionState({
         ...sessionState,
         currentIndex: nextIndex,
@@ -356,7 +380,7 @@ export function usePhrasesSession() {
     }
 
     return updatedCard;
-  }, [sessionState, currentCard, currentPhrase, cards, persistCards, reviewLogs, persistLogs, memberId, speechResult, settings]);
+  }, [sessionState, currentCard, currentPhrase, cards, persistCards, reviewLogs, persistLogs, memberId, speechResult, settings, phraseMap]);
 
   // Card actions during session
   const buryCard = useCallback(() => {

@@ -120,7 +120,7 @@ export function ProgressTimelineCard({
     comprehension: 'Comprehension',
     phrases_known_recall: 'My Phrases (Recall)',
     phrases_known_recognition: 'My Phrases (Recognition)',
-    ai_words_spoken: 'AI Tutor Practice',
+    // ai_words_spoken: 'AI Tutor Practice', // AI Tutor out of scope
   };
 
   const selectedGoal = goals.find((g) => g.id === selectedGoalId);

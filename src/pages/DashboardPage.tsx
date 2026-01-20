@@ -19,6 +19,8 @@ import { FlashcardStatsCard } from '@/features/dashboard/components/FlashcardSta
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
   Sheet,
   SheetContent,
@@ -36,12 +38,13 @@ import { Menu, Lock, BookOpen, Mic2, MessageSquare, Users, GraduationCap, UserCi
 import type { MetricKey, TimeRange, PlanKey, PlanFeatures } from '@/features/dashboard/types';
 
 // Feature list for the resources menu
+// NOTE: Hidden for v0 demo: groupCoaching, oneOnOneCoaching, groupConversations, aiTutor (not demo-ready)
 const FEATURE_LIST = [
-  { key: 'groupCoaching', label: 'Group Coaching Sessions', icon: GraduationCap },
-  { key: 'oneOnOneCoaching', label: '1:1 Conversation Coaching', icon: UserCircle },
-  { key: 'groupConversations', label: 'Group Conversation Sessions', icon: Users },
-  { key: 'aiTutor', label: 'AI Tutor', icon: MessageSquare },
-  { key: 'fluencyAnalyzer', label: 'My Fluency Analyzer', icon: Mic2 },
+  // { key: 'groupCoaching', label: 'Group Coaching Sessions', icon: GraduationCap }, // Hidden for demo
+  // { key: 'oneOnOneCoaching', label: '1:1 Conversation Coaching', icon: UserCircle }, // Hidden for demo
+  // { key: 'groupConversations', label: 'Group Conversation Sessions', icon: Users }, // Hidden for demo
+  // { key: 'aiTutor', label: 'AI Tutor', icon: MessageSquare }, // Hidden for demo
+  { key: 'fluencyAnalyzer', label: 'Speaking Assessment', icon: Mic2 },
   { key: 'phrases', label: 'My Phrases', icon: BookOpen },
 ] as const;
 
@@ -79,8 +82,34 @@ export default function DashboardPage() {
   if (loading.assessments && !data) {
     return (
       <AdminPadding>
-        <div className="flex items-center justify-center min-h-screen">
-          <p>Loading dashboard...</p>
+        <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+          {/* Header skeleton */}
+          <div className="max-w-7xl mx-auto mb-8">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            </div>
+          </div>
+          
+          {/* Cards grid skeleton */}
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Card skeletons */}
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Card key={i} className="h-64">
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-6 w-40" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-24 w-full rounded-lg" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </AdminPadding>
     );
@@ -127,53 +156,22 @@ export default function DashboardPage() {
                     </SheetHeader>
                     <div className="space-y-1">
                       {FEATURE_LIST.map((feature) => {
-                        // For v0, phrases and fluencyAnalyzer are always accessible regardless of plan
-                        const isUnlocked = feature.key === 'phrases' || feature.key === 'fluencyAnalyzer' 
-                          ? true 
-                          : data.member.features[feature.key as keyof PlanFeatures];
+                        // For v0 demo, all visible features (phrases, fluencyAnalyzer) are always unlocked
                         const Icon = feature.icon;
-                        
-                        // Use Link for phrases and fluencyAnalyzer
-                        if ((feature.key === 'phrases' || feature.key === 'fluencyAnalyzer') && isUnlocked) {
-                          const linkTo = feature.key === 'phrases' ? '/phrases' : '/fluency-analyzer';
-                          return (
-                            <Link
-                              key={feature.key}
-                              to={linkTo}
-                              onClick={() => setResourcesOpen(false)}
-                              className="w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group hover:bg-primary/5 text-foreground cursor-pointer hover:translate-x-1"
-                            >
-                              <div className="p-2 rounded-md flex-shrink-0 bg-primary/10 text-primary">
-                                <Icon className="w-4 h-4" />
-                              </div>
-                              <span className="text-sm font-medium text-left flex-1">{feature.label}</span>
-                            </Link>
-                          );
-                        }
+                        const linkTo = feature.key === 'phrases' ? '/phrases' : '/speaking-assessment';
                         
                         return (
-                          <button
+                          <Link
                             key={feature.key}
-                            disabled={!isUnlocked}
-                            onClick={() => {
-                              if (isUnlocked) {
-                                // TODO: Implement other feature navigation
-                                console.log(`Navigate to ${feature.key}`);
-                                setResourcesOpen(false);
-                              }
-                            }}
-                            className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group ${
-                              isUnlocked 
-                                ? 'hover:bg-primary/5 text-foreground cursor-pointer hover:translate-x-1' 
-                                : 'opacity-50 cursor-not-allowed'
-                            }`}
+                            to={linkTo}
+                            onClick={() => setResourcesOpen(false)}
+                            className="w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group hover:bg-primary/5 text-foreground cursor-pointer hover:translate-x-1"
                           >
-                            <div className={`p-2 rounded-md flex-shrink-0 ${isUnlocked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                            <div className="p-2 rounded-md flex-shrink-0 bg-primary/10 text-primary">
                               <Icon className="w-4 h-4" />
                             </div>
                             <span className="text-sm font-medium text-left flex-1">{feature.label}</span>
-                            {!isUnlocked && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
-                          </button>
+                          </Link>
                         );
                       })}
                     </div>
@@ -239,6 +237,8 @@ export default function DashboardPage() {
             range={selectedRange}
             onCellToggle={actions.updateHabitCell}
             onAddHabit={actions.addHabit}
+            onUpdateHabit={actions.updateHabit}
+            onDeleteHabit={actions.deleteHabit}
             onBadgeUnlock={actions.unlockBadge}
           />
 
@@ -253,17 +253,18 @@ export default function DashboardPage() {
             goals={goals}
             onAddGoal={actions.addGoal}
             onUpdateGoal={actions.updateGoal}
+            onDeleteGoal={actions.deleteGoal}
             onGoalSelect={setSelectedGoalId}
             selectedGoalId={selectedGoalId}
           />
 
-          {/* Achievements */}
-          <BadgesCard
+          {/* Achievements - Hidden for v0 demo (not ready) */}
+          {/* <BadgesCard
             badges={badges}
             points={data.points}
             onUnlock={actions.unlockBadge}
             isAdmin={isAdmin}
-          />
+          /> */}
 
           {/* Phrase Stats - Scheduled vs Learned */}
           <FlashcardStatsCard />

@@ -77,12 +77,15 @@ export function selectPhrasesWithCoverage(
   let swapsMade = 0;
   const maxIterations = 50;
   let iteration = 0;
+  
+  // Track swap history to prevent oscillation
+  const swapHistory = new Set<string>();
 
   while (missingPhonemes.length > 0 && iteration < maxIterations) {
     iteration++;
     console.log(`[Coverage Sampler] Iteration ${iteration}: Missing ${missingPhonemes.length} phonemes`);
 
-    const swapped = greedySwap(selected, remaining, missingPhonemes);
+    const swapped = greedySwap(selected, remaining, missingPhonemes, swapHistory);
     
     if (!swapped) {
       console.warn('[Coverage Sampler] Could not find swap to improve coverage');
@@ -128,12 +131,14 @@ function extractPhonemes(phrases: PronunciationPhrase[]): Set<string> {
  * Greedy swap algorithm to maximize coverage
  * Finds a phrase to swap that covers missing phonemes
  * 
+ * @param swapHistory - Set of "fromId→toId" strings to prevent oscillation
  * @returns true if a swap was made, false if no improvement possible
  */
 function greedySwap(
   selected: PronunciationPhrase[],
   remaining: Map<string, PronunciationPhrase[]>,
-  missingPhonemes: string[]
+  missingPhonemes: string[],
+  swapHistory: Set<string>
 ): boolean {
   let bestSwap: {
     removeIndex: number;
@@ -149,6 +154,12 @@ function greedySwap(
 
     // Try each candidate from the same group
     for (const candidate of candidatesInGroup) {
+      // Skip if we've already tried this swap (prevents oscillation)
+      const swapKey = `${current.id}→${candidate.id}`;
+      if (swapHistory.has(swapKey)) {
+        continue;
+      }
+      
       const candidatePhonemes = candidate.phonemes || parseIPA(candidate.ipa);
       
       // How many missing phonemes does this candidate cover?
@@ -172,6 +183,9 @@ function greedySwap(
   if (bestSwap) {
     const removed = selected[bestSwap.removeIndex];
     selected[bestSwap.removeIndex] = bestSwap.addPhrase;
+    
+    // Record this swap to prevent future oscillation
+    swapHistory.add(`${removed.id}→${bestSwap.addPhrase.id}`);
     
     // Update remaining lists
     const group = bestSwap.addPhrase.group;

@@ -5,7 +5,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { generatePhraseAudio, getAudioUrl, revokeAudioUrl } from '../utils/audioGeneration';
-import { getAudioPublicUrl, audioExists } from '../services/audioStorage';
+import { getCachedAudioUrl } from '../utils/audioPreload';
+
+// In-memory cache for audio URLs - persists across renders
+const audioCache = new Map<string, { url: string; isBlob: boolean }>();
 
 export interface UsePhraseAudioOptions {
   phraseId: string;
@@ -62,6 +65,38 @@ export function usePhraseAudio({
       return;
     }
     
+    // Check local cache first for instant playback
+    const cached = audioCache.get(phraseId);
+    if (cached) {
+      const audio = new Audio(cached.url);
+      audio.preload = 'auto';
+      audio.addEventListener('loadedmetadata', () => {
+        setDuration(audio.duration);
+      });
+      audio.addEventListener('play', () => setIsPlaying(true));
+      audio.addEventListener('pause', () => setIsPlaying(false));
+      audio.addEventListener('ended', () => setIsPlaying(false));
+      audioRef.current = audio;
+      setAudioUrl(cached.url);
+      return;
+    }
+    
+    // Check preload cache (from background TTS generation)
+    const preloadedUrl = getCachedAudioUrl(phraseId);
+    if (preloadedUrl) {
+      const audio = new Audio(preloadedUrl);
+      audio.preload = 'auto';
+      audio.addEventListener('loadedmetadata', () => {
+        setDuration(audio.duration);
+      });
+      audio.addEventListener('play', () => setIsPlaying(true));
+      audio.addEventListener('pause', () => setIsPlaying(false));
+      audio.addEventListener('ended', () => setIsPlaying(false));
+      audioRef.current = audio;
+      setAudioUrl(preloadedUrl);
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
 
@@ -73,15 +108,14 @@ export function usePhraseAudio({
       if (providedAudioUrl && !providedAudioUrl.startsWith('/mock/')) {
         url = providedAudioUrl;
       } else if (text) {
-        // Check if audio exists in storage
-        const exists = await audioExists(phraseId);
-        if (exists) {
-          url = getAudioPublicUrl(phraseId);
-        } else {
-          // Generate on-demand
-          blob = await generatePhraseAudio(text);
+        // Generate TTS directly - skip storage checks to avoid 400 errors
+        try {
+          const audioBlob = await generatePhraseAudio(text);
+          blob = audioBlob;
           url = getAudioUrl(blob);
           objectUrlRef.current = url;
+        } catch (ttsError) {
+          throw new Error('Failed to generate audio');
         }
       } else {
         throw new Error('No audio source available');
@@ -109,6 +143,12 @@ export function usePhraseAudio({
       audio.addEventListener('ended', () => setIsPlaying(false));
 
       audioRef.current = audio;
+      setAudioUrl(url);
+      
+      // Cache for instant future playback (only cache non-blob URLs, blobs expire)
+      if (!objectUrlRef.current) {
+        audioCache.set(phraseId, { url, isBlob: false });
+      }
 
       if (autoPlay) {
         // iOS Safari requires user gesture for autoplay
@@ -160,12 +200,12 @@ export function usePhraseAudio({
     }
   }, [load, play]);
 
-  // Auto-load if URL is provided
+  // Auto-load audio when phrase changes (preload for instant playback)
   useEffect(() => {
-    if (providedAudioUrl && !audioRef.current) {
+    if ((text || providedAudioUrl) && !audioRef.current) {
       load();
     }
-  }, [providedAudioUrl, load]);
+  }, [phraseId, text, providedAudioUrl, load]);
 
   return {
     audioUrl,

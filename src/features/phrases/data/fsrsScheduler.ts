@@ -71,17 +71,29 @@ function fsrsStateToSchedulerState(card: FSRSCard): SchedulerState {
   return 'new';
 }
 
+// Safely parse a date string, returning fallback if invalid
+function safeParseDate(dateStr: string | null | undefined, fallback: Date): Date {
+  if (!dateStr) return fallback;
+  const parsed = new Date(dateStr);
+  return isNaN(parsed.getTime()) ? fallback : parsed;
+}
+
 // Convert MemberPhraseCard to FSRS Card
 function cardToFSRS(card: MemberPhraseCard, now: Date): FSRSCard {
+  const dueDate = safeParseDate(card.scheduler.due_at, now);
+  const lastReviewDate = card.scheduler.last_reviewed_at 
+    ? safeParseDate(card.scheduler.last_reviewed_at, undefined as unknown as Date)
+    : undefined;
+  
   // If card has FSRS state stored, use it
   if (card.scheduler.scheduler_state_jsonb && typeof card.scheduler.scheduler_state_jsonb === 'object') {
     const fsrsState = card.scheduler.scheduler_state_jsonb as any;
     return {
-      due: new Date(card.scheduler.due_at),
+      due: dueDate,
       stability: card.scheduler.stability || 0,
       difficulty: card.scheduler.difficulty || 0,
-      elapsed_days: card.scheduler.last_reviewed_at
-        ? (now.getTime() - new Date(card.scheduler.last_reviewed_at).getTime()) / (1000 * 60 * 60 * 24)
+      elapsed_days: lastReviewDate
+        ? (now.getTime() - lastReviewDate.getTime()) / (1000 * 60 * 60 * 24)
         : 0,
       scheduled_days: 0,
       reps: card.reviews || 0,
@@ -90,20 +102,20 @@ function cardToFSRS(card: MemberPhraseCard, now: Date): FSRSCard {
         : card.scheduler.state === 'learning' ? 1
         : card.scheduler.state === 'review' ? 2
         : 3,
-      last_review: card.scheduler.last_reviewed_at ? new Date(card.scheduler.last_reviewed_at) : undefined,
+      last_review: lastReviewDate,
     } as FSRSCard;
   }
   
   // Otherwise, create from scratch
   const fsrsCard = createEmptyCard();
-  fsrsCard.due = new Date(card.scheduler.due_at);
+  fsrsCard.due = dueDate;
   fsrsCard.reps = card.reviews || 0;
   fsrsCard.lapses = card.lapses || 0;
   fsrsCard.state = card.scheduler.state === 'new' ? 0
     : card.scheduler.state === 'learning' ? 1
     : card.scheduler.state === 'review' ? 2
     : 3;
-  fsrsCard.last_review = card.scheduler.last_reviewed_at ? new Date(card.scheduler.last_reviewed_at) : undefined;
+  fsrsCard.last_review = lastReviewDate;
   
   return fsrsCard;
 }
@@ -115,17 +127,27 @@ function fsrsToCardUpdate(
   intervalMs: number,
   now: Date
 ): Partial<MemberPhraseCard> {
+  // Safely get ISO string from a date, with fallback
+  const safeDateToISOString = (date: Date | undefined): string | undefined => {
+    if (!date) return undefined;
+    if (isNaN(date.getTime())) return now.toISOString();
+    return date.toISOString();
+  };
+  
+  const dueIsoString = safeDateToISOString(fsrsCard.due) || now.toISOString();
+  const lastReviewIsoString = safeDateToISOString(fsrsCard.last_review);
+  
   return {
     scheduler: {
       ...card.scheduler,
       state: fsrsStateToSchedulerState(fsrsCard),
-      due_at: fsrsCard.due.toISOString(),
+      due_at: dueIsoString,
       last_reviewed_at: now.toISOString(),
       stability: fsrsCard.stability,
       difficulty: fsrsCard.difficulty,
       interval_ms: intervalMs,
       scheduler_state_jsonb: {
-        due: fsrsCard.due.toISOString(),
+        due: dueIsoString,
         stability: fsrsCard.stability,
         difficulty: fsrsCard.difficulty,
         elapsed_days: fsrsCard.elapsed_days,
@@ -133,7 +155,7 @@ function fsrsToCardUpdate(
         reps: fsrsCard.reps,
         lapses: fsrsCard.lapses,
         state: fsrsCard.state,
-        last_review: fsrsCard.last_review?.toISOString(),
+        last_review: lastReviewIsoString,
       },
     },
     lapses: fsrsCard.lapses,
@@ -264,8 +286,10 @@ export function previewAllIntervalsFSRS(
   
   for (const rating of ratings) {
     const { dueAt, intervalMs } = calculateNextReviewFSRS(card, rating, config, now);
+    // Safely convert to ISO string
+    const dueAtIso = isNaN(dueAt.getTime()) ? now.toISOString() : dueAt.toISOString();
     result[rating] = {
-      due_at: dueAt.toISOString(),
+      due_at: dueAtIso,
       interval_ms: intervalMs,
       label: formatIntervalFSRS(intervalMs),
     };

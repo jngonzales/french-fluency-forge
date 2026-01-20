@@ -93,6 +93,33 @@ async function calculateSessionScores(sessionId: string): Promise<{
       }
     }
 
+    // Also check comprehension_recordings
+    const { data: comprehensionRecs } = await supabase
+      .from('comprehension_recordings')
+      .select('ai_score')
+      .eq('session_id', sessionId)
+      .eq('used_for_scoring', true);
+
+    if (comprehensionRecs && comprehensionRecs.length > 0) {
+      const compScores = comprehensionRecs
+        .filter((r) => r.ai_score !== null)
+        .map((r) => r.ai_score as number);
+      if (compScores.length > 0) {
+        dimensionScores.comprehension = compScores;
+      }
+    }
+
+    // Also check confidence_questionnaire_responses
+    const { data: confidenceData } = await supabase
+      .from('confidence_questionnaire_responses')
+      .select('normalized_score')
+      .eq('session_id', sessionId)
+      .maybeSingle();
+
+    if (confidenceData && confidenceData.normalized_score !== null) {
+      dimensionScores.confidence = [confidenceData.normalized_score];
+    }
+
     // Calculate average for each dimension
     const dimensions: Record<DimensionKey, number> = {
       pronunciation: calculateAverage(dimensionScores.pronunciation) ?? 0,

@@ -14,9 +14,12 @@ import type {
   PlanFeatures,
   AssessmentSnapshot,
 } from '../types';
+import { formatLocalDate, getLocalToday, seededRandom } from '@/lib/dateUtils';
 
 /**
  * Generate mock assessment history (from Nov 1st to today)
+ * Uses seeded random for deterministic data (no changes on refresh)
+ * Uses local timezone dates
  */
 export function generateMockAssessmentHistory(): AssessmentSnapshot[] {
   const assessments: AssessmentSnapshot[] = [];
@@ -28,14 +31,17 @@ export function generateMockAssessmentHistory(): AssessmentSnapshot[] {
   for (let i = 0; i <= totalDays; i += 4) { // Every 4 days
     const date = new Date(startDate);
     date.setDate(date.getDate() + i);
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = formatLocalDate(date); // Use local timezone
+    
+    // Use seeded random for deterministic scores
+    const random = seededRandom(`assessment-${dateStr}`);
     
     // S-curve base: 1 / (1 + exp(-k * (t - t0)))
     const t = i / totalDays;
     const sCurve = 1 / (1 + Math.exp(-8 * (t - 0.5)));
     
-    // Add non-linear variation (sine waves + noise)
-    const variation = Math.sin(i * 0.5) * 3 + (Math.random() * 4 - 2);
+    // Add non-linear variation (sine waves + seeded noise)
+    const variation = Math.sin(i * 0.5) * 3 + (random() * 4 - 2);
     
     // Start baseline around 30-40, end around 75-85
     const baseScore = 35 + (sCurve * 45) + variation;
@@ -45,12 +51,12 @@ export function generateMockAssessmentHistory(): AssessmentSnapshot[] {
       date: dateStr,
       overall: Math.round(Math.min(100, baseScore)),
       dimensions: {
-        pronunciation: Math.round(Math.min(100, baseScore - 5 + Math.random() * 10)),
-        fluency: Math.round(Math.min(100, baseScore - 8 + Math.random() * 12)),
-        confidence: Math.round(Math.min(100, baseScore - 15 + (sCurve * 10) + Math.random() * 10)),
-        syntax: Math.round(Math.min(100, baseScore - 2 + Math.random() * 6)),
-        conversation: Math.round(Math.min(100, baseScore - 20 + (sCurve * 25) + Math.random() * 8)),
-        comprehension: Math.round(Math.min(100, baseScore + 2 + Math.random() * 5)),
+        pronunciation: Math.round(Math.min(100, baseScore - 5 + random() * 10)),
+        fluency: Math.round(Math.min(100, baseScore - 8 + random() * 12)),
+        confidence: Math.round(Math.min(100, baseScore - 15 + (sCurve * 10) + random() * 10)),
+        syntax: Math.round(Math.min(100, baseScore - 2 + random() * 6)),
+        conversation: Math.round(Math.min(100, baseScore - 20 + (sCurve * 25) + random() * 8)),
+        comprehension: Math.round(Math.min(100, baseScore + 2 + random() * 5)),
       },
     });
   }
@@ -60,28 +66,29 @@ export function generateMockAssessmentHistory(): AssessmentSnapshot[] {
 
 /**
  * Generate mock habits
+ * NOTE: Updated for v0 demo - only includes demo-ready features
  */
 export function generateMockHabits(): Habit[] {
   return [
     {
       id: 'habit-1',
-      name: 'Daily phrases session',
+      name: 'Daily phrases practice',
       frequency: 'daily',
-      source: 'personal',
+      source: 'system',
       createdAt: '2026-01-01',
     },
     {
       id: 'habit-2',
-      name: 'AI Tutor conversation',
-      frequency: 'daily',
+      name: 'Speaking assessment prep',
+      frequency: 'weekly',
       source: 'system',
       createdAt: '2026-01-01',
     },
     {
       id: 'habit-3',
-      name: 'Review Fluency Analyzer feedback',
+      name: 'Review pronunciation feedback',
       frequency: 'weekly',
-      source: 'system',
+      source: 'personal',
       createdAt: '2026-01-01',
     },
   ];
@@ -89,9 +96,12 @@ export function generateMockHabits(): Habit[] {
 
 /**
  * Generate mock habit grid (from Nov 1st to today)
+ * Uses seeded random for deterministic data (no color changes on refresh)
+ * Uses local timezone dates
  */
 export function generateMockHabitGrid(habits: Habit[]): HabitCell[] {
   const cells: HabitCell[] = [];
+  const todayStr = getLocalToday();
   const today = new Date();
   const startDate = new Date('2025-11-01');
   
@@ -102,20 +112,22 @@ export function generateMockHabitGrid(habits: Habit[]): HabitCell[] {
   for (let i = diffDays; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = formatLocalDate(date); // Use local timezone
 
     habits.forEach((habit) => {
-      // Generate realistic pattern
-      const isFuture = date > today;
+      // Generate deterministic pattern using seeded random based on habit+date
+      const seed = `${habit.id}-${dateStr}`;
+      const random = seededRandom(seed);
+      const isFuture = dateStr > todayStr;
       let status: HabitCell['status'];
 
       if (isFuture) {
         status = 'future';
       } else {
-        const random = Math.random();
-        if (random > 0.4) {
+        const r = random();
+        if (r > 0.4) {
           status = 'done';
-        } else if (random > 0.2) {
+        } else if (r > 0.2) {
           status = 'missed';
         } else {
           status = 'na';
@@ -126,7 +138,7 @@ export function generateMockHabitGrid(habits: Habit[]): HabitCell[] {
         habitId: habit.id,
         date: dateStr,
         status,
-        intensity: status === 'done' ? Math.floor(Math.random() * 6) + 1 : undefined,
+        intensity: status === 'done' ? Math.floor(random() * 6) + 1 : undefined,
       });
     });
   }
@@ -136,34 +148,11 @@ export function generateMockHabitGrid(habits: Habit[]): HabitCell[] {
 
 /**
  * Generate mock goals
+ * NOTE: For v0 demo, returns empty array - users create their own goals
  */
 export function generateMockGoals(): Goal[] {
-  return [
-    {
-      id: 'goal-1',
-      name: 'Fluent phone conversations',
-      description: 'Be able to handle full phone conversations in French without hesitation',
-      acceptanceCriteria: 'Successfully complete 3 phone calls with French native speakers',
-      deadline: '2026-03-31',
-      type: 'skill',
-      dimension: 'conversation',
-      targetScore: 85,
-      locked: false,
-      createdAt: '2026-01-01',
-    },
-    {
-      id: 'goal-2',
-      name: 'Pronunciation mastery',
-      description: 'Perfect French pronunciation for professional settings',
-      acceptanceCriteria: 'Score 90+ on pronunciation assessment',
-      deadline: '2026-02-28',
-      type: 'skill',
-      dimension: 'pronunciation',
-      targetScore: 90,
-      locked: true,
-      createdAt: '2026-01-01',
-    },
-  ];
+  // Return empty array for v0 demo - users should create their own goals
+  return [];
 }
 
 /**
@@ -194,6 +183,7 @@ export function generateMockPhraseStats(): PhraseStats {
 
 /**
  * Generate mock AI metrics
+ * Uses seeded random for deterministic data
  */
 export function generateMockAIMetrics(): AIMetrics {
   const dailyData = [];
@@ -202,9 +192,11 @@ export function generateMockAIMetrics(): AIMetrics {
   for (let i = 29; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
+    const dateStr = formatLocalDate(date);
+    const random = seededRandom(`ai-metrics-${dateStr}`);
     dailyData.push({
-      date: date.toISOString().split('T')[0],
-      words: Math.floor(Math.random() * 500) + 100,
+      date: dateStr,
+      words: Math.floor(random() * 500) + 100,
     });
   }
 
@@ -385,7 +377,7 @@ export function calculateTotalPoints(badges: Badge[]): number {
  * Calculate current streak from habit grid
  */
 export function calculateCurrentStreak(habitGrid: HabitCell[]): number {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalToday();
   const sortedCells = [...habitGrid]
     .filter((cell) => cell.date < today)
     .sort((a, b) => b.date.localeCompare(a.date));

@@ -9,7 +9,7 @@ import { AdminPadding } from '@/components/AdminPadding';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Play, Library, Settings, User, Package, Upload } from 'lucide-react';
+import { BookOpen, Play, Library, Settings, User, Package, Upload, Loader2 } from 'lucide-react';
 import { EmptyState } from '@/features/phrases/components/EmptyState';
 import { usePhrasesLibrary } from '@/features/phrases/hooks/usePhrasesLibrary';
 import { useToast } from '@/hooks/use-toast';
@@ -170,8 +170,9 @@ export default function PhrasesLandingPage() {
   if (loading) {
     return (
       <AdminPadding>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-muted-foreground">Loading...</div>
+        <div className="flex flex-col items-center justify-center min-h-screen gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading your phrases...</p>
         </div>
       </AdminPadding>
     );

@@ -33,6 +33,7 @@ import { selectPhrasesWithCoverage, type PronunciationPhrase } from "@/lib/pronu
 import { parseIPA, getTargetPhonemes } from "@/lib/pronunciation/ipaParser";
 import { updatePhonemeStats, extractPhonemeScores } from "@/lib/pronunciation/phonemeStats";
 import { generateSeed } from "@/lib/random/seededShuffle";
+import { supabase } from "@/integrations/supabase/client";
 import pronunciationPhrasesBank from "../promptBank/promptBanks/pronunciation-phrases.json";
 
 // Clear state machine phases
@@ -42,12 +43,18 @@ interface PronunciationModuleWithPhrasesProps {
   sessionId: string;
   onComplete: (results: any[]) => void;
   onSkip?: () => void;
+  initialItemIndex?: number;
+  phraseSeed?: number;
+  selectedPhraseIds?: string[];
 }
 
 const PronunciationModuleWithPhrases = ({
   sessionId,
   onComplete,
-  onSkip
+  onSkip,
+  initialItemIndex = 0,
+  phraseSeed,
+  selectedPhraseIds
 }: PronunciationModuleWithPhrasesProps) => {
   const { user } = useAuth();
   const { isAdmin, isDev } = useAdminMode();
@@ -58,10 +65,11 @@ const PronunciationModuleWithPhrases = ({
 
   // Phrase state
   const [phrases, setPhrases] = useState<PronunciationPhrase[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(initialItemIndex);
   const [results, setResults] = useState<any[]>([]);
   const [testedPhonemes, setTestedPhonemes] = useState<Set<string>>(new Set());
   const [attemptCounts, setAttemptCounts] = useState<Record<string, number>>({});
+  const [sessionSeed, setSessionSeed] = useState<number | null>(phraseSeed ?? null);
 
   // Clear state machine - ONE source of truth for UI
   const [phase, setPhase] = useState<ModulePhase>('idle');
@@ -88,16 +96,43 @@ const PronunciationModuleWithPhrases = ({
   });
 
   // Initialize phrases with coverage sampling (prefer long phrases, fall back if coverage misses)
+  // Use seed from props/session for deterministic selection on resume
   useEffect(() => {
-    const seed = generateSeed();
-    console.log('[Pronunciation] Selecting phrases with coverage, seed:', seed);
     const phrasesData = pronunciationPhrasesBank.phrases as any[];
+    
+    // If we have pre-selected phrase IDs from session, use those in order
+    if (selectedPhraseIds && selectedPhraseIds.length > 0) {
+      const phraseMap = new Map(phrasesData.map(p => [p.id, p]));
+      const restoredPhrases = selectedPhraseIds
+        .map(id => phraseMap.get(id))
+        .filter(Boolean) as PronunciationPhrase[];
+      if (restoredPhrases.length > 0) {
+        if (import.meta.env.DEV) {
+          console.log(`[Pronunciation] Restored ${restoredPhrases.length} phrases from session`);
+        }
+        setPhrases(restoredPhrases);
+        return;
+      }
+    }
+    
+    // Generate or use existing seed
+    const seed = sessionSeed ?? generateSeed();
+    if (!sessionSeed) {
+      setSessionSeed(seed);
+      // Save seed to session for resume (ignore error if column doesn't exist)
+      supabase
+        .from("assessment_sessions")
+        .update({ phrase_seed: seed } as any)
+        .eq("id", sessionId)
+        .then(() => {});
+    }
+    
     let result = selectPhrasesWithCoverage(phrasesData, seed, {
       '5-10w': 4,
       'sent': 8
     });
     if (result.coveragePercent < 100) {
-      console.warn('[Pronunciation] Long-only selection missed phonemes, expanding quotas.');
+      // Try with expanded quotas if coverage is incomplete
       result = selectPhrasesWithCoverage(phrasesData, seed, {
         '5-10w': 4,
         'sent': 6,
@@ -106,10 +141,20 @@ const PronunciationModuleWithPhrases = ({
         '2w': 1
       });
     }
-    console.log('[Pronunciation] Selected', result.phrases.length, 'phrases');
-    console.log('[Pronunciation] Coverage:', result.coveragePercent + '%');
+    // Only log summary in development
+    if (import.meta.env.DEV) {
+      console.log(`[Pronunciation] Selected ${result.phrases.length} phrases, coverage: ${result.coveragePercent}%, seed: ${seed}`);
+    }
     setPhrases(result.phrases);
-  }, []);
+    
+    // Save selected phrase IDs to session for resume
+    const phraseIds = result.phrases.map(p => p.id);
+    supabase
+      .from("assessment_sessions")
+      .update({ selected_phrase_ids: phraseIds } as any)
+      .eq("id", sessionId)
+      .then(() => {});
+  }, [sessionId, sessionSeed, selectedPhraseIds]);
 
   const currentPhrase = phrases[currentIndex];
   const currentAttemptCount = currentPhrase ? attemptCounts[currentPhrase.id] || 0 : 0;
@@ -126,9 +171,9 @@ const PronunciationModuleWithPhrases = ({
   // Auto-submit when WAV is ready (user mode only)
   useEffect(() => {
     if (!showDevFeatures && wavBlob && phase === 'recording' && !isRecording) {
-      console.log('[Pronunciation] WAV ready, auto-submitting...');
       handleRecordingSubmit();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wavBlob, showDevFeatures, phase, isRecording]);
 
   // Map processing step to status for StatusIndicator
@@ -217,6 +262,14 @@ const PronunciationModuleWithPhrases = ({
       console.log('[Pronunciation] Result:', result);
       setCurrentProvider(result.provider || 'azure');
 
+      // Handle "no speech detected" case
+      if (result.noSpeech) {
+        setErrorMessage(result.noSpeechReason || 'No speech detected. Please try again.');
+        setPhase('error');
+        toast.error(result.noSpeechReason || 'No speech detected');
+        return;
+      }
+
       // Update tested phonemes
       const phrasePhonemes = currentPhrase.phonemes || parseIPA(currentPhrase.ipa);
       setTestedPhonemes(prev => {
@@ -264,13 +317,48 @@ const PronunciationModuleWithPhrases = ({
       }
     } catch (error) {
       console.error("Pronunciation error:", error);
-      setErrorMessage(error instanceof Error ? error.message : "Assessment failed");
+      
+      // Parse error message - handle both plain text and JSON error responses
+      let userFriendlyMessage = "Assessment failed. Please try again.";
+      if (error instanceof Error) {
+        const msg = error.message;
+        // Check if it's a JSON error response
+        if (msg.startsWith('{')) {
+          try {
+            const parsed = JSON.parse(msg);
+            if (parsed.error) {
+              // Map common errors to user-friendly messages
+              if (parsed.error.includes('No NBest') || parsed.error.includes('no speech')) {
+                userFriendlyMessage = "No speech detected. Please speak into your microphone and try again.";
+              } else if (parsed.error.includes('timeout')) {
+                userFriendlyMessage = "Request timed out. Please check your connection and try again.";
+              } else {
+                userFriendlyMessage = parsed.error;
+              }
+            }
+          } catch {
+            userFriendlyMessage = msg;
+          }
+        } else {
+          // Plain text error
+          if (msg.includes('No NBest') || msg.includes('no speech')) {
+            userFriendlyMessage = "No speech detected. Please speak into your microphone and try again.";
+          } else {
+            userFriendlyMessage = msg;
+          }
+        }
+      }
+      
+      setErrorMessage(userFriendlyMessage);
       setPhase('error');
-      toast.error(error instanceof Error ? error.message : "Assessment failed");
+      toast.error(userFriendlyMessage);
     }
   };
 
   const advanceToNext = async () => {
+    // IMPORTANT: Capture currentResult BEFORE resetting it, as it contains the last phrase's score
+    const lastResult = currentResult;
+
     resetRecording();
     setCurrentResult(null);
     setPhase('idle');
@@ -278,18 +366,75 @@ const PronunciationModuleWithPhrases = ({
     setCurrentProvider(null);
     
     if (currentIndex < phrases.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      
+      // Save progress to session (ignore error if column doesn't exist)
+      supabase
+        .from("assessment_sessions")
+        .update({ current_item_index: nextIndex } as any)
+        .eq("id", sessionId)
+        .then(() => {});
     } else {
-      // Test complete - update phoneme stats
+      // Test complete - combine all results including the last one
+      // (which may not be in results array yet due to async React state)
+      const allResults = lastResult
+        ? [...results.filter(r => r.phraseId !== lastResult.phraseId), lastResult]
+        : results;
+
+      // Update phoneme stats and save overall score
       if (user) {
-        console.log('[Pronunciation] Test complete, updating phoneme stats...');
-        const allPhonemeScores = results.flatMap(r => extractPhonemeScores(r));
+        if (import.meta.env.DEV) {
+          console.log('[Pronunciation] Test complete, updating phoneme stats...');
+          console.log('[Pronunciation] allResults count:', allResults.length, 'vs results state:', results.length);
+        }
+        const allPhonemeScores = allResults.flatMap(r => extractPhonemeScores(r));
         if (allPhonemeScores.length > 0) {
           await updatePhonemeStats(user.id, allPhonemeScores);
           toast.success('Phoneme stats updated!');
         }
+
+        // Calculate overall pronunciation score from allResults (not just results)
+        const overallScores = allResults
+          .filter((r) => r.scores?.overall != null)
+          .map((r) => r.scores.overall);
+
+        console.log('[Pronunciation] Calculating overall scores:', {
+          allResultsCount: allResults.length,
+          resultsCount: results.length,
+          overallScores,
+          sessionId,
+          userId: user.id
+        });
+
+        if (overallScores.length > 0) {
+          const avgScore = Math.round(overallScores.reduce((a: number, b: number) => a + b, 0) / overallScores.length);
+          console.log('[Pronunciation] Computed average score:', avgScore);
+
+          // Save to skill_recordings for results page
+          const { data, error } = await supabase.from('skill_recordings').insert({
+            session_id: sessionId,
+            user_id: user.id,
+            item_id: 'pronunciation-overall',
+            module_type: 'pronunciation',
+            ai_score: avgScore,
+            ai_feedback: `Pronunciation assessment completed. Average score: ${avgScore}/100 across ${overallScores.length} phrases.`,
+            used_for_scoring: true,
+            created_at: new Date().toISOString()
+          }).select();
+
+          if (error) {
+            console.error('[Pronunciation] DB ERROR saving score:', error);
+            toast.error(`Failed to save pronunciation score: ${error.message}`);
+          } else {
+            console.log('[Pronunciation] Successfully saved to skill_recordings:', data);
+            toast.success('Pronunciation score saved!');
+          }
+        } else {
+          console.warn('[Pronunciation] No overall scores found in allResults - cannot save');
+        }
       }
-      onComplete(results);
+      onComplete(allResults);
     }
   };
 
@@ -298,6 +443,52 @@ const PronunciationModuleWithPhrases = ({
     setCurrentResult(null);
     setPhase('idle');
     setProcessingStep(1);
+  };
+
+  // Handle skip - save partial results before advancing
+  const handleSkip = async () => {
+    if (!user || !onSkip) return;
+
+    // Include currentResult if we're in feedback phase (it might not be in results yet)
+    const allResults = currentResult && phase === 'feedback'
+      ? [...results.filter(r => r.phraseId !== currentResult.phraseId), currentResult]
+      : results;
+
+    // Calculate and save partial score if we have any results
+    const overallScores = allResults
+      .filter((r) => r.scores?.overall != null)
+      .map((r) => r.scores.overall);
+
+    if (overallScores.length > 0) {
+      console.log('[Pronunciation] Saving partial scores on skip:', overallScores.length, 'phrases');
+
+      // Save each phrase result as individual record for accurate counting
+      for (const result of allResults) {
+        if (result.scores?.overall != null) {
+          await supabase.from('skill_recordings').insert({
+            session_id: sessionId,
+            user_id: user.id,
+            item_id: result.phraseId || `phrase-${Date.now()}`,
+            module_type: 'pronunciation',
+            ai_score: result.scores.overall,
+            ai_feedback: `Phrase score: ${result.scores.overall}/100`,
+            used_for_scoring: true,
+            created_at: new Date().toISOString()
+          });
+        }
+      }
+
+      console.log('[Pronunciation] Partial scores saved successfully');
+      toast.success(`Partial score saved (${overallScores.length}/${phrases.length} phrases)`);
+
+      // Also update phoneme stats
+      const allPhonemeScores = allResults.flatMap(r => extractPhonemeScores(r));
+      if (allPhonemeScores.length > 0) {
+        await updatePhonemeStats(user.id, allPhonemeScores);
+      }
+    }
+
+    onSkip();
   };
 
   // Loading state
@@ -365,11 +556,44 @@ const PronunciationModuleWithPhrases = ({
 
         {/* Recording Error */}
         {(recordingError || phase === 'error') && (
-          <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
-            <div>
-              <div className="font-semibold text-destructive mb-1">Error</div>
-              <p className="text-sm text-destructive">{recordingError || errorMessage}</p>
+          <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <div className="font-semibold text-destructive mb-1">
+                  {errorMessage?.includes('No speech') || errorMessage?.includes('no speech') 
+                    ? 'No Speech Detected' 
+                    : 'Error'}
+                </div>
+                <p className="text-sm text-muted-foreground">{recordingError || errorMessage}</p>
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setPhase('idle');
+                  setErrorMessage(null);
+                  resetRecording();
+                }}
+              >
+                Try Again
+              </Button>
+              {currentIndex < phrases.length - 1 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setPhase('idle');
+                    setErrorMessage(null);
+                    resetRecording();
+                    setCurrentIndex(prev => prev + 1);
+                  }}
+                >
+                  Skip to Next
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -434,7 +658,7 @@ const PronunciationModuleWithPhrases = ({
           </div>
         )}
 
-        {onSkip && <SkipButton onClick={onSkip} />}
+        {onSkip && <SkipButton onClick={handleSkip} />}
       </div>
     </div>
   );

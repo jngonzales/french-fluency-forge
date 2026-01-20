@@ -241,7 +241,7 @@ export async function fetchMemberPhraseSettings(memberId: string): Promise<Phras
       .from('member_phrase_settings')
       .select('*')
       .eq('member_id', memberId)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       // Return defaults if not found

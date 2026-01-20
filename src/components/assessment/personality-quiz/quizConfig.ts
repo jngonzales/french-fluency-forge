@@ -507,18 +507,48 @@ export function getArchetype(
   accuracyExpressiveness: number,
   securityRisk: number
 ): Archetype {
+  // Log scores for debugging
+  console.log('[Archetype] Raw scores:', { controlFlow, accuracyExpressiveness, securityRisk });
+  
   // Determine position on each axis: -1 (left), 0 (balanced), +1 (right)
-  const cfLabel = controlFlow < -3 ? -1 : controlFlow > 3 ? 1 : 0; // Control(-1) / Balanced(0) / Flow(1)
-  const aeLabel = accuracyExpressiveness < -3 ? -1 : accuracyExpressiveness > 3 ? 1 : 0;
-  const srLabel = securityRisk < -3 ? -1 : securityRisk > 3 ? 1 : 0;
+  // Using ±2 threshold for more sensitivity (fixed from ±3)
+  const threshold = 2;
+  const cfLabel = controlFlow < -threshold ? -1 : controlFlow > threshold ? 1 : 0; // Control(-1) / Balanced(0) / Flow(1)
+  const aeLabel = accuracyExpressiveness < -threshold ? -1 : accuracyExpressiveness > threshold ? 1 : 0;
+  const srLabel = securityRisk < -threshold ? -1 : securityRisk > threshold ? 1 : 0;
+  
+  console.log('[Archetype] Labels:', { cfLabel, aeLabel, srLabel });
 
-  // Map to archetypes
+  // Map to archetypes - expanded matching with close matches
+  // Careful Builder: Control + Accuracy + Security
   if (cfLabel === -1 && aeLabel === -1 && srLabel === -1) return ARCHETYPES.careful_builder;
+  if (cfLabel === -1 && aeLabel === -1 && srLabel === 0) return ARCHETYPES.careful_builder; // Close match
+  if (cfLabel === -1 && aeLabel === 0 && srLabel === -1) return ARCHETYPES.careful_builder; // Close match
+  
+  // Conversation Surfer: Flow + Expressiveness + Risk
   if (cfLabel === 1 && aeLabel === 1 && srLabel === 1) return ARCHETYPES.conversation_surfer;
+  if (cfLabel === 1 && aeLabel === 1 && srLabel === 0) return ARCHETYPES.conversation_surfer; // Close match
+  if (cfLabel === 1 && aeLabel === 0 && srLabel === 1) return ARCHETYPES.conversation_surfer; // Close match
+  
+  // Agile Improver: Flow + Accuracy + Risk
   if (cfLabel === 1 && aeLabel === -1 && srLabel === 1) return ARCHETYPES.agile_improver;
+  if (cfLabel === 1 && aeLabel === -1 && srLabel === 0) return ARCHETYPES.agile_improver; // Close match
+  if (cfLabel === 0 && aeLabel === -1 && srLabel === 1) return ARCHETYPES.agile_improver; // Close match
+  
+  // Thoughtful Communicator: Control + Expressiveness + Security
   if (cfLabel === -1 && aeLabel === 1 && srLabel === -1) return ARCHETYPES.thoughtful_communicator;
+  if (cfLabel === -1 && aeLabel === 1 && srLabel === 0) return ARCHETYPES.thoughtful_communicator; // Close match
+  if (cfLabel === 0 && aeLabel === 1 && srLabel === -1) return ARCHETYPES.thoughtful_communicator; // Close match
+  
+  // Friendly Talker: Flow + Expressiveness + Security
   if (cfLabel === 1 && aeLabel === 1 && srLabel === -1) return ARCHETYPES.friendly_talker;
+  if (cfLabel === 0 && aeLabel === 1 && srLabel === -1) return ARCHETYPES.friendly_talker; // Close match
+  if (cfLabel === 1 && aeLabel === 0 && srLabel === -1) return ARCHETYPES.friendly_talker; // Close match
+  
+  // Driven Technician: Control + Accuracy + Risk
   if (cfLabel === -1 && aeLabel === -1 && srLabel === 1) return ARCHETYPES.driven_technician;
+  if (cfLabel === -1 && aeLabel === 0 && srLabel === 1) return ARCHETYPES.driven_technician; // Close match
+  if (cfLabel === 0 && aeLabel === -1 && srLabel === 1) return ARCHETYPES.driven_technician; // Close match
   
   return ARCHETYPES.adaptive_learner; // default for balanced profiles
 }

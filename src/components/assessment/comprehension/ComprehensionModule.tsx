@@ -16,10 +16,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { getAssessmentItems, type ComprehensionItemWithPrompt } from './comprehensionItems';
+import SkipButton from '../SkipButton';
 
 interface ComprehensionModuleProps {
   sessionId: string;
   onComplete: () => void;
+  onSkip?: () => void;
 }
 
 interface MultiSelectResult {
@@ -32,7 +34,7 @@ interface MultiSelectResult {
 
 type ItemPhase = 'ready' | 'playing' | 'played' | 'answering' | 'processing' | 'complete';
 
-export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModuleProps) {
+export function ComprehensionModule({ sessionId, onComplete, onSkip }: ComprehensionModuleProps) {
   const { user } = useAuth();
   const [showIntro, setShowIntro] = useState(true);
   const [items, setItems] = useState<ComprehensionItemWithPrompt[]>([]);
@@ -42,6 +44,8 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
   const [results, setResults] = useState<Record<string, MultiSelectResult>>({});
   const [audioPlayedAt, setAudioPlayedAt] = useState<Record<string, Date>>({});
   const [selectedOptions, setSelectedOptions] = useState<Record<string, Set<string>>>({});
+  const [generatedAudioUrls, setGeneratedAudioUrls] = useState<Record<string, string>>({});
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -74,17 +78,116 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
     }
   }, [currentItem, selectedOptions]);
 
-  // Audio is already in database, no need to load separately
+  // Add natural pauses between sentences for comprehension audio
+  const addPausesBetweenSentences = (text: string): string => {
+    // ElevenLabs interprets "..." as a natural pause
+    return text
+      .replace(/\.\s+/g, '. ... ')  // Add pause after periods
+      .replace(/\?\s+/g, '? ... ')  // Add pause after question marks
+      .replace(/!\s+/g, '! ... ')   // Add pause after exclamation marks
+      .trim();
+  };
 
-  const handlePlayAudio = () => {
-    if (!currentItem || !currentItem.audio_url) {
-      toast.error('Audio not available');
+  // Generate audio using TTS function when item changes
+  const generateAudioForItem = async (item: ComprehensionItemWithPrompt): Promise<string | null> => {
+    if (generatedAudioUrls[item.id]) {
+      return generatedAudioUrls[item.id];
+    }
+
+    try {
+      setIsGeneratingAudio(true);
+      
+      // Add pauses between sentences for better comprehension
+      const textWithPauses = addPausesBetweenSentences(item.transcript_fr);
+      
+      // Request with caching enabled - will check storage first, then generate if needed
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/french-tts`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            text: textWithPauses,
+            speed: 0.9,  // Slightly slower for listening comprehension
+            stability: 0.35,  // More natural variation
+            cacheKey: `comprehension/${item.id}`,  // Enable caching
+            bucketName: 'comprehension-audio'  // Storage bucket for caching
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`TTS generation failed: ${response.status}`);
+      }
+
+      // Check if response is JSON (cached URL) or binary audio
+      const contentType = response.headers.get('content-type') || '';
+      
+      if (contentType.includes('application/json')) {
+        // Got a cached URL response
+        const data = await response.json();
+        if (data.cachedUrl) {
+          if (import.meta.env.DEV) {
+            console.log(`[Comprehension] Using ${data.cached ? 'cached' : 'newly cached'} audio: ${data.cachedUrl}`);
+          }
+          setGeneratedAudioUrls(prev => ({ ...prev, [item.id]: data.cachedUrl }));
+          return data.cachedUrl;
+        }
+      }
+      
+      // Fallback: got raw audio data
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      setGeneratedAudioUrls(prev => ({ ...prev, [item.id]: url }));
+      return url;
+    } catch (error) {
+      console.error('Error generating audio:', error);
+      return null;
+    } finally {
+      setIsGeneratingAudio(false);
+    }
+  };
+
+  const handlePlayAudio = async () => {
+    if (!currentItem) {
+      toast.error('No item available');
       return;
     }
     
     setItemPhase('playing');
     
-    const audio = new Audio(currentItem.audio_url);
+    // Priority order:
+    // 1. In-memory cached URL (already generated this session)
+    // 2. Database cached URL (audio_url from DB) - but only if it's a full URL (not relative path)
+    // 3. Generate dynamically via TTS (will be cached for next time)
+    let audioUrl = generatedAudioUrls[currentItem.id];
+    
+    // Only use database audio_url if it's a full URL (from storage), not a relative path
+    if (!audioUrl && currentItem.audio_url && currentItem.audio_url.startsWith('http')) {
+      audioUrl = currentItem.audio_url;
+      if (import.meta.env.DEV) {
+        console.log(`[Comprehension] Using cached URL: ${currentItem.audio_url}`);
+      }
+    }
+    
+    // If no valid audio URL exists, generate dynamically
+    if (!audioUrl) {
+      toast.info('Generating audio...');
+      audioUrl = await generateAudioForItem(currentItem);
+      
+      if (!audioUrl) {
+        toast.error('Failed to generate audio');
+        setItemPhase('ready');
+        return;
+      }
+    }
+    
+    const audio = new Audio(audioUrl);
     audioRef.current = audio;
     
     audio.onended = () => {
@@ -92,12 +195,44 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
       setItemPhase('answering');
     };
     
-    audio.onerror = () => {
-      toast.error('Failed to play audio');
-      setItemPhase('ready');
+    audio.onerror = async () => {
+      // If cached URL fails, try generating dynamically
+      if (import.meta.env.DEV) {
+        console.log('[Comprehension] Cached audio failed, generating dynamically...');
+      }
+      const generatedUrl = await generateAudioForItem(currentItem);
+      
+      if (generatedUrl) {
+        const newAudio = new Audio(generatedUrl);
+        audioRef.current = newAudio;
+        
+        newAudio.onended = () => {
+          setAudioPlayedAt(prev => ({ ...prev, [currentItem.id]: new Date() }));
+          setItemPhase('answering');
+        };
+        
+        newAudio.onerror = () => {
+          toast.error('Failed to play audio');
+          setItemPhase('ready');
+        };
+        
+        try {
+          await newAudio.play();
+        } catch {
+          toast.error('Failed to play audio');
+          setItemPhase('ready');
+        }
+      } else {
+        toast.error('Failed to play audio');
+        setItemPhase('ready');
+      }
     };
     
-    audio.play();
+    try {
+      await audio.play();
+    } catch {
+      // Will trigger onerror handler which has fallback logic
+    }
   };
 
   const toggleOption = (optionId: string) => {
@@ -234,44 +369,47 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
   // Intro screen
   if (showIntro) {
     return (
-      <div className="max-w-2xl mx-auto">
-        <Card className="border-primary/20">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-              <Headphones className="h-8 w-8 text-primary" />
-            </div>
-            <CardTitle className="text-2xl">Listening Comprehension</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <p className="text-center text-muted-foreground">
-              Listen to French audio passages and select all statements that are true. There may be more than one correct answer.
-            </p>
-            
-            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-              <h4 className="font-medium">How it works:</h4>
-              <ul className="text-sm text-muted-foreground space-y-2">
-                <li>• Click play to hear the French audio passage</li>
-                <li>• Select all statements that are true based on what you heard</li>
-                <li>• You can select multiple options</li>
-                <li>• Click submit when you're ready</li>
-              </ul>
-            </div>
-
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-              <p className="text-sm text-blue-700 dark:text-blue-400">
-                <strong>Tip:</strong> Listen carefully - you can play the audio as many times as you need before submitting.
+      <>
+        <div className="max-w-2xl mx-auto">
+          <Card className="border-primary/20">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <Headphones className="h-8 w-8 text-primary" />
+              </div>
+              <CardTitle className="text-2xl">Listening Comprehension</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-center text-muted-foreground">
+                Listen to French audio passages and select all statements that are true. There may be more than one correct answer.
               </p>
-            </div>
+              
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                <h4 className="font-medium">How it works:</h4>
+                <ul className="text-sm text-muted-foreground space-y-2">
+                  <li>• Click play to hear the French audio passage</li>
+                  <li>• Select all statements that are true based on what you heard</li>
+                  <li>• You can select multiple options</li>
+                  <li>• Click submit when you're ready</li>
+                </ul>
+              </div>
 
-            <div className="text-center pt-4">
-              <Button size="lg" onClick={() => setShowIntro(false)} className="gap-2">
-                Start Listening Test
-                <ArrowRight className="h-5 w-5" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                <p className="text-sm text-blue-700 dark:text-blue-400">
+                  <strong>Tip:</strong> Listen carefully - you can play the audio as many times as you need before submitting.
+                </p>
+              </div>
+
+              <div className="text-center pt-4">
+                <Button size="lg" onClick={() => setShowIntro(false)} className="gap-2">
+                  Start Listening Test
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        {onSkip && <SkipButton onClick={onSkip} />}
+      </>
     );
   }
 
@@ -281,7 +419,8 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
 
   const result = results[currentItem.id];
   const hasPlayed = !!audioPlayedAt[currentItem.id];
-  const isAudioReady = !!currentItem?.audio_url;
+  // Audio is ready if we have a static URL, a generated URL, or we can generate dynamically (always true with TTS)
+  const isAudioReady = !!currentItem?.audio_url || !!generatedAudioUrls[currentItem.id] || !!currentItem?.transcript_fr;
   const selectedCount = selectedOptions[currentItem.id]?.size || 0;
 
   return (
@@ -309,24 +448,20 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
                 <Volume2 className="h-6 w-6 text-primary animate-pulse" />
                 <span className="text-lg">Playing audio...</span>
               </div>
+            ) : isGeneratingAudio ? (
+              <div className="flex items-center justify-center gap-3">
+                <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                <span className="text-lg">Generating audio...</span>
+              </div>
             ) : (
               <Button 
                 size="lg" 
                 onClick={handlePlayAudio}
                 className="gap-2"
-                disabled={!isAudioReady}
+                disabled={!isAudioReady || isGeneratingAudio}
               >
-                {isAudioReady ? (
-                  <>
-                    <Play className="h-5 w-5" />
-                    Play Audio
-                  </>
-                ) : (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Loading...
-                  </>
-                )}
+                <Play className="h-5 w-5" />
+                Play Audio
               </Button>
             )}
             
@@ -461,6 +596,9 @@ export function ComprehensionModule({ sessionId, onComplete }: ComprehensionModu
           )}
         </CardContent>
       </Card>
+      
+      {/* Skip Module Button */}
+      {onSkip && <SkipButton onClick={onSkip} />}
     </div>
   );
 }

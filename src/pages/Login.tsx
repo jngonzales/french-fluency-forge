@@ -25,7 +25,8 @@ const Login = () => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate("/");
+        // v0 demo: Always go to dashboard after login
+        navigate("/dashboard");
       }
     };
     checkSession();
@@ -33,7 +34,8 @@ const Login = () => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        navigate("/");
+        // v0 demo: Always go to dashboard after login
+        navigate("/dashboard");
       }
     });
 

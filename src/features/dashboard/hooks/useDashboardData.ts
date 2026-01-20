@@ -14,7 +14,6 @@ import {
 import {
   generateMockHabits,
   generateMockHabitGrid,
-  generateMockGoals,
   generateMockPhraseStats,
   generateMockAIMetrics,
   generateMockBadges,
@@ -185,9 +184,65 @@ export function useDashboardData(viewingUserId?: string) {
           loadedHabitGrid = (cellsData || []).map((row: HabitCellRow) => habitCellRowToHabitCell(row));
         }
       } else {
-        // No habits in DB, use mock data for demo
-        loadedHabits = generateMockHabits();
-        loadedHabitGrid = generateMockHabitGrid(loadedHabits);
+        // No habits in DB - seed default habits for new user (v0 demo)
+        const defaultHabits = generateMockHabits();
+        
+        // Persist default habits to database (let DB generate UUIDs)
+        const habitsToInsert = defaultHabits.map(h => ({
+          user_id: targetUserId,
+          name: h.name,
+          frequency: h.frequency,
+          source: h.source,
+          intensity: h.intensity || null,
+        }));
+        
+        const { data: insertedHabits, error: insertError } = await supabase
+          .from('habits')
+          .insert(habitsToInsert)
+          .select();
+        
+        if (insertError) {
+          console.warn('Could not seed default habits:', insertError);
+          // Fall back to mock data if DB insert fails
+          loadedHabits = defaultHabits;
+          loadedHabitGrid = generateMockHabitGrid(defaultHabits);
+        } else if (insertedHabits && insertedHabits.length > 0) {
+          console.log('[Dashboard] Seeded default habits for new user');
+          
+          // Map the returned DB habits
+          loadedHabits = insertedHabits.map((row: HabitRow) => habitRowToHabit(row));
+          
+          // Generate habit grid with the real DB IDs
+          const defaultHabitGrid = generateMockHabitGrid(loadedHabits);
+          
+          // Also seed habit cells for demo history
+          const cellsToInsert = defaultHabitGrid.map(cell => ({
+            habit_id: cell.habitId, // Already has the real UUID from DB
+            user_id: targetUserId,
+            date: cell.date,
+            status: cell.status,
+            intensity: cell.intensity || null,
+          }));
+          
+          // Insert in batches to avoid hitting limits
+          const batchSize = 100;
+          for (let i = 0; i < cellsToInsert.length; i += batchSize) {
+            const batch = cellsToInsert.slice(i, i + batchSize);
+            const { error: cellsInsertError } = await supabase
+              .from('habit_cells')
+              .insert(batch);
+            if (cellsInsertError) {
+              console.warn('Could not seed habit cells:', cellsInsertError);
+              break;
+            }
+          }
+          
+          loadedHabitGrid = defaultHabitGrid;
+        } else {
+          // No habits returned - use mock data
+          loadedHabits = defaultHabits;
+          loadedHabitGrid = generateMockHabitGrid(defaultHabits);
+        }
       }
 
       // ========================================
@@ -203,13 +258,13 @@ export function useDashboardData(viewingUserId?: string) {
       
       if (goalsError) {
         console.error('Error fetching goals:', goalsError);
-        // Fall back to mock data if table doesn't exist yet
-        loadedGoals = generateMockGoals();
+        // Goals should start empty for new users (per Tom's feedback)
+        loadedGoals = [];
       } else if (goalsData && goalsData.length > 0) {
         loadedGoals = goalsData.map((row: GoalRow) => goalRowToGoal(row));
       } else {
-        // No goals in DB, use mock data for demo
-        loadedGoals = generateMockGoals();
+        // No goals in DB - start with empty goals (user adds their own)
+        loadedGoals = [];
       }
 
       const mockPhrases = generateMockPhraseStats();
@@ -289,14 +344,30 @@ export function useDashboardData(viewingUserId?: string) {
   const updateHabitCell = async (habitId: string, date: string, status: HabitCell['status'], intensity?: number) => {
     if (!targetUserId) return;
 
-    // Optimistic update
-    setHabitGrid((prev) =>
-      prev.map((cell) =>
-        cell.habitId === habitId && cell.date === date
-          ? { ...cell, status, intensity }
-          : cell
-      )
-    );
+    // Optimistic update - either update existing cell or add new one
+    setHabitGrid((prev) => {
+      const existingIndex = prev.findIndex(
+        (cell) => cell.habitId === habitId && cell.date === date
+      );
+      
+      if (existingIndex >= 0) {
+        // Update existing cell
+        return prev.map((cell, i) =>
+          i === existingIndex
+            ? { ...cell, status, intensity }
+            : cell
+        );
+      } else {
+        // Add new cell
+        const newCell: HabitCell = {
+          habitId,
+          date,
+          status,
+          intensity,
+        };
+        return [...prev, newCell];
+      }
+    });
 
     // Persist to database using upsert
     const { error } = await supabase
@@ -365,6 +436,34 @@ export function useDashboardData(viewingUserId?: string) {
     // Remove from local state
     setHabits((prev) => prev.filter(h => h.id !== habitId));
     setHabitGrid((prev) => prev.filter(c => c.habitId !== habitId));
+  };
+
+  // Update an existing habit
+  const updateHabit = async (habitId: string, updates: Partial<Habit>) => {
+    if (!targetUserId) return;
+
+    // Optimistic update
+    setHabits((prev) =>
+      prev.map((h) =>
+        h.id === habitId ? { ...h, ...updates } : h
+      )
+    );
+
+    // Persist to database
+    const { error } = await supabase
+      .from('habits')
+      .update({
+        name: updates.name,
+        frequency: updates.frequency,
+        intensity: updates.intensity ?? null,
+      })
+      .eq('id', habitId)
+      .eq('user_id', targetUserId);
+
+    if (error) {
+      console.error('Error updating habit:', error);
+      // Could revert optimistic update here
+    }
   };
 
   // Add a new goal
@@ -475,6 +574,7 @@ export function useDashboardData(viewingUserId?: string) {
     actions: {
       updateHabitCell,
       addHabit,
+      updateHabit,
       deleteHabit,
       addGoal,
       updateGoal,

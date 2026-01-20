@@ -15,6 +15,7 @@ interface GoalsCardProps {
   goals: Goal[];
   onAddGoal: (goal: Goal) => void;
   onUpdateGoal: (goalId: string, updates: Partial<Goal>) => void;
+  onDeleteGoal?: (goalId: string) => void;
   onGoalSelect: (goalId: string | null) => void;
   selectedGoalId: string | null;
 }
@@ -23,6 +24,7 @@ export function GoalsCard({
   goals,
   onAddGoal,
   onUpdateGoal,
+  onDeleteGoal,
   onGoalSelect,
   selectedGoalId,
 }: GoalsCardProps) {
@@ -160,6 +162,7 @@ export function GoalsCard({
         onOpenChange={setDialogOpen}
         goal={editingGoal}
         onSave={handleSave}
+        onDelete={onDeleteGoal}
       />
     </>
   );

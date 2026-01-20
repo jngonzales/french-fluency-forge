@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,29 +9,46 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { DevNav } from "@/components/DevNav";
 import { DevSessionViewer } from "@/components/DevSessionViewer";
 import { AdminToolbar } from "@/components/AdminToolbar";
-import Index from "./pages/Index";
-import Signup from "./pages/Signup";
-import Login from "./pages/Login";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import Assessment from "./pages/Assessment";
-import Results from "./pages/Results";
-import DevPreview from "./pages/DevPreview";
-import DevPronunciationTest from "./pages/DevPronunciationTest";
-import DevComprehensionAudio from "./pages/DevComprehensionAudio";
-import NotFound from "./pages/NotFound";
-import Activate from "./pages/Activate";
-import AdminProducts from "./pages/AdminProducts";
-import SalesCopilot from "./pages/admin/SalesCopilot";
-import DashboardPage from "./pages/DashboardPage";
-import PhrasesLandingPage from "./pages/PhrasesLandingPage";
-import PhrasesSessionPage from "./pages/PhrasesSessionPage";
-import PhrasesLibraryPage from "./pages/PhrasesLibraryPage";
-import PhrasesSettingsPage from "./pages/PhrasesSettingsPage";
-import PhrasesCoachPage from "./pages/PhrasesCoachPage";
-import PhrasesReviewLogsPage from "./pages/phrases/PhrasesReviewLogsPage";
-import SRSLabPage from "./pages/admin/SRSLabPage";
-import FluencyAnalyzerLandingPage from "./pages/FluencyAnalyzerLandingPage";
+
+// Lazy load all pages for code-splitting
+const Index = lazy(() => import("./pages/Index"));
+const Signup = lazy(() => import("./pages/Signup"));
+const Login = lazy(() => import("./pages/Login"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const Assessment = lazy(() => import("./pages/Assessment"));
+const Results = lazy(() => import("./pages/Results"));
+const DevPreview = lazy(() => import("./pages/DevPreview"));
+const DevPronunciationTest = lazy(() => import("./pages/DevPronunciationTest"));
+const DevComprehensionAudio = lazy(() => import("./pages/DevComprehensionAudio"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Activate = lazy(() => import("./pages/Activate"));
+const AdminProducts = lazy(() => import("./pages/AdminProducts"));
+const SalesCopilot = lazy(() => import("./pages/admin/SalesCopilot"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const PhrasesLandingPage = lazy(() => import("./pages/PhrasesLandingPage"));
+const PhrasesSessionPage = lazy(() => import("./pages/PhrasesSessionPage"));
+const PhrasesLibraryPage = lazy(() => import("./pages/PhrasesLibraryPage"));
+const PhrasesSettingsPage = lazy(() => import("./pages/PhrasesSettingsPage"));
+const PhrasesCoachPage = lazy(() => import("./pages/PhrasesCoachPage"));
+const PhrasesReviewLogsPage = lazy(() => import("./pages/phrases/PhrasesReviewLogsPage"));
+const SRSLabPage = lazy(() => import("./pages/admin/SRSLabPage"));
+const SpeakingAssessmentLandingPage = lazy(() => import("./pages/SpeakingAssessmentLandingPage"));
+// Landing page footer pages
+const TermsPage = lazy(() => import("./pages/TermsPage"));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const ContactPage = lazy(() => import("./pages/ContactPage"));
+const HelpPage = lazy(() => import("./pages/HelpPage"));
+const BlogPage = lazy(() => import("./pages/BlogPage"));
+const CareersPage = lazy(() => import("./pages/CareersPage"));
+
+// Loading spinner for Suspense fallback
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+);
 
 const queryClient = new QueryClient();
 
@@ -40,11 +58,12 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AdminToolbar />
           <DevNav />
           <DevSessionViewer />
-          <Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
@@ -141,19 +160,28 @@ const App = () => (
               } 
             />
             <Route 
-              path="/fluency-analyzer" 
+              path="/speaking-assessment" 
               element={
                 <ProtectedRoute>
-                  <FluencyAnalyzerLandingPage />
+                  <SpeakingAssessmentLandingPage />
                 </ProtectedRoute>
               } 
             />
             <Route path="/dev" element={<DevPreview />} />
             <Route path="/dev/pronunciation-test" element={<DevPronunciationTest />} />
             <Route path="/dev/comprehension-audio" element={<DevComprehensionAudio />} />
+            {/* Public footer pages */}
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/help" element={<HelpPage />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/careers" element={<CareersPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

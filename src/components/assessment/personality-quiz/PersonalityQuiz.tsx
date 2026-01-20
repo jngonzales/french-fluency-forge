@@ -68,8 +68,9 @@ export function PersonalityQuiz({ sessionId, onComplete, onSkip }: Props) {
 
   const currentAnswer = answers[currentQuestion.id];
   const hasAnswer = useMemo(() => {
+    // Slider always has a default value (5), so consider it answered
+    if (currentQuestion.type === 'slider') return true;
     if (currentAnswer === undefined) return false;
-    if (currentQuestion.type === 'slider') return true; // slider always has a default
     if (currentQuestion.type === 'ranking') return (currentAnswer as string[]).length > 0;
     return currentAnswer !== null && currentAnswer !== '';
   }, [currentAnswer, currentQuestion.type]);
@@ -110,7 +111,13 @@ export function PersonalityQuiz({ sessionId, onComplete, onSkip }: Props) {
 
       // Calculate scores from answers
       QUIZ_QUESTIONS.forEach(question => {
-        const answer = answers[question.id];
+        let answer = answers[question.id];
+        
+        // Slider questions default to 5 if not interacted with
+        if (question.type === 'slider' && answer === undefined) {
+          answer = 5;
+        }
+        
         if (answer === undefined) return;
 
         switch (question.type) {

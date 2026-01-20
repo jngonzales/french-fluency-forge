@@ -88,9 +88,7 @@ async function assessPronunciation(
   const pronunciationConfig = {
     referenceText: referenceText,
     gradingSystem: "HundredMark",
-    granularity: "Phoneme",
-    enableMiscue: true,
-    phonemeAlphabet: "IPA"
+    granularity: "Phoneme"
   };
 
   // Encode to UTF-8 first, then to base64 (handles French accents)
@@ -124,10 +122,46 @@ async function assessPronunciation(
   const apiDuration = Date.now() - apiStart;
 
   const rawResponse = await response.json();
+  console.log('[Azure] Raw response:', JSON.stringify(rawResponse).slice(0, 2000));
+  
   const nBest = rawResponse.NBest?.[0];
   
+  // Handle no speech detected (InitialSilenceTimeout, silence, etc.)
   if (!nBest) {
-    throw new Error('No NBest in Azure response');
+    console.log('[Azure] No NBest found! RecognitionStatus:', rawResponse.RecognitionStatus);
+    console.log('[Azure] Full response:', JSON.stringify(rawResponse));
+    
+    // Return 0% score with noSpeech flag instead of throwing error
+    const noSpeechReason = rawResponse.RecognitionStatus === 'InitialSilenceTimeout' 
+      ? 'No speech detected. Please speak into your microphone.'
+      : rawResponse.RecognitionStatus === 'NoMatch'
+      ? 'Could not recognize speech. Please try again.'
+      : 'No speech detected. Please try again.';
+    
+    return {
+      success: true,
+      noSpeech: true,
+      noSpeechReason,
+      pronScore: 0,
+      accuracyScore: 0,
+      fluencyScore: 0,
+      completenessScore: 0,
+      words: [],
+      allPhonemes: [],
+      recognizedText: '',
+      referenceText: referenceText,
+      provider: 'azure',
+      debug: {
+        recognitionStatus: rawResponse.RecognitionStatus,
+        apiDuration
+      }
+    };
+  }
+
+  console.log('[Azure] NBest.PronunciationAssessment:', JSON.stringify(nBest.PronunciationAssessment));
+  console.log('[Azure] NBest.Words count:', nBest.Words?.length ?? 0);
+  if (nBest.Words && nBest.Words.length > 0) {
+    console.log('[Azure] First word:', JSON.stringify(nBest.Words[0]));
   }
 
   const assessment = nBest.PronunciationAssessment || {};
@@ -195,23 +229,90 @@ async function assessPronunciation(
   const fluencyScore = assessment.FluencyScore ?? nBest.FluencyScore ?? 0;
   const completenessScore = assessment.CompletenessScore ?? nBest.CompletenessScore ?? 0;
 
+  // Get audio quality indicators from Azure response
+  const snr = rawResponse.SNR ?? 0;
+  const confidence = nBest.Confidence ?? 0;
+  
+  console.log('[Quality] SNR:', snr, 'Confidence:', confidence);
+
   // Calculate word average as primary score (most reliable)
-  const wordScores = words.map((w: any) => w.accuracyScore).filter((s: number) => s > 0);
-  const wordAverage = wordScores.length > 0 
-    ? Math.round(wordScores.reduce((a: number, b: number) => a + b, 0) / wordScores.length)
+  // IMPORTANT: Include ALL words (including 0-score words) in average
+  // Only filter out words that are insertions (extra words user said)
+  const wordScoresForAverage = words
+    .filter((w: any) => w.errorType !== 'Insertion') // Keep omissions and normal words
+    .map((w: any) => w.accuracyScore);
+  
+  // For logging, also show which scores > 0
+  const nonZeroScores = wordScoresForAverage.filter((s: number) => s > 0);
+  
+  // Use ALL expected words in the average (including 0s for omitted/mispronounced)
+  const wordAverage = wordScoresForAverage.length > 0 
+    ? Math.round(wordScoresForAverage.reduce((a: number, b: number) => a + b, 0) / wordScoresForAverage.length)
     : 0;
 
-  // Use word average as primary score, fallback to Azure's PronScore
-  let pronScore = wordScores.length > 0 ? wordAverage : (azurePronScore ?? 0);
-  
-  console.log('[Pronunciation] Word scores:', wordScores, 'Average:', wordAverage, 'Azure PronScore:', azurePronScore);
+  // Build recognized text from words
+  const recognizedText = words.map((w: any) => w.word).join(' ');
 
-  // If no words recognized at all, score is 0
+  // Calculate text match percentage (how many words were correctly recognized)
+  const correctWords = words.filter((w: any) => w.errorType === 'None').length;
+  const textMatchScore = words.length > 0 ? Math.round((correctWords / words.length) * 100) : 0;
+
+  // FALLBACK SCORING: If Azure didn't return pronunciation scores but DID recognize text,
+  // use a text-based score as fallback. This handles cases where Pronunciation Assessment
+  // isn't fully activated but speech recognition works.
+  let pronScore = 0;
+  let usedFallback = false;
+  
+  if (nonZeroScores.length > 0) {
+    // Azure returned word-level pronunciation scores - use them
+    pronScore = wordAverage;
+  } else if (azurePronScore !== null && azurePronScore > 0) {
+    // Azure returned overall PronScore - use it
+    pronScore = azurePronScore;
+  } else if (words.length > 0 && textMatchScore > 0) {
+    // FALLBACK: Azure recognized words but no pronunciation scores
+    // Give credit based on text recognition (capped at 60% since we can't verify pronunciation)
+    pronScore = Math.min(Math.round(textMatchScore * 0.6), 60);
+    usedFallback = true;
+    console.log('[Pronunciation] Using fallback scoring: textMatch', textMatchScore, '-> pronScore', pronScore);
+  }
+  
+  console.log('[Pronunciation] Word scores:', wordScoresForAverage, 'NonZero:', nonZeroScores, 'Average:', wordAverage, 'Azure PronScore:', azurePronScore, 'Fallback:', usedFallback);
+
+  // QUALITY CHECK: If audio quality is very poor, the scores are unreliable
+  // SNR < 8 dB typically indicates background noise or no clear speech
+  // Confidence < 0.7 indicates Azure is not confident about the recognition
+  // In these cases, scale down the score significantly
+  let qualityPenalty = 1.0;
+  let lowQualityWarning = false;
+  
+  if (snr > 0 && snr < 8) {
+    // Very low SNR - likely background noise, not real speech
+    // Scale down based on how low the SNR is
+    qualityPenalty = Math.max(0.1, snr / 15); // SNR 4 -> 0.27, SNR 6 -> 0.4
+    lowQualityWarning = true;
+    console.log('[Quality] Low SNR detected, applying penalty:', qualityPenalty);
+  }
+  
+  if (confidence > 0 && confidence < 0.6) {
+    // Very low confidence - Azure is guessing
+    const confidencePenalty = confidence;
+    qualityPenalty = Math.min(qualityPenalty, confidencePenalty);
+    lowQualityWarning = true;
+    console.log('[Quality] Low confidence detected, applying penalty:', qualityPenalty);
+  }
+  
+  // Apply quality penalty to the score
+  if (qualityPenalty < 1.0) {
+    const originalScore = pronScore;
+    pronScore = Math.round(pronScore * qualityPenalty);
+    console.log('[Quality] Score adjusted:', originalScore, '->', pronScore, '(penalty:', qualityPenalty, ')');
+  }
+
+  // If no words recognized at all (just "."), score is 0
   if (words.length === 0 || (nBest.Display === '.' && words.length === 0)) {
     pronScore = 0;
   }
-
-  const recognizedText = words.map((w: any) => w.word).join(' ');
 
   // Return BOTH old format AND new unified format
   return {
@@ -220,13 +321,16 @@ async function assessPronunciation(
     success: true,
     recognizedText,
     expectedText: referenceText,
-    textMatch: Math.round((words.filter((w: any) => w.errorType === 'None').length / words.length) * 100) || 100,
+    textMatch: textMatchScore,
+    usedFallbackScoring: usedFallback,
     scores: {
       overall: Math.round(pronScore),
       accuracy: Math.round(accuracyScore),
       fluency: Math.round(fluencyScore),
       completeness: Math.round(completenessScore),
-      formula: `(${Math.round(accuracyScore)}×0.6 + ${Math.round(fluencyScore)}×0.2 + ${Math.round(completenessScore)}×0.2) = ${Math.round(pronScore)}`,
+      formula: usedFallback 
+        ? `Fallback: textMatch ${textMatchScore}% × 0.6 = ${Math.round(pronScore)}`
+        : `(${Math.round(accuracyScore)}×0.6 + ${Math.round(fluencyScore)}×0.2 + ${Math.round(completenessScore)}×0.2) = ${Math.round(pronScore)}`,
       weights: { accuracy: 0.6, fluency: 0.2, completeness: 0.2 },
     },
     words,
@@ -299,7 +403,7 @@ serve(async (req) => {
 
     const result = await assessPronunciation(binaryAudio, referenceText, speechKey, speechRegion, audioFormat || 'audio/webm');
 
-    console.log(`[Pronunciation] Complete - Score: ${result.scores.overall}`);
+    console.log(`[Pronunciation] Complete - Score: ${result.scores?.overall ?? result.pronScore ?? 0}`);
 
     return new Response(
       JSON.stringify({ ...result, itemId }),

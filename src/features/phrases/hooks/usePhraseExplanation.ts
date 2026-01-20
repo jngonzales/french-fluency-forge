@@ -47,11 +47,18 @@ export function usePhraseExplanation(phraseId: string) {
 
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!anonKey) {
+        console.error('[usePhraseExplanation] No Supabase key found');
+        throw new Error('Missing Supabase configuration');
+      }
       
       // Get session token
       const session = await supabase.auth.getSession();
       const accessToken = session.data.session?.access_token;
+      
+      console.log('[usePhraseExplanation] Calling edge function, hasAccessToken:', !!accessToken);
       
       const response = await fetch(`${supabaseUrl}/functions/v1/phrase-explain`, {
         method: 'POST',

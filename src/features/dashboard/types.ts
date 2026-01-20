@@ -12,13 +12,13 @@ export type DimensionKey =
   | 'conversation'
   | 'comprehension';
 
-// Metric keys for timeline
+// Metric keys for timeline (ai_words_spoken removed - AI Tutor out of scope)
 export type MetricKey = 
   | 'overall'
   | DimensionKey
   | 'phrases_known_recall'
-  | 'phrases_known_recognition'
-  | 'ai_words_spoken';
+  | 'phrases_known_recognition';
+  // | 'ai_words_spoken'; // AI Tutor out of scope
 
 // Time ranges
 export type TimeRange = '7d' | '30d' | '90d' | 'custom';

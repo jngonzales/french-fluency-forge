@@ -1,4 +1,4 @@
-project_id = "mjqykgcvfteihqmgeufb"
+project_id = "affygdjsoukipdeuynwe"
 
 [functions.french-tts]
 verify_jwt = false
@@ -25,4 +25,19 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.systemeio-webhook]
+verify_jwt = false
+
+[functions.phrase-explain]
+verify_jwt = false
+
+[functions.phrases-review-commit]
+verify_jwt = false
+
+[functions.phrases-schedule-preview]
+verify_jwt = false
+
+[functions.analyze-confidence-speaking]
+verify_jwt = false
+
+[functions.analyze-pronunciation-speechsuper]
 verify_jwt = false

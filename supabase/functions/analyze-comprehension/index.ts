@@ -205,6 +205,7 @@ serve(async (req) => {
         scorer_version: versions.scorer_version,
         asr_version: versions.asr_version,
         status: 'completed',
+        used_for_scoring: true,
         completed_at: new Date().toISOString()
       })
       .eq('id', recordingId);

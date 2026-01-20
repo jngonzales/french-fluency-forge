@@ -166,6 +166,53 @@ export function calculateQuestionnaireScore(responses: Record<string, number | s
   return { rawScore, normalizedScore, honestyFlag, individualScores };
 }
 
+// Calculate partial score from incomplete responses (for skip functionality)
+export function calculatePartialQuestionnaireScore(responses: Record<string, number | string>): {
+  rawScore: number;
+  normalizedScore: number;
+  honestyFlag: boolean;
+  individualScores: Record<string, number>;
+  answeredCount: number;
+  totalQuestions: number;
+} {
+  const individualScores: Record<string, number> = {};
+  let answeredCount = 0;
+  
+  confidenceQuestions.forEach(q => {
+    const answer = responses[q.id];
+    if (answer === undefined || answer === null) return;
+    
+    answeredCount++;
+    
+    if (q.type === 'slider') {
+      individualScores[q.id] = calculateSliderScore(answer as number, q.reverse);
+    } else if (q.type === 'likert') {
+      individualScores[q.id] = calculateLikertScore(answer as number, q.reverse);
+    } else if (q.type === 'scenario' || q.type === 'tradeoff') {
+      individualScores[q.id] = calculateScenarioScore(answer as string, q.options);
+    }
+  });
+  
+  const rawScore = Object.values(individualScores).reduce((sum, score) => sum + score, 0);
+  // Normalize based on answered questions only (max 10 points per question)
+  const maxPossibleScore = answeredCount * 10;
+  const normalizedScore = maxPossibleScore > 0 ? (rawScore / maxPossibleScore) * 100 : 0;
+  
+  // Honesty flag only if we have both q2 and q4 answered
+  const q2Score = individualScores.q2;
+  const q4Score = individualScores.q4;
+  const honestyFlag = q2Score !== undefined && q4Score !== undefined && q2Score >= 7.5 && q4Score <= 2.5;
+  
+  return { 
+    rawScore, 
+    normalizedScore, 
+    honestyFlag, 
+    individualScores, 
+    answeredCount, 
+    totalQuestions: confidenceQuestions.length 
+  };
+}
+
 // Interpretation helper
 export function getConfidenceInterpretation(score: number): {
   level: string;

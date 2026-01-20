@@ -10,10 +10,12 @@ import { toast } from 'sonner';
 import { getPrompts } from '@/components/assessment/promptBank/loadPromptBank';
 import type { SpeakingPrompt } from '@/components/assessment/promptBank/types';
 import { useAdminMode } from '@/hooks/useAdminMode';
+import SkipButton from '../SkipButton';
 
 interface ConversationModuleProps {
   sessionId: string;
   onComplete: () => void;
+  onSkip?: () => void;
 }
 
 const MAX_DURATION_SECONDS = 120;
@@ -28,7 +30,7 @@ interface StepStatus {
   timestamp?: number;
 }
 
-export function ConversationModule({ sessionId, onComplete }: ConversationModuleProps) {
+export function ConversationModule({ sessionId, onComplete, onSkip }: ConversationModuleProps) {
   const { user } = useAuth();
   const { showDevTools } = useAdminMode();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -728,6 +730,9 @@ export function ConversationModule({ sessionId, onComplete }: ConversationModule
           )}
         </Card>
       )}
+      
+      {/* Skip Module Button */}
+      {onSkip && <SkipButton onClick={onSkip} />}
     </div>
   );
 }

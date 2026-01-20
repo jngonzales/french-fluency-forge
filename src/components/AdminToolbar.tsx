@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminMode } from '@/hooks/useAdminMode';
@@ -13,7 +12,8 @@ import {
   ChevronDown,
   Zap,
   Phone,
-  LayoutDashboard
+  LayoutDashboard,
+  Trash2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -59,7 +59,6 @@ export function AdminToolbar() {
   const { isAdmin, isDev } = useAdminMode();
   const navigate = useNavigate();
   const location = useLocation();
-  const [currentSession, setCurrentSession] = useState<any>(null);
 
   // Determine visibility (calculated after all hooks)
   const shouldShow = isAdmin || isDev;
@@ -170,6 +169,255 @@ export function AdminToolbar() {
     }
   };
 
+  /**
+   * DELETE DATA BY CATEGORY - Selective data deletion
+   * Allows users to choose what specific data to delete
+   */
+  const deleteDataCategory = async (category: 'assessment' | 'habits' | 'phrases' | 'confidence') => {
+    if (!user) {
+      toast.error('Please login first');
+      return;
+    }
+
+    const categoryLabels: Record<string, string> = {
+      assessment: 'Assessment Sessions & Recordings',
+      habits: 'Habits & Goals',
+      phrases: 'Phrases & Review Logs',
+      confidence: 'Confidence Responses',
+    };
+
+    const confirmed = confirm(
+      `⚠️ Delete ${categoryLabels[category]}?\n\n` +
+      'This action cannot be undone.\n\n' +
+      'Click OK to confirm deletion.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      toast.loading(`Deleting ${categoryLabels[category]}...`);
+      console.log(`[DELETE CATEGORY] Deleting ${category} for user:`, user.id);
+
+      // Helper function for safe deletion
+      const safeDelete = async (table: string, column: string = 'user_id') => {
+        try {
+          console.log(`[DELETE CATEGORY] Deleting from ${table}`);
+          const { error } = await (supabase as any)
+            .from(table)
+            .delete()
+            .eq(column, user.id);
+          
+          if (error) {
+            if (error.code === '42P01') {
+              console.log(`[DELETE CATEGORY] Table ${table} doesn't exist, skipping`);
+            } else {
+              console.warn(`[DELETE CATEGORY] Error deleting from ${table}:`, error.message);
+            }
+          } else {
+            console.log(`[DELETE CATEGORY] Deleted from ${table}`);
+          }
+        } catch (e) {
+          console.warn(`[DELETE CATEGORY] Exception deleting from ${table}:`, e);
+        }
+      };
+
+      switch (category) {
+        case 'assessment':
+          // Delete all assessment-related data
+          await safeDelete('skill_recordings');
+          await safeDelete('fluency_recordings');
+          await safeDelete('fluency_events');
+          await safeDelete('comprehension_recordings');
+          await safeDelete('scoring_traces');
+          await safeDelete('assessment_sessions');
+          break;
+          
+        case 'habits':
+          // Delete habits and goals
+          await safeDelete('habit_cells');
+          await safeDelete('habits');
+          await safeDelete('goals');
+          break;
+          
+        case 'phrases':
+          // Delete phrase-related data
+          await safeDelete('phrase_review_logs', 'member_id');
+          await safeDelete('member_phrase_cards', 'member_id');
+          await safeDelete('member_phrase_settings', 'member_id');
+          break;
+          
+        case 'confidence':
+          // Delete confidence data
+          await safeDelete('confidence_questionnaire_responses');
+          await safeDelete('consent_records');
+          break;
+      }
+
+      toast.dismiss();
+      toast.success(`✅ ${categoryLabels[category]} deleted!`);
+      
+      // Refresh the page
+      setTimeout(() => window.location.reload(), 500);
+    } catch (error) {
+      console.error('[DELETE CATEGORY] Error:', error);
+      toast.dismiss();
+      toast.error('Failed to delete data');
+    }
+  };
+
+  /**
+   * NEW SEASON - Wipes ALL user data for testing fresh account experience
+   * This is useful for debugging/demoing the new user flow
+   * 
+   * Tables to DELETE (user data):
+   * - habit_cells, habits, goals
+   * - skill_recordings, fluency_recordings, fluency_events, comprehension_recordings
+   * - confidence_questionnaire_responses
+   * - scoring_traces
+   * - archetype_feedback
+   * - consent_records
+   * - assessment_sessions
+   * 
+   * Tables to KEEP:
+   * - app_accounts (licensing/credits)
+   * - profiles (base user profile)
+   * - purchases (payment records)
+   */
+  const startNewSeason = async () => {
+    if (!user) {
+      toast.error('Please login first');
+      return;
+    }
+
+    const confirmed = confirm(
+      '🚨 NEW SEASON 🚨\n\n' +
+      'This will DELETE ALL your data:\n' +
+      '• Habits & habit cells\n' +
+      '• Goals\n' +
+      '• Assessment sessions & recordings\n' +
+      '• Confidence responses\n' +
+      '• Consent records\n' +
+      '\nYou will start fresh like a new account.\n\nAre you sure?'
+    );
+    if (!confirmed) return;
+
+    try {
+      toast.loading('Starting New Season... Wiping all data');
+      console.log('[NEW SEASON] Starting deletion for user:', user.id);
+      
+      // Helper to safely delete with error logging
+      // Using dynamic table names requires type assertion
+      const safeDelete = async (table: string, column: string = 'user_id') => {
+        try {
+          console.log(`[NEW SEASON] Deleting from ${table} where ${column} = ${user.id}`);
+          // Dynamic table access - intentionally using any
+          const { data, error } = await (supabase as any)
+            .from(table)
+            .delete()
+            .eq(column, user.id)
+            .select();
+          
+          if (error) {
+            // Don't log 42P01 (table doesn't exist) as an error - it's expected for optional tables
+            if (error.code === '42P01') {
+              console.log(`[NEW SEASON] Table ${table} doesn't exist, skipping`);
+              return { success: true, count: 0 };
+            }
+            console.error(`[NEW SEASON] FAILED to delete from ${table}:`, error.message);
+            return { success: false, count: 0 };
+          }
+          console.log(`[NEW SEASON] Deleted from ${table}:`, data?.length ?? 0, 'rows');
+          return { success: true, count: data?.length ?? 0 };
+        } catch (e) {
+          console.error(`[NEW SEASON] EXCEPTION deleting from ${table}:`, e);
+          return { success: false, count: 0 };
+        }
+      };
+      
+      // Delete in order to respect FK constraints
+      // Phase 1: Habit cells (references habits)
+      console.log('[NEW SEASON] Phase 1: Deleting habit cells...');
+      await safeDelete('habit_cells');
+      
+      // Phase 2: Habits
+      console.log('[NEW SEASON] Phase 2: Deleting habits...');
+      await safeDelete('habits');
+      
+      // Phase 3: Goals
+      console.log('[NEW SEASON] Phase 3: Deleting goals...');
+      await safeDelete('goals');
+      
+      // Phase 4: Recordings (all types)
+      console.log('[NEW SEASON] Phase 4: Deleting recordings...');
+      await Promise.all([
+        safeDelete('skill_recordings'),
+        safeDelete('fluency_recordings'),
+        safeDelete('fluency_events'),
+        safeDelete('comprehension_recordings'),
+      ]);
+      
+      // Phase 5: Confidence & Consent
+      console.log('[NEW SEASON] Phase 5: Deleting confidence & consent...');
+      await Promise.all([
+        safeDelete('confidence_questionnaire_responses'),
+        safeDelete('consent_records'),
+        safeDelete('archetype_feedback'),
+      ]);
+      
+      // Phase 6: Scoring traces (if exists)
+      console.log('[NEW SEASON] Phase 6: Deleting scoring traces...');
+      await safeDelete('scoring_traces');
+      
+      // Phase 7: Assessment sessions (last, as other tables may reference it)
+      console.log('[NEW SEASON] Phase 7: Deleting assessment sessions...');
+      await safeDelete('assessment_sessions');
+      
+      // Phase 8: Optional tables (may not exist - gracefully skip if missing)
+      console.log('[NEW SEASON] Phase 8: Cleaning up optional tables...');
+      await Promise.all([
+        safeDelete('member_phrase_cards', 'member_id'),
+        safeDelete('phrase_review_logs', 'member_id'),
+        safeDelete('member_phrase_settings', 'member_id'),
+        safeDelete('user_phoneme_stats'),
+        safeDelete('unified_exam_sessions'),
+        safeDelete('speaking_assessment_sessions'),
+        safeDelete('confidence_phone_calls'),
+      ]);
+      
+      // Clear session storage
+      sessionStorage.clear();
+      
+      // Clear localStorage EXCEPT for Supabase auth tokens (preserve login)
+      const keysToKeep: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('sb-')) {
+          keysToKeep.push(key);
+        }
+      }
+      const authTokens: Record<string, string> = {};
+      keysToKeep.forEach(key => {
+        const value = localStorage.getItem(key);
+        if (value) authTokens[key] = value;
+      });
+      localStorage.clear();
+      Object.entries(authTokens).forEach(([key, value]) => {
+        localStorage.setItem(key, value);
+      });
+      
+      console.log('[NEW SEASON] Complete! User data wiped.');
+      toast.dismiss();
+      toast.success('🌱 New Season started! All data wiped.');
+      
+      // Navigate to dashboard to see fresh state
+      window.location.href = '/dashboard';
+    } catch (error) {
+      console.error('[NEW SEASON] Error:', error);
+      toast.dismiss();
+      toast.error('Failed to start New Season');
+    }
+  };
+
   // Hide if not admin/dev
   if (!shouldShow) return null;
 
@@ -238,6 +486,62 @@ export function AdminToolbar() {
             <RotateCcw className="h-3 w-3 mr-1" />
             New Session
           </Button>
+
+          {/* NEW SEASON - Selective data deletion dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                className="h-7 text-xs bg-red-700 hover:bg-red-800"
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                New Season
+                <ChevronDown className="h-3 w-3 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="text-xs text-red-600">⚠️ Delete Data</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuItem 
+                className="text-xs cursor-pointer"
+                onClick={() => deleteDataCategory('assessment')}
+              >
+                🎯 Assessment Sessions & Recordings
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem 
+                className="text-xs cursor-pointer"
+                onClick={() => deleteDataCategory('habits')}
+              >
+                📊 Habits & Goals
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem 
+                className="text-xs cursor-pointer"
+                onClick={() => deleteDataCategory('phrases')}
+              >
+                📚 Phrases & Review Logs
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem 
+                className="text-xs cursor-pointer"
+                onClick={() => deleteDataCategory('confidence')}
+              >
+                💪 Confidence Responses
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuItem 
+                className="text-xs cursor-pointer text-red-600 font-semibold"
+                onClick={startNewSeason}
+              >
+                🚨 DELETE EVERYTHING
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Sales Copilot */}
           <Button 

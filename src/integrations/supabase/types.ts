@@ -606,6 +606,131 @@ export type Database = {
           },
         ]
       }
+      goals: {
+        Row: {
+          acceptance_criteria: string | null
+          created_at: string
+          deadline: string | null
+          description: string | null
+          dimension: string | null
+          goal_type: string
+          id: string
+          locked: boolean
+          metric: string | null
+          name: string
+          target_score: number | null
+          target_value: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          acceptance_criteria?: string | null
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          dimension?: string | null
+          goal_type: string
+          id?: string
+          locked?: boolean
+          metric?: string | null
+          name: string
+          target_score?: number | null
+          target_value?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          acceptance_criteria?: string | null
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          dimension?: string | null
+          goal_type?: string
+          id?: string
+          locked?: boolean
+          metric?: string | null
+          name?: string
+          target_score?: number | null
+          target_value?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      habit_cells: {
+        Row: {
+          created_at: string
+          date: string
+          habit_id: string
+          id: string
+          intensity: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          habit_id: string
+          id?: string
+          intensity?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          habit_id?: string
+          id?: string
+          intensity?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habit_cells_habit_id_fkey"
+            columns: ["habit_id"]
+            isOneToOne: false
+            referencedRelation: "habits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      habits: {
+        Row: {
+          created_at: string
+          frequency: string
+          id: string
+          intensity: number | null
+          name: string
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          frequency: string
+          id?: string
+          intensity?: number | null
+          name: string
+          source?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          frequency?: string
+          id?: string
+          intensity?: number | null
+          name?: string
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

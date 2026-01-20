@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Lock } from 'lucide-react';
+import { Lock, Trash2 } from 'lucide-react';
 import type { Goal, GoalType, DimensionKey, MetricKey } from '../types';
 
 interface GoalDialogProps {
@@ -31,9 +31,10 @@ interface GoalDialogProps {
   onOpenChange: (open: boolean) => void;
   goal?: Goal; // For editing
   onSave: (goal: Goal) => void;
+  onDelete?: (goalId: string) => void;
 }
 
-export function GoalDialog({ open, onOpenChange, goal, onSave }: GoalDialogProps) {
+export function GoalDialog({ open, onOpenChange, goal, onSave, onDelete }: GoalDialogProps) {
   const [name, setName] = useState(goal?.name || '');
   const [description, setDescription] = useState(goal?.description || '');
   const [acceptanceCriteria, setAcceptanceCriteria] = useState(goal?.acceptanceCriteria || '');
@@ -44,6 +45,15 @@ export function GoalDialog({ open, onOpenChange, goal, onSave }: GoalDialogProps
   const [metric, setMetric] = useState<MetricKey>(goal?.metric || 'overall');
   const [targetValue, setTargetValue] = useState(goal?.targetValue?.toString() || '100');
   const [locked, setLocked] = useState(goal?.locked || false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDelete = () => {
+    if (goal && onDelete) {
+      onDelete(goal.id);
+      onOpenChange(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   // Reset form when goal prop changes (for editing)
   useEffect(() => {
@@ -211,7 +221,7 @@ export function GoalDialog({ open, onOpenChange, goal, onSave }: GoalDialogProps
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="overall">Overall</SelectItem>
-                    <SelectItem value="ai_words_spoken">AI Words Spoken</SelectItem>
+                    {/* <SelectItem value="ai_words_spoken">AI Words Spoken</SelectItem> */}{/* AI Tutor out of scope */}
                     <SelectItem value="phrases_known_recall">Phrases (Recall)</SelectItem>
                   </SelectContent>
                 </Select>
@@ -258,7 +268,34 @@ export function GoalDialog({ open, onOpenChange, goal, onSave }: GoalDialogProps
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          {/* Delete button - only for existing goals that aren't locked */}
+          {goal && !isReadOnly && onDelete && (
+            <div className="flex-1 flex justify-start">
+              {showDeleteConfirm ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-destructive">Delete this goal?</span>
+                  <Button variant="destructive" size="sm" onClick={handleDelete}>
+                    Yes, delete
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Goal
+                </Button>
+              )}
+            </div>
+          )}
+          
           {!isReadOnly && (
             <>
               <Button variant="outline" onClick={() => onOpenChange(false)}>

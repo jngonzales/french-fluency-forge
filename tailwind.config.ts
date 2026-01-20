@@ -19,6 +19,14 @@ export default {
   			ring: 'hsl(var(--ring))',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
+  			// SOLV Brand Colors
+  			carbon: '#121212',
+  			graphite: '#1E1E1E',
+  			steel: '#8A8A8A',
+  			bone: '#F5F5F5',
+  			orange: '#FF4D1A',
+  			magenta: '#FF3366',
+  			uv: '#7B61FF',
   			primary: {
   				DEFAULT: 'hsl(var(--primary))',
   				foreground: 'hsl(var(--primary-foreground))'
@@ -79,11 +87,16 @@ export default {
   				to: {
   					height: '0'
   				}
+  			},
+  			'pulse-slow': {
+  				'0%, 100%': { opacity: '0.15', transform: 'scale(1)' },
+  				'50%': { opacity: '0.25', transform: 'scale(1.1)' }
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			'pulse-slow': 'pulse-slow 4s ease-in-out infinite'
   		},
 		fontFamily: {
 			sans: [
