@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminMode } from "@/hooks/useAdminMode";
@@ -14,6 +14,7 @@ import { PersonalityQuiz } from "@/components/assessment/personality-quiz";
 import { ProcessingView } from "@/components/assessment/ProcessingView";
 import { LiveDataViewer } from "@/components/LiveDataViewer";
 import { EnhancedLiveDataViewer } from "@/components/EnhancedLiveDataViewer";
+import ExitButton from "@/components/assessment/ExitButton";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/integrations/supabase/types";
@@ -37,18 +38,23 @@ interface AssessmentSession {
 
 const Assessment = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
   const { isAdmin, isDev } = useAdminMode();
   
   const [session, setSession] = useState<AssessmentSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [assessmentPhase, setAssessmentPhase] = useState<AssessmentPhase | null>(null);
+  
+  // Get session ID from URL if provided (for resuming specific session)
+  const urlSessionId = searchParams.get('session');
 
   useEffect(() => {
     if (!authLoading && user) {
       loadOrCreateSession();
     }
-  }, [user, authLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading, urlSessionId]);
 
   const loadOrCreateSession = async () => {
     if (!user) return;
@@ -59,6 +65,32 @@ const Assessment = () => {
       if (devPhase && ["pronunciation", "comprehension", "confidence", "conversation"].includes(devPhase)) {
         sessionStorage.removeItem("dev_assessment_phase");
         setAssessmentPhase(devPhase as AssessmentPhase);
+      }
+
+      // If a specific session ID is provided in URL, load that session
+      if (urlSessionId) {
+        const { data: specificSession, error: specificError } = await supabase
+          .from("assessment_sessions")
+          .select("*")
+          .eq("id", urlSessionId)
+          .eq("user_id", user.id) // Ensure user owns this session
+          .maybeSingle();
+
+        if (specificError) throw specificError;
+
+        if (specificSession) {
+          const sessionData = specificSession as AssessmentSession;
+          setSession(sessionData);
+          // Restore the module from session if not overridden by dev
+          if (!devPhase && sessionData.current_module) {
+            setAssessmentPhase(sessionData.current_module as AssessmentPhase);
+          } else if (!devPhase) {
+            setAssessmentPhase("pronunciation");
+          }
+          setIsLoading(false);
+          return;
+        }
+        // If specific session not found, fall through to normal flow
       }
 
       // Query for existing session - use * to get all columns including new ones
@@ -172,6 +204,24 @@ const Assessment = () => {
     }
   };
 
+  // Exit handler: Save current progress and go to dashboard
+  const handleExit = async () => {
+    try {
+      // Save current module to session so user can resume later
+      await supabase
+        .from("assessment_sessions")
+        .update({ current_module: assessmentPhase } as any)
+        .eq("id", session.id);
+      
+      toast.success("Progress saved! You can resume anytime.");
+      navigate("/speaking-assessment");
+    } catch (error) {
+      console.error("Error saving progress:", error);
+      toast.error("Could not save progress");
+      navigate("/speaking-assessment");
+    }
+  };
+
   switch (session.status) {
     case "intake":
       return <IntakeForm sessionId={session.id} onComplete={handleStepComplete} onSkip={() => skipToStatus("consent")} />;
@@ -221,9 +271,21 @@ const Assessment = () => {
               />
             );
           case "comprehension":
-            return <ComprehensionModule {...moduleProps} onSkip={advancePhase} />;
+            return (
+              <ComprehensionModule 
+                {...moduleProps} 
+                onSkip={advancePhase}
+                initialItemIndex={session.current_item_index ?? 0}
+              />
+            );
           case "confidence":
-            return <ConfidenceModule {...moduleProps} onSkip={advancePhase} />;
+            return (
+              <ConfidenceModule 
+                {...moduleProps} 
+                onSkip={advancePhase}
+                initialItemIndex={session.current_item_index ?? 0}
+              />
+            );
           case "conversation":
             // Conversation-agent evaluates: fluency, confidence, conversation, and syntax
             return <ConversationModule {...moduleProps} onSkip={advancePhase} />;
@@ -231,11 +293,13 @@ const Assessment = () => {
       };
 
       return (
-        <AdminPadding>
-          {renderModule()}
-
-          {(isAdmin || isDev) && <EnhancedLiveDataViewer sessionId={session.id} moduleType={assessmentPhase} />}
-        </AdminPadding>
+        <>
+          <ExitButton onClick={handleExit} />
+          <AdminPadding>
+            {renderModule()}
+            {(isAdmin || isDev) && <EnhancedLiveDataViewer sessionId={session.id} moduleType={assessmentPhase} />}
+          </AdminPadding>
+        </>
       );
     }
 

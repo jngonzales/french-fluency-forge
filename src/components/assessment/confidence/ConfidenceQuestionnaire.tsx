@@ -19,12 +19,13 @@ interface ConfidenceQuestionnaireProps {
   sessionId: string;
   onComplete: (normalizedScore: number) => void;
   registerSavePartial?: (fn: () => Promise<void>) => void;
+  initialQuestionIndex?: number;
 }
 
-export function ConfidenceQuestionnaire({ sessionId, onComplete, registerSavePartial }: ConfidenceQuestionnaireProps) {
+export function ConfidenceQuestionnaire({ sessionId, onComplete, registerSavePartial, initialQuestionIndex = 0 }: ConfidenceQuestionnaireProps) {
   const { user } = useAuth();
-  const [showIntro, setShowIntro] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showIntro, setShowIntro] = useState(initialQuestionIndex === 0);
+  const [currentIndex, setCurrentIndex] = useState(initialQuestionIndex);
   const [responses, setResponses] = useState<Record<string, number | string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -87,7 +88,15 @@ export function ConfidenceQuestionnaire({ sessionId, onComplete, registerSavePar
     if (isLastQuestion) {
       await handleSubmit();
     } else {
-      setCurrentIndex(prev => prev + 1);
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      
+      // Save progress to session (for resume functionality)
+      supabase
+        .from('assessment_sessions')
+        .update({ current_item_index: nextIndex } as any)
+        .eq('id', sessionId)
+        .then(() => {});
     }
   };
 

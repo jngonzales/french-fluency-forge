@@ -36,14 +36,15 @@ export function ProcessingView({ sessionId, onComplete, onStartFresh }: Processi
   }, [sessionId]);
 
   const loadSessionData = async () => {
-    // Load pronunciation data
+    // Load pronunciation data from skill_recordings (pronunciation module results)
     const { count: pronCount } = await supabase
-      .from("fluency_recordings")
+      .from("skill_recordings")
       .select("*", { count: "exact", head: true })
       .eq("session_id", sessionId)
+      .eq("skill_type", "pronunciation")
       .neq("status", "error");
 
-    // Load fluency recordings
+    // Load fluency/conversation recordings
     const { data: fluencyData } = await supabase
       .from("fluency_recordings")
       .select("*")

@@ -9,12 +9,13 @@ interface ConfidenceModuleProps {
   sessionId: string;
   onComplete: () => void;
   onSkip?: () => void;
+  initialItemIndex?: number;
 }
 
 type Phase = 'intro' | 'questionnaire' | 'complete';
 
-export function ConfidenceModule({ sessionId, onComplete, onSkip }: ConfidenceModuleProps) {
-  const [phase, setPhase] = useState<Phase>('intro');
+export function ConfidenceModule({ sessionId, onComplete, onSkip, initialItemIndex = 0 }: ConfidenceModuleProps) {
+  const [phase, setPhase] = useState<Phase>(initialItemIndex > 0 ? 'questionnaire' : 'intro');
   const [questionnaireScore, setQuestionnaireScore] = useState<number | null>(null);
   // Ref to trigger partial save from questionnaire
   const savePartialRef = useRef<(() => Promise<void>) | null>(null);
@@ -95,6 +96,7 @@ export function ConfidenceModule({ sessionId, onComplete, onSkip }: ConfidenceMo
           sessionId={sessionId}
           onComplete={handleQuestionnaireComplete}
           registerSavePartial={(fn) => { savePartialRef.current = fn; }}
+          initialQuestionIndex={initialItemIndex}
         />
         {onSkip && <SkipButton onClick={handleSkip} />}
       </>
@@ -132,7 +134,11 @@ export function ConfidenceModule({ sessionId, onComplete, onSkip }: ConfidenceMo
   // Show Skip button during questionnaire phase too
   return (
     <>
-      <ConfidenceQuestionnaire sessionId={sessionId} onComplete={handleQuestionnaireComplete} />
+      <ConfidenceQuestionnaire 
+        sessionId={sessionId} 
+        onComplete={handleQuestionnaireComplete} 
+        initialQuestionIndex={initialItemIndex}
+      />
       {onSkip && <SkipButton onClick={onSkip} />}
     </>
   );

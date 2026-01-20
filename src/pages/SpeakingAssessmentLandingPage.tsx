@@ -107,7 +107,7 @@ export default function FluencyAnalyzerLandingPage() {
       return (
         <Button 
           size="sm" 
-          onClick={() => navigate('/assessment')}
+          onClick={() => navigate(`/assessment?session=${session.id}`)}
           className="gap-1.5"
         >
           <RotateCcw className="w-3.5 h-3.5" />
@@ -147,6 +147,29 @@ export default function FluencyAnalyzerLandingPage() {
       day: 'numeric',
       year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
     });
+  }
+
+  function formatDateTime(dateString: string) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    
+    const timeStr = date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+    
+    if (diffDays === 0) return `Today at ${timeStr}`;
+    if (diffDays === 1) return `Yesterday at ${timeStr}`;
+    if (diffDays < 7) return `${diffDays} days ago at ${timeStr}`;
+    
+    const dateStr = date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+    });
+    return `${dateStr} at ${timeStr}`;
   }
 
   // Find in-progress session (newest one that's not completed)
@@ -210,10 +233,10 @@ export default function FluencyAnalyzerLandingPage() {
                       {STATUS_CONFIG[inProgressSession.status]?.label || inProgressSession.status}
                     </Badge>
                     <span className="text-sm text-muted-foreground">
-                      Started {formatDate(inProgressSession.created_at)}
+                      Started {formatDateTime(inProgressSession.created_at)}
                     </span>
                   </div>
-                  <Button onClick={() => navigate('/assessment')} className="gap-1.5">
+                  <Button onClick={() => navigate(`/assessment?session=${inProgressSession.id}`)} className="gap-1.5">
                     <RotateCcw className="w-4 h-4" />
                     Resume Session
                   </Button>
@@ -222,25 +245,23 @@ export default function FluencyAnalyzerLandingPage() {
             </Card>
           )}
 
-          {/* Start New Session */}
-          {!inProgressSession && (
-            <Card className="mb-6 border-primary/30 bg-primary/5">
-              <CardContent className="pt-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="font-semibold text-lg mb-1">Ready for a new assessment?</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Takes about 10-15 minutes to complete all modules.
-                    </p>
-                  </div>
-                  <Button onClick={startNewSession} size="lg" className="gap-2">
-                    <Plus className="w-5 h-5" />
-                    Start New Session
-                  </Button>
+          {/* Start New Session - Always visible */}
+          <Card className="mb-6 border-primary/30 bg-primary/5">
+            <CardContent className="pt-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-semibold text-lg mb-1">Ready for a new assessment?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Takes about 10-15 minutes to complete all modules.
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+                <Button onClick={startNewSession} size="lg" className="gap-2">
+                  <Plus className="w-5 h-5" />
+                  Start New Session
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Session History */}
           <Card>
@@ -268,6 +289,7 @@ export default function FluencyAnalyzerLandingPage() {
                   {sessions.map((session) => {
                     const config = STATUS_CONFIG[session.status] || STATUS_CONFIG.error;
                     const Icon = config.icon;
+                    const isCompleted = session.status === 'completed';
                     
                     return (
                       <div 
@@ -286,7 +308,10 @@ export default function FluencyAnalyzerLandingPage() {
                               </Badge>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              Session ID: {session.id.slice(0, 8)}...
+                              {isCompleted 
+                                ? `Completed ${formatDateTime(session.updated_at)}`
+                                : `Started ${formatDateTime(session.created_at)}`
+                              }
                             </p>
                           </div>
                         </div>

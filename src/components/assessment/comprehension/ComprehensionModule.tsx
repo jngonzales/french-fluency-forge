@@ -22,6 +22,7 @@ interface ComprehensionModuleProps {
   sessionId: string;
   onComplete: () => void;
   onSkip?: () => void;
+  initialItemIndex?: number;
 }
 
 interface MultiSelectResult {
@@ -34,12 +35,12 @@ interface MultiSelectResult {
 
 type ItemPhase = 'ready' | 'playing' | 'played' | 'answering' | 'processing' | 'complete';
 
-export function ComprehensionModule({ sessionId, onComplete, onSkip }: ComprehensionModuleProps) {
+export function ComprehensionModule({ sessionId, onComplete, onSkip, initialItemIndex = 0 }: ComprehensionModuleProps) {
   const { user } = useAuth();
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(initialItemIndex === 0);
   const [items, setItems] = useState<ComprehensionItemWithPrompt[]>([]);
   const [isLoadingItems, setIsLoadingItems] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(initialItemIndex);
   const [itemPhase, setItemPhase] = useState<ItemPhase>('ready');
   const [results, setResults] = useState<Record<string, MultiSelectResult>>({});
   const [audioPlayedAt, setAudioPlayedAt] = useState<Record<string, Date>>({});
@@ -329,8 +330,16 @@ export function ComprehensionModule({ sessionId, onComplete, onSkip }: Comprehen
         .eq('id', sessionId)
         .then(() => onComplete());
     } else {
-      setCurrentIndex(prev => prev + 1);
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
       setItemPhase('ready');
+      
+      // Save progress to session (for resume functionality)
+      supabase
+        .from('assessment_sessions')
+        .update({ current_item_index: nextIndex } as any)
+        .eq('id', sessionId)
+        .then(() => {});
     }
   };
 
