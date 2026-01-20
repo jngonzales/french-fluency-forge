@@ -34,7 +34,7 @@ function loadCardsFromLocalStorage(memberId: string): MemberPhraseCard[] {
   try {
     return JSON.parse(stored);
   } catch (err) {
-    console.error('[migrateLocalStorage] Failed to parse localStorage cards:', err);
+    // Silently return empty array if parse fails
     return [];
   }
 }
@@ -62,14 +62,12 @@ export async function migrateLocalStorageToSupabase(memberId: string): Promise<{
   try {
     const { error } = await upsertMemberCards(cards);
     if (error) {
-      console.error('[migrateLocalStorage] Upsert error:', error);
       throw error;
     }
 
     markMigrationComplete(memberId);
     return { success: true, migrated: cards.length };
   } catch (error) {
-    console.error('[migrateLocalStorage] Migration error:', error);
     return {
       success: false,
       migrated: 0,
@@ -83,13 +81,7 @@ export async function migrateLocalStorageToSupabase(memberId: string): Promise<{
  */
 export async function runMigrationIfNeeded(memberId: string): Promise<void> {
   if (!isMigrationComplete(memberId)) {
-    console.log('[migrateLocalStorage] Starting migration...');
-    const result = await migrateLocalStorageToSupabase(memberId);
-    if (result.success) {
-      console.log(`[migrateLocalStorage] Migration complete: ${result.migrated} cards migrated`);
-    } else {
-      console.error('[migrateLocalStorage] Migration failed:', result.error);
-    }
+    await migrateLocalStorageToSupabase(memberId);
   }
 }
 

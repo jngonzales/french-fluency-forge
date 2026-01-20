@@ -28,12 +28,9 @@ export default function PhrasesLandingPage() {
   const memberId = user?.id || 'guest';
 
   const handleSeedStarterPack = async () => {
-    console.log('[PhrasesLandingPage] handleSeedStarterPack called');
     try {
       // Get first 10 phrases from "Small talk starter" pack
-      console.log('[PhrasesLandingPage] Getting starter phrases...');
       const starterPhrases = getPhrasesByPackId('pack-001').slice(0, 10);
-      console.log('[PhrasesLandingPage] Got', starterPhrases.length, 'phrases');
       
       // Create cards for each phrase
       const now = new Date();
@@ -56,29 +53,18 @@ export default function PhrasesLandingPage() {
         created_at: now.toISOString(),
         updated_at: now.toISOString(),
       }));
-      
-      console.log('[PhrasesLandingPage] Created', newCards.length, 'cards');
 
       if (user?.id) {
-        console.log('[PhrasesLandingPage] User logged in, attempting Supabase sync...');
         try {
           await runMigrationIfNeeded(user.id);
           
           // First, insert the mock phrases to Supabase (they need to exist for FK constraint)
-          console.log('[PhrasesLandingPage] Inserting starter phrases to Supabase...');
           await insertPhrases(starterPhrases);
           
-          console.log('[PhrasesLandingPage] Upserting cards...');
-          const { error: upsertError } = await upsertMemberCards(newCards);
-          if (upsertError) {
-            console.warn('[PhrasesLandingPage] Supabase upsert failed (will use localStorage):', upsertError);
-          } else {
-            console.log('[PhrasesLandingPage] Cards upserted to Supabase');
-          }
+          await upsertMemberCards(newCards);
         } catch (err) {
-          console.warn('[PhrasesLandingPage] Supabase sync failed (will use localStorage):', err);
+          // Fallback to localStorage silently
         }
-        console.log('[PhrasesLandingPage] Saving to localStorage...');
         // Also save phrases to localStorage for offline access
         const phrasesKey = `solv_phrases_${user.id}`;
         const storedPhrases = localStorage.getItem(phrasesKey);
@@ -87,8 +73,7 @@ export default function PhrasesLandingPage() {
         
         localStorage.setItem(`solv_phrases_cards_${user.id}`, JSON.stringify(newCards));
       } else {
-        console.log('[PhrasesLandingPage] Guest mode, saving to localStorage only...');
-        // Load existing cards
+        // Guest mode: save to localStorage only
         const key = `solv_phrases_cards_${memberId}`;
         const stored = localStorage.getItem(key);
         const existingCards = stored ? JSON.parse(stored) : [];
@@ -97,8 +82,6 @@ export default function PhrasesLandingPage() {
         const allCards = [...existingCards, ...newCards];
         localStorage.setItem(key, JSON.stringify(allCards));
       }
-      
-      console.log('[PhrasesLandingPage] Done, showing toast and reloading...');
 
       toast({
         title: 'Starter pack added!',

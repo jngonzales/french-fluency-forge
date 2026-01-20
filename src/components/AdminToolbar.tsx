@@ -303,13 +303,11 @@ export function AdminToolbar() {
 
     try {
       toast.loading('Starting New Season... Wiping all data');
-      console.log('[NEW SEASON] Starting deletion for user:', user.id);
       
       // Helper to safely delete with error logging
       // Using dynamic table names requires type assertion
       const safeDelete = async (table: string, column: string = 'user_id') => {
         try {
-          console.log(`[NEW SEASON] Deleting from ${table} where ${column} = ${user.id}`);
           // Dynamic table access - intentionally using any
           const { data, error } = await (supabase as any)
             .from(table)
@@ -318,37 +316,28 @@ export function AdminToolbar() {
             .select();
           
           if (error) {
-            // Don't log 42P01 (table doesn't exist) as an error - it's expected for optional tables
-            if (error.code === '42P01') {
-              console.log(`[NEW SEASON] Table ${table} doesn't exist, skipping`);
-              return { success: true, count: 0 };
-            }
-            console.error(`[NEW SEASON] FAILED to delete from ${table}:`, error.message);
+            // Don't log expected errors - column missing, permission denied, table missing
+            // These are normal for optional tables without full RLS
             return { success: false, count: 0 };
           }
-          console.log(`[NEW SEASON] Deleted from ${table}:`, data?.length ?? 0, 'rows');
           return { success: true, count: data?.length ?? 0 };
         } catch (e) {
-          console.error(`[NEW SEASON] EXCEPTION deleting from ${table}:`, e);
+          // Silently handle exceptions - expected for some tables
           return { success: false, count: 0 };
         }
       };
       
       // Delete in order to respect FK constraints
       // Phase 1: Habit cells (references habits)
-      console.log('[NEW SEASON] Phase 1: Deleting habit cells...');
       await safeDelete('habit_cells');
       
       // Phase 2: Habits
-      console.log('[NEW SEASON] Phase 2: Deleting habits...');
       await safeDelete('habits');
       
       // Phase 3: Goals
-      console.log('[NEW SEASON] Phase 3: Deleting goals...');
       await safeDelete('goals');
       
       // Phase 4: Recordings (all types)
-      console.log('[NEW SEASON] Phase 4: Deleting recordings...');
       await Promise.all([
         safeDelete('skill_recordings'),
         safeDelete('fluency_recordings'),
@@ -357,7 +346,6 @@ export function AdminToolbar() {
       ]);
       
       // Phase 5: Confidence & Consent
-      console.log('[NEW SEASON] Phase 5: Deleting confidence & consent...');
       await Promise.all([
         safeDelete('confidence_questionnaire_responses'),
         safeDelete('consent_records'),
@@ -365,15 +353,12 @@ export function AdminToolbar() {
       ]);
       
       // Phase 6: Scoring traces (if exists)
-      console.log('[NEW SEASON] Phase 6: Deleting scoring traces...');
       await safeDelete('scoring_traces');
       
       // Phase 7: Assessment sessions (last, as other tables may reference it)
-      console.log('[NEW SEASON] Phase 7: Deleting assessment sessions...');
       await safeDelete('assessment_sessions');
       
       // Phase 8: Optional tables (may not exist - gracefully skip if missing)
-      console.log('[NEW SEASON] Phase 8: Cleaning up optional tables...');
       await Promise.all([
         safeDelete('member_phrase_cards', 'member_id'),
         safeDelete('phrase_review_logs', 'member_id'),
@@ -412,7 +397,7 @@ export function AdminToolbar() {
       // Navigate to dashboard to see fresh state
       window.location.href = '/dashboard';
     } catch (error) {
-      console.error('[NEW SEASON] Error:', error);
+      // Silently handle - the toast will show failure
       toast.dismiss();
       toast.error('Failed to start New Season');
     }

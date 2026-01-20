@@ -42,7 +42,7 @@ export function selectPhrasesWithCoverage(
     '5-10w': 2,
   }
 ): SamplingResult {
-  console.log('[Coverage Sampler] Starting selection with seed:', seed);
+  const isDev = import.meta.env.DEV;
   
   // Ensure all phrases have phonemes derived
   const phrasesWithPhonemes = phrases.map(p => ({
@@ -63,11 +63,8 @@ export function selectPhrasesWithCoverage(
     remaining.set(group, groupPhrases.filter(p => !sampled.includes(p)));
   }
 
-  console.log('[Coverage Sampler] Initial selection:', selected.length, 'phrases');
-
   // Step 2: Extract phonemes from selection
   let coverage = extractPhonemes(selected);
-  console.log('[Coverage Sampler] Initial coverage:', coverage.size, '/ 39 phonemes');
 
   // Step 3: Check for missing phonemes
   const targetPhonemes = getAllPhonemes();
@@ -83,12 +80,10 @@ export function selectPhrasesWithCoverage(
 
   while (missingPhonemes.length > 0 && iteration < maxIterations) {
     iteration++;
-    console.log(`[Coverage Sampler] Iteration ${iteration}: Missing ${missingPhonemes.length} phonemes`);
 
     const swapped = greedySwap(selected, remaining, missingPhonemes, swapHistory);
     
     if (!swapped) {
-      console.warn('[Coverage Sampler] Could not find swap to improve coverage');
       break;
     }
 
@@ -99,11 +94,12 @@ export function selectPhrasesWithCoverage(
 
   const coveragePercent = Math.round((coverage.size / targetPhonemes.size) * 100);
 
-  console.log('[Coverage Sampler] Final coverage:', coverage.size, '/', targetPhonemes.size, `(${coveragePercent}%)`);
-  console.log('[Coverage Sampler] Swaps made:', swapsMade);
-  
-  if (missingPhonemes.length > 0) {
-    console.warn('[Coverage Sampler] Missing phonemes:', missingPhonemes);
+  // Only log in development
+  if (isDev) {
+    console.log('[Coverage Sampler] Final coverage:', coverage.size, '/', targetPhonemes.size, `(${coveragePercent}%)`);
+    if (missingPhonemes.length > 0) {
+      console.warn('[Coverage Sampler] Missing phonemes:', missingPhonemes);
+    }
   }
 
   return {
@@ -195,7 +191,6 @@ function greedySwap(
       removed,
     ]);
 
-    console.log(`[Coverage Sampler] Swapped ${removed.id} → ${bestSwap.addPhrase.id} (gain: ${bestSwap.coverageGain})`);
     return true;
   }
 

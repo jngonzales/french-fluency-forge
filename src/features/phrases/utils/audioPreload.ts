@@ -2,6 +2,9 @@
  * Audio Preloading Utility
  * Preloads audio files for upcoming flashcards to reduce perceived latency
  * Now includes TTS generation caching for instant playback
+ * 
+ * NOTE: Rate limiting is handled by audioGeneration.ts queue.
+ * This module just schedules preloads with staggered timing.
  */
 
 import { generatePhraseAudio, getAudioUrl } from './audioGeneration';
@@ -24,10 +27,11 @@ export function getCachedAudioUrl(phraseId: string): string | null {
 /**
  * Preload audio for a list of phrases - TTS generation with rate limiting
  * Only generates TTS, no storage checks (to avoid 400 errors)
+ * Note: Reduced to 2 max preloads to avoid overwhelming the TTS API
  */
-export function preloadAudioForPhrases(phrases: Phrase[], maxPreload = 3): void {
-  // Limit to first N phrases and increase stagger to avoid rate limiting
-  const phrasesToPreload = phrases.slice(0, maxPreload);
+export function preloadAudioForPhrases(phrases: Phrase[], maxPreload = 2): void {
+  // Limit to first N phrases - default reduced from 3 to 2
+  const phrasesToPreload = phrases.slice(0, Math.min(maxPreload, 2));
 
   phrasesToPreload.forEach((phrase, index) => {
     const frenchText = phrase.canonical_fr || phrase.transcript_fr;
@@ -40,18 +44,19 @@ export function preloadAudioForPhrases(phrases: Phrase[], maxPreload = 3): void 
     // Mark as generating
     generatingPhrases.add(phrase.id);
 
-    // Use longer staggered delays to avoid rate limiting (500ms apart)
+    // Stagger requests - the queue in audioGeneration.ts handles actual rate limiting
+    // This just prevents all requests from hitting the queue at once
     setTimeout(async () => {
       try {
         const blob = await generatePhraseAudio(frenchText);
         const blobUrl = getAudioUrl(blob);
         audioBlobCache.set(phrase.id, { blob, url: blobUrl });
-      } catch (err) {
+      } catch {
         // Silently fail - audio will be generated on demand
       } finally {
         generatingPhrases.delete(phrase.id);
       }
-    }, index * 500); // 500ms apart to avoid rate limiting
+    }, index * 1500); // 1.5 seconds apart to work with queue timing
   });
 }
 

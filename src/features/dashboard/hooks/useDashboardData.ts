@@ -202,13 +202,10 @@ export function useDashboardData(viewingUserId?: string) {
           .select();
         
         if (insertError) {
-          console.warn('Could not seed default habits:', insertError);
           // Fall back to mock data if DB insert fails
           loadedHabits = defaultHabits;
           loadedHabitGrid = generateMockHabitGrid(defaultHabits);
         } else if (insertedHabits && insertedHabits.length > 0) {
-          console.log('[Dashboard] Seeded default habits for new user');
-          
           // Map the returned DB habits
           loadedHabits = insertedHabits.map((row: HabitRow) => habitRowToHabit(row));
           

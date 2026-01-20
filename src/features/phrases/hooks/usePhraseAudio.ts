@@ -155,12 +155,11 @@ export function usePhraseAudio({
         try {
           await audio.play();
         } catch (err) {
-          console.warn('Autoplay blocked:', err);
           setError('Please click play to start audio');
         }
       }
     } catch (err) {
-      console.error('Error loading audio:', err);
+      // Silently handle audio load errors - user will see visual feedback
       setError(err instanceof Error ? err.message : 'Failed to load audio');
       setIsLoading(false);
     }

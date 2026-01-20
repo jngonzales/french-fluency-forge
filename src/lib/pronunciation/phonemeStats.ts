@@ -63,8 +63,7 @@ export async function updatePhonemeStats(
   userId: string,
   phonemeScores: PhonemeScore[]
 ): Promise<void> {
-  console.log('[Phoneme Stats] Stats update skipped - table not yet created. Would update', phonemeScores.length, 'phonemes for user', userId);
-  // TODO: Implement when user_phoneme_stats table is created
+  // Stubbed - table not yet created
 }
 
 /**
@@ -73,7 +72,6 @@ export async function updatePhonemeStats(
  * NOTE: Stubbed - returns empty array
  */
 export async function getUserPhonemeStats(userId: string): Promise<UserPhonemestat[]> {
-  console.log('[Phoneme Stats] getUserPhonemeStats stubbed for user:', userId);
   return [];
 }
 
@@ -88,7 +86,6 @@ export async function getHardestPhonemes(
   limit: number = 5,
   minConfidence: number = 0.5
 ): Promise<UserPhonemestat[]> {
-  console.log('[Phoneme Stats] getHardestPhonemes stubbed for user:', userId);
   return [];
 }
 
@@ -101,7 +98,6 @@ export async function getUncertainPhonemes(
   userId: string,
   maxConfidence: number = 0.5
 ): Promise<UserPhonemestat[]> {
-  console.log('[Phoneme Stats] getUncertainPhonemes stubbed for user:', userId);
   return [];
 }
 
@@ -115,7 +111,6 @@ export async function getStrongestPhonemes(
   limit: number = 5,
   minConfidence: number = 0.5
 ): Promise<UserPhonemestat[]> {
-  console.log('[Phoneme Stats] getStrongestPhonemes stubbed for user:', userId);
   return [];
 }
 
@@ -129,7 +124,6 @@ export async function getPhonemeCoverage(userId: string): Promise<{
   total: number;
   percentage: number;
 }> {
-  console.log('[Phoneme Stats] getPhonemeCoverage stubbed for user:', userId);
   return { tested: 0, total: 39, percentage: 0 };
 }
 
@@ -175,7 +169,6 @@ export async function getPhonemeStatsSummary(userId: string): Promise<{
   strongest: UserPhonemestat[];
   coverage: { tested: number; total: number; percentage: number };
 }> {
-  console.log('[Phoneme Stats] getPhonemeStatsSummary stubbed for user:', userId);
   return {
     hardest: [],
     uncertain: [],

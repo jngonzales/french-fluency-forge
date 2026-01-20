@@ -217,7 +217,8 @@ export function usePhrasesSession() {
       .filter((phrase): phrase is Phrase => phrase !== null);
     
     if (upcomingPhrases.length > 0) {
-      preloadAudioForPhrases(upcomingPhrases, 5);
+      // Reduced from 5 to 2 to avoid rate limiting on ElevenLabs
+      preloadAudioForPhrases(upcomingPhrases, 2);
     }
     
     return newSession;

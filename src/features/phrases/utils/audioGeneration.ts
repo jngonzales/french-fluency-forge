@@ -2,10 +2,24 @@
  * Audio Generation Utility
  * Generates TTS audio for French phrases using french-tts Edge Function
  * Includes browser caching for performance
+ * 
+ * RATE LIMITING: ElevenLabs free tier only allows 2 concurrent requests.
+ * This module implements a queue to serialize TTS requests with delays.
  */
 
 const CACHE_PREFIX = 'phrase_audio_';
 const CACHE_VERSION = 1;
+
+// Rate limiting configuration
+const MIN_DELAY_BETWEEN_REQUESTS = 1000; // 1 second between requests
+let lastRequestTime = 0;
+const requestQueue: Array<{
+  resolve: (blob: Blob) => void;
+  reject: (error: Error) => void;
+  text: string;
+  options: AudioGenerationOptions;
+}> = [];
+let isProcessingQueue = false;
 
 interface AudioGenerationOptions {
   voiceId?: string;
@@ -22,21 +36,46 @@ interface CachedAudio {
 }
 
 /**
- * Generate audio for French text using TTS Edge Function
+ * Process the TTS queue one request at a time with rate limiting
  */
-export async function generatePhraseAudio(
+async function processQueue(): Promise<void> {
+  if (isProcessingQueue || requestQueue.length === 0) return;
+  
+  isProcessingQueue = true;
+  
+  while (requestQueue.length > 0) {
+    const request = requestQueue.shift();
+    if (!request) break;
+    
+    // Wait for minimum delay between requests
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTime;
+    if (timeSinceLastRequest < MIN_DELAY_BETWEEN_REQUESTS) {
+      await new Promise(resolve => 
+        setTimeout(resolve, MIN_DELAY_BETWEEN_REQUESTS - timeSinceLastRequest)
+      );
+    }
+    
+    try {
+      const blob = await generatePhraseAudioInternal(request.text, request.options);
+      request.resolve(blob);
+    } catch (error) {
+      request.reject(error instanceof Error ? error : new Error('TTS generation failed'));
+    }
+    
+    lastRequestTime = Date.now();
+  }
+  
+  isProcessingQueue = false;
+}
+
+/**
+ * Internal function that actually calls the TTS API
+ */
+async function generatePhraseAudioInternal(
   text: string,
   options: AudioGenerationOptions = {}
 ): Promise<Blob> {
-  const cacheKey = `${CACHE_PREFIX}${hashText(text)}`;
-  
-  // Check cache first
-  const cached = getCachedAudio(cacheKey);
-  if (cached) {
-    return cached.blob;
-  }
-
-  // Generate audio
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -65,12 +104,41 @@ export async function generatePhraseAudio(
     throw new Error(`TTS generation failed: ${response.status} - ${errorText}`);
   }
 
-  const blob = await response.blob();
+  return response.blob();
+}
+
+/**
+ * Generate audio for French text using TTS Edge Function
+ * Uses a queue to prevent concurrent requests and rate limiting issues
+ */
+export async function generatePhraseAudio(
+  text: string,
+  options: AudioGenerationOptions = {}
+): Promise<Blob> {
+  const cacheKey = `${CACHE_PREFIX}${hashText(text)}`;
   
-  // Cache the result
-  cacheAudio(cacheKey, blob);
-  
-  return blob;
+  // Check cache first
+  const cached = getCachedAudio(cacheKey);
+  if (cached) {
+    return cached.blob;
+  }
+
+  // Add to queue for rate-limited processing
+  return new Promise((resolve, reject) => {
+    requestQueue.push({
+      resolve: (blob) => {
+        // Cache the result before resolving
+        cacheAudio(cacheKey, blob);
+        resolve(blob);
+      },
+      reject,
+      text,
+      options,
+    });
+    
+    // Start processing queue if not already running
+    processQueue();
+  });
 }
 
 /**
