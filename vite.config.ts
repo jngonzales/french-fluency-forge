@@ -26,8 +26,8 @@ export default defineConfig(({ mode }) => ({
         // Manual chunks for better caching and smaller initial load
         manualChunks(id) {
           if (id.includes("node_modules")) {
-            // Group react-related
-            if (id.includes("react") || id.includes("react-dom") || id.includes("react-router")) {
+            // Group react-related (excluding react-router to avoid circular deps)
+            if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("scheduler")) {
               return "vendor-react";
             }
             // Group radix-ui
@@ -42,10 +42,8 @@ export default defineConfig(({ mode }) => ({
             if (id.includes("@supabase")) {
               return "vendor-supabase";
             }
-            // Group charts
-            if (id.includes("recharts") || id.includes("d3")) {
-              return "vendor-charts";
-            }
+            // Don't split recharts/lodash/d3 - they have circular dependencies
+            // Let Vite handle them naturally
           }
         },
       },
