@@ -97,7 +97,7 @@ const Signup = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md animate-fade-in-up">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Create Your Account</CardTitle>
           <CardDescription>
@@ -117,7 +117,7 @@ const Signup = () => {
                 required
               />
               {errors.email && (
-                <p className="text-xs text-destructive">{errors.email}</p>
+                <p className="text-xs text-destructive animate-fade-in">{errors.email}</p>
               )}
             </div>
 
@@ -132,7 +132,7 @@ const Signup = () => {
                 required
               />
               {errors.password && (
-                <p className="text-xs text-destructive">{errors.password}</p>
+                <p className="text-xs text-destructive animate-fade-in">{errors.password}</p>
               )}
             </div>
 
@@ -147,24 +147,31 @@ const Signup = () => {
                 required
               />
               {errors.confirmPassword && (
-                <p className="text-xs text-destructive">{errors.confirmPassword}</p>
+                <p className="text-xs text-destructive animate-fade-in">{errors.confirmPassword}</p>
               )}
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating Account..." : "Create Account"}
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Creating Account...
+                </span>
+              ) : (
+                "Create Account"
+              )}
             </Button>
 
             <div className="text-center space-y-2">
               <p className="text-sm text-muted-foreground">
                 Already have an account?{" "}
-                <a href="/login" className="text-primary hover:underline font-medium">
+                <a href="/login" className="text-primary hover:underline font-medium transition-colors">
                   Sign in
                 </a>
               </p>
               <p className="text-sm text-muted-foreground">
                 Purchased access?{" "}
-                <a href="/activate" className="text-primary hover:underline font-medium">
+                <a href="/activate" className="text-primary hover:underline font-medium transition-colors">
                   Activate your account
                 </a>
               </p>

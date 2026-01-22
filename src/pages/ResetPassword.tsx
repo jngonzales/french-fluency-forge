@@ -85,9 +85,12 @@ const ResetPassword = () => {
   if (isCheckingSession) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md animate-fade-in">
           <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">Verifying reset link...</p>
+            <div className="flex flex-col items-center gap-3">
+              <span className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-muted-foreground">Verifying reset link...</p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -97,7 +100,7 @@ const ResetPassword = () => {
   if (!isValidSession) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md animate-fade-in-up">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl text-destructive">Invalid or Expired Link</CardTitle>
             <CardDescription>
@@ -116,7 +119,7 @@ const ResetPassword = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md animate-fade-in-up">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Reset Your Password</CardTitle>
           <CardDescription>
@@ -136,7 +139,7 @@ const ResetPassword = () => {
                 required
               />
               {errors.password && (
-                <p className="text-xs text-destructive">{errors.password}</p>
+                <p className="text-xs text-destructive animate-fade-in">{errors.password}</p>
               )}
             </div>
 
@@ -151,12 +154,19 @@ const ResetPassword = () => {
                 required
               />
               {errors.confirmPassword && (
-                <p className="text-xs text-destructive">{errors.confirmPassword}</p>
+                <p className="text-xs text-destructive animate-fade-in">{errors.confirmPassword}</p>
               )}
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Updating..." : "Update Password"}
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Updating...
+                </span>
+              ) : (
+                "Update Password"
+              )}
             </Button>
           </form>
         </CardContent>

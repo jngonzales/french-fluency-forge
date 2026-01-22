@@ -62,10 +62,16 @@ export default function SRSLabPage() {
   if (!isAdmin) {
     return (
       <AdminPadding>
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center min-h-screen animate-fade-in">
           <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-            <p className="text-muted-foreground">This page is for admins only.</p>
+            <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+              <ArrowLeft className="w-8 h-8 text-destructive" />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
+            <p className="text-muted-foreground mb-4">This page is for admins only.</p>
+            <Button variant="outline" onClick={() => navigate('/dashboard')}>
+              Go to Dashboard
+            </Button>
           </div>
         </div>
       </AdminPadding>

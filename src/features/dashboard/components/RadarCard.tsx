@@ -87,11 +87,24 @@ export function RadarCard({ baseline, current }: RadarCardProps) {
         )}
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={350}>
-          <RadarChart data={data}>
-            <PolarGrid />
-            <PolarAngleAxis dataKey="dimension" />
-            <PolarRadiusAxis angle={90} domain={[0, 100]} />
+        <ResponsiveContainer width="100%" height={400}>
+          <RadarChart data={data} cx="50%" cy="50%" outerRadius="75%">
+            <PolarGrid strokeDasharray="3 3" stroke="#d1d5db" />
+            <PolarAngleAxis 
+              dataKey="dimension" 
+              tick={{ 
+                fill: '#374151', 
+                fontSize: 13, 
+                fontWeight: 500 
+              }}
+              tickLine={false}
+            />
+            <PolarRadiusAxis 
+              angle={90} 
+              domain={[0, 100]} 
+              tick={false}
+              axisLine={false}
+            />
             {baseline && (
               <Radar
                 name="Baseline"
@@ -99,6 +112,7 @@ export function RadarCard({ baseline, current }: RadarCardProps) {
                 stroke="#94a3b8"
                 fill="#94a3b8"
                 fillOpacity={0.2}
+                strokeWidth={2}
               />
             )}
             <Radar
@@ -107,8 +121,13 @@ export function RadarCard({ baseline, current }: RadarCardProps) {
               stroke="#8b5cf6"
               fill="#8b5cf6"
               fillOpacity={0.4}
+              strokeWidth={2}
             />
-            <Legend />
+            <Legend 
+              wrapperStyle={{ 
+                paddingTop: '20px' 
+              }}
+            />
           </RadarChart>
         </ResponsiveContainer>
       </CardContent>

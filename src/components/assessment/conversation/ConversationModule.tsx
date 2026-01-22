@@ -18,8 +18,9 @@ interface ConversationModuleProps {
   onSkip?: () => void;
 }
 
-const MAX_DURATION_SECONDS = 120;
-const MIN_DURATION_SECONDS = 20;
+const MAX_DURATION_SECONDS = 60;
+const MIN_DURATION_SECONDS = 3; // Minimum recording duration for submission
+const MIN_RECOMMENDED_DURATION = 10; // Recommended for best scoring
 
 interface StepStatus {
   id: string;
@@ -408,6 +409,12 @@ export function ConversationModule({ sessionId, onComplete, onSkip }: Conversati
       return;
     }
 
+    // Block submission if recording is too short
+    if (recordingTime < MIN_DURATION_SECONDS) {
+      toast.error(`Recording too short. Please record at least ${MIN_DURATION_SECONDS} seconds.`);
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMessage(null);
     
@@ -618,7 +625,11 @@ export function ConversationModule({ sessionId, onComplete, onSkip }: Conversati
                   <RotateCcw className="h-4 w-4" />
                   Record again
                 </Button>
-                <Button onClick={handleSubmit} disabled={isSubmitting} className="gap-2">
+                <Button 
+                  onClick={handleSubmit} 
+                  disabled={isSubmitting || recordingTime < MIN_DURATION_SECONDS} 
+                  className="gap-2"
+                >
                   {isSubmitting ? 'Analyzing...' : 'Submit recording'}
                   <Check className="h-4 w-4" />
                 </Button>
@@ -627,8 +638,14 @@ export function ConversationModule({ sessionId, onComplete, onSkip }: Conversati
             )}
 
             {!isRecording && audioBlob && recordingTime < MIN_DURATION_SECONDS && (
-              <p className="text-xs text-muted-foreground">
-                We recommend at least {MIN_DURATION_SECONDS} seconds for accurate scoring.
+              <p className="text-xs text-destructive font-medium">
+                Recording too short. Please record at least {MIN_DURATION_SECONDS} seconds.
+              </p>
+            )}
+
+            {!isRecording && audioBlob && recordingTime >= MIN_DURATION_SECONDS && recordingTime < MIN_RECOMMENDED_DURATION && (
+              <p className="text-xs text-amber-600">
+                Tip: Recording for {MIN_RECOMMENDED_DURATION}+ seconds gives more accurate results.
               </p>
             )}
 

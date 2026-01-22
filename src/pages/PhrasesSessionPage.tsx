@@ -56,7 +56,8 @@ export default function PhrasesSessionPage() {
   if (loading) {
     return (
       <AdminPadding>
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center justify-center min-h-screen gap-4 animate-fade-in">
+          <div className="h-8 w-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
           <div className="text-muted-foreground">Loading session...</div>
         </div>
       </AdminPadding>
@@ -66,7 +67,8 @@ export default function PhrasesSessionPage() {
   if (!sessionState) {
     return (
       <AdminPadding>
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center justify-center min-h-screen gap-4 animate-fade-in">
+          <div className="h-8 w-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
           <div className="text-muted-foreground">Preparing session...</div>
         </div>
       </AdminPadding>

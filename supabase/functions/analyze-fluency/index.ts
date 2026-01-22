@@ -203,6 +203,42 @@ serve(async (req) => {
 
     console.log(`[Fluency] Processing item: ${itemId}, duration: ${recordingDuration}s`);
 
+    // Reject very short recordings immediately
+    const MIN_DURATION_SECONDS = 3;
+    if (recordingDuration && recordingDuration < MIN_DURATION_SECONDS) {
+      console.log(`[Fluency] Recording too short: ${recordingDuration}s (min: ${MIN_DURATION_SECONDS}s)`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          itemId,
+          transcript: '',
+          wordCount: 0,
+          duration: recordingDuration,
+          speakingTime: 0,
+          articulationWpm: 0,
+          wpm: 0,
+          longPauseCount: 0,
+          maxPause: 0,
+          pauseRatio: 1,
+          totalPauseDuration: recordingDuration,
+          fillerRatio: 0,
+          pauses: [],
+          speedSubscore: 0,
+          pauseSubscore: 0,
+          totalScore: 0,
+          fluencyScore: 0,
+          flags: ['too_short', `duration=${recordingDuration}s`],
+          feedback: `Your recording was too short (${recordingDuration.toFixed(1)} seconds). Please speak for at least 5-10 seconds to receive accurate feedback.`,
+          versions: {
+            prompt_version: '2026-01-04',
+            scorer_version: '2026-01-04',
+            asr_version: 'whisper-1'
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Process audio in chunks
     const binaryAudio = processBase64Chunks(audio);
     console.log(`[Fluency] Audio size: ${binaryAudio.length} bytes`);
@@ -244,6 +280,44 @@ serve(async (req) => {
 
     // Calculate metrics
     const metrics = calculateMetrics(words, audioDuration);
+
+    // If very few words detected, return 0 score
+    const MIN_WORD_COUNT = 3;
+    if (metrics.wordCount < MIN_WORD_COUNT) {
+      console.log(`[Fluency] Too few words detected: ${metrics.wordCount} (min: ${MIN_WORD_COUNT})`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          itemId,
+          transcript,
+          wordCount: metrics.wordCount,
+          duration: audioDuration,
+          speakingTime: metrics.speakingTime,
+          articulationWpm: 0,
+          wpm: 0,
+          longPauseCount: metrics.longPauseCount,
+          maxPause: metrics.maxPause,
+          pauseRatio: metrics.pauseRatio,
+          totalPauseDuration: metrics.totalPauseDuration,
+          fillerRatio: metrics.fillerRatio,
+          pauses: metrics.pauses,
+          speedSubscore: 0,
+          pauseSubscore: 0,
+          totalScore: 0,
+          fluencyScore: 0,
+          flags: ['insufficient_words', `word_count=${metrics.wordCount}`],
+          feedback: metrics.wordCount === 0 
+            ? 'No speech was detected in your recording. Please speak clearly into your microphone and try again.'
+            : `Only ${metrics.wordCount} words were detected. Please provide a longer response to receive accurate fluency feedback.`,
+          versions: {
+            prompt_version: '2026-01-04',
+            scorer_version: '2026-01-04',
+            asr_version: 'whisper-1'
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     // Calculate scores
     const speedSubscore = calculateSpeedSubscore(metrics.articulationWpm);

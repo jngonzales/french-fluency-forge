@@ -1,7 +1,7 @@
 # French Fluency Forge - Application Overview
 
-**Version:** 1.0.0  
-**Last Updated:** January 2026  
+**Version:** 1.1.0  
+**Last Updated:** January 2025  
 **Status:** Production
 
 ## What Is This App?
@@ -14,15 +14,18 @@ French Fluency Forge is a comprehensive French language assessment and coaching 
 - **Conversation** - AI agent interactions
 - **Comprehension** - Listening comprehension
 
-The app also includes a **Sales Call Copilot** system for managing high-ticket sales calls with qualification scoring and playbook-driven workflows.
+The app also includes:
+- **Phrases (SRS Flashcards)** - Spaced repetition system for learning French phrases
+- **Sales Call Copilot** - System for managing high-ticket sales calls with qualification scoring
 
 ## Core Value Proposition
 
 1. **Comprehensive Assessment** - Multi-dimensional evaluation of French language skills
 2. **Real-time Feedback** - Instant scores and transcriptions during assessment
 3. **AI-Powered Analysis** - Azure Speech API for pronunciation, OpenAI for other modules
-4. **Sales Tools** - Internal CRM for managing leads and sales calls
-5. **Admin Tools** - Developer-friendly testing and navigation tools
+4. **Spaced Repetition** - SM-2 algorithm for optimal phrase learning retention
+5. **Sales Tools** - Internal CRM for managing leads and sales calls
+6. **Admin Tools** - Developer-friendly testing and navigation tools
 
 ## Key Features
 
@@ -31,10 +34,12 @@ The app also includes a **Sales Call Copilot** system for managing high-ticket s
 - ✅ Audio recording with real-time transcription
 - ✅ Personality archetype identification
 - ✅ Detailed results with radar charts and score breakdowns
+- ✅ **Phrases Module** - 70 phrases across 6 themed packs (Small Talk, Work+Logistics, Emotions, School, Workplace, Daily Life)
+- ✅ Dashboard with Skill Profile radar chart and Daily Momentum habits
 - ✅ Account management and purchase tracking
 
 ### For Admins
-- ✅ Admin Toolbar for quick navigation
+- ✅ Admin Toolbar for quick navigation (Ctrl+Shift+A to toggle visibility)
 - ✅ Live Data Viewer for real-time scores/transcripts
 - ✅ Session Debugger for data inspection
 - ✅ Sales Copilot for managing leads and calls

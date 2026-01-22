@@ -11,6 +11,7 @@ import { ArrowLeft, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePhrasesSettings } from '@/features/phrases/hooks/usePhrasesSettings';
 import { SettingsForm } from '@/features/phrases/components/SettingsForm';
+import { CardSkeleton } from '@/components/ui/skeleton';
 import type { PhraseSettings } from '@/features/phrases/types';
 
 export default function PhrasesSettingsPage() {
@@ -39,8 +40,12 @@ export default function PhrasesSettingsPage() {
   if (loading) {
     return (
       <AdminPadding>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-muted-foreground">Loading settings...</div>
+        <div className="min-h-screen bg-background animate-fade-in">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+            <CardSkeleton className="h-16 w-full" />
+            <CardSkeleton className="h-64 w-full" />
+            <CardSkeleton className="h-48 w-full" />
+          </div>
         </div>
       </AdminPadding>
     );

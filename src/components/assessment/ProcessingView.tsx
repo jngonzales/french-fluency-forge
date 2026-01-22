@@ -41,7 +41,7 @@ export function ProcessingView({ sessionId, onComplete, onStartFresh }: Processi
       .from("skill_recordings")
       .select("*", { count: "exact", head: true })
       .eq("session_id", sessionId)
-      .eq("skill_type", "pronunciation")
+      .eq("module_type", "pronunciation")
       .neq("status", "error");
 
     // Load fluency/conversation recordings
@@ -128,13 +128,14 @@ export function ProcessingView({ sessionId, onComplete, onStartFresh }: Processi
 
         {/* Steps List */}
         <div className="space-y-3">
-          {steps.map((step) => (
+          {steps.map((step, index) => (
             <div 
               key={step.id}
-              className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                step.status === "processing" ? "bg-primary/5 border border-primary/20" :
+              className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-300 ${
+                step.status === "processing" ? "bg-primary/5 border border-primary/20 shadow-sm" :
                 step.status === "complete" ? "bg-muted/30" : "opacity-50"
               }`}
+              style={{ animationDelay: `${index * 100}ms` }}
             >
               {/* Status Icon */}
               <div className="flex-shrink-0">

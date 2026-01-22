@@ -9,6 +9,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { DevNav } from "@/components/DevNav";
 import { DevSessionViewer } from "@/components/DevSessionViewer";
 import { AdminToolbar } from "@/components/AdminToolbar";
+import { SpeedInsights } from "@vercel/speed-insights/react";
+import { Analytics } from "@vercel/analytics/react";
 
 // Lazy load all pages for code-splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -62,6 +64,8 @@ const App = () => (
           <AdminToolbar />
           <DevNav />
           <DevSessionViewer />
+          <SpeedInsights />
+          <Analytics />
           <Suspense fallback={<PageLoader />}>
             <Routes>
             <Route path="/" element={<Index />} />

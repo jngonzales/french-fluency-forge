@@ -10,17 +10,20 @@ const corsHeaders = {
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
-const CONFIDENCE_PROMPT = `You are a French language evaluator. Your task is to assess how confidently the student communicates in informal spoken French.
+const CONFIDENCE_PROMPT = `You are a strict French language evaluator. Be BRUTALLY HONEST in your assessment of speaking confidence.
 
 You are NOT judging grammar or accuracy. You are evaluating confidence: how much the speaker asserts their views, expresses emotion or vulnerability, and carries the conversation with clarity and energy.
+
+IMPORTANT: Very short responses (under 30 words) CANNOT demonstrate confidence. Score them LOW (under 30).
 
 Use the criteria below. Assign a score for each section, compute a total score (out of 100).
 
 # Scoring Criteria
 
 ## 1. Length & Development (0–25 points)
-- 0 pts: Very short, hesitant, or clipped replies (under 50 words)
-- 10 pts: Some development (1–2 short paragraphs, 50–100 words)
+- 0-5 pts: Very short, hesitant, or clipped replies (under 30 words) - MAXIMUM 5 points for short responses
+- 10 pts: Some development (1–2 short paragraphs, 30–60 words)
+- 15 pts: Moderate development (60-100 words)
 - 20 pts: Fully developed (100–200 words)
 - 25 pts: Very expressive, >200 words with expansion, examples, and elaboration
 
@@ -55,23 +58,48 @@ Award 3 points each for confident expressions like:
 
 Do NOT subtract points for grammar mistakes, hesitation words (euh…), or accent.`;
 
-const SYNTAX_PROMPT = `You are evaluating the SYNTAX of a French learner.
+const SYNTAX_PROMPT = `You are a strict and honest French syntax evaluator. Be BRUTALLY HONEST in your assessment.
+
+IMPORTANT: Short responses (under 30 words) cannot demonstrate syntax mastery. Score them LOW.
 
 Score 0–100 based on:
-- Verb tense consistency
-- Agreement (gender/number)
-- Sentence structure
-- Use of connectors
+- Verb tense consistency (conjugation errors are serious)
+- Agreement errors (gender/number) - each error should reduce the score
+- Sentence structure complexity - simple "subject-verb" sentences deserve lower scores
+- Use of connectors (mais, donc, parce que, bien que, etc.)
+- Variety of tenses used
+
+Scoring Guidelines:
+- 0-20: Empty, incoherent, or fewer than 10 words
+- 20-40: Many errors, basic structures only, under 30 words
+- 40-60: Some errors, limited variety, 30-60 words
+- 60-80: Few errors, good variety, 60+ words
+- 80-100: Near-perfect syntax with complex structures, 80+ words
+
+Be strict. A mediocre response should get a mediocre score (40-60), not a passing grade.
 
 Use the submit_evaluation function to return your evaluation.`;
 
-const CONVERSATION_PROMPT = `You are evaluating CONVERSATION skills in spoken French.
+const CONVERSATION_PROMPT = `You are a strict and honest French conversation skills evaluator. Be BRUTALLY HONEST in your assessment.
+
+IMPORTANT: Short responses (under 30 words) cannot demonstrate conversation skills. Score them LOW.
 
 Score 0–100 based on:
-- Relevance to the prompt
-- Idea development
-- Clarity and coherence
-- Natural conversational markers
+- Relevance to the prompt (Did they actually answer the question? Off-topic = low score)
+- Idea development (Did they expand on their ideas with examples, reasons, or elaboration?)
+- Clarity and coherence (Is the response organized and easy to follow?)
+- Natural conversational markers (Did they use phrases like "je pense que", "par exemple", "d'un côté...de l'autre"?)
+- Response completeness (Did they address all parts of the prompt?)
+
+Scoring Guidelines:
+- 0-20: Empty, off-topic, or fewer than 10 words
+- 20-40: Barely addresses prompt, no development, under 30 words
+- 40-60: Addresses prompt but minimal development, 30-60 words
+- 60-80: Good development with some examples, 60-100 words
+- 80-100: Excellent development, multiple ideas, natural flow, 100+ words
+
+Be strict. A mediocre response should get a mediocre score (40-60), not a passing grade.
+Empty or near-empty responses should receive scores of 0-10.
 
 Use the submit_evaluation function to return your evaluation.`;
 
@@ -398,6 +426,57 @@ serve(async (req) => {
       transcript = await transcribeAudio(audioBase64, audioMimeType);
     }
     const wordCount = transcript.split(/\s+/).filter(w => w.length > 0).length;
+
+    // Reject empty or near-empty transcripts with 0 score
+    const MIN_WORD_COUNT = 3;
+    const SHORT_RESPONSE_THRESHOLD = 10;
+    
+    if (wordCount < MIN_WORD_COUNT) {
+      console.log(`[${moduleType}] Recording too short: ${wordCount} words (min: ${MIN_WORD_COUNT})`);
+      
+      const emptyResponseResult = {
+        transcript,
+        wordCount,
+        score: 0,
+        feedback: wordCount === 0 
+          ? 'No speech was detected in your recording. Please speak clearly and try again.'
+          : `Your response was too short (${wordCount} words). Please provide a longer response to receive meaningful feedback.`,
+        breakdown: {},
+        evidence: [],
+        flags: ['empty_or_too_short', `word_count=${wordCount}`],
+        versions: {
+          prompt_version: '2026-01-04',
+          scorer_version: '2026-01-04',
+          asr_version: 'whisper-1'
+        }
+      };
+      
+      // Update recording with 0 score
+      await supabase
+        .from('skill_recordings')
+        .update({
+          transcript,
+          word_count: wordCount,
+          ai_score: 0,
+          ai_feedback: emptyResponseResult.feedback,
+          ai_breakdown: {
+            evidence: [],
+            flags: emptyResponseResult.flags,
+            versions: emptyResponseResult.versions
+          },
+          prompt_version: emptyResponseResult.versions.prompt_version,
+          scorer_version: emptyResponseResult.versions.scorer_version,
+          asr_version: emptyResponseResult.versions.asr_version,
+          status: 'completed',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', recordingId);
+      
+      return new Response(
+        JSON.stringify(emptyResponseResult),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Analyze with AI (with determinism guard)
     console.log(`[${moduleType}] Starting AI analysis for recording ${recordingId}`);

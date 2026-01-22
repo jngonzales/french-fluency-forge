@@ -9,11 +9,11 @@ import { AdminPadding } from '@/components/AdminPadding';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Play, Library, Settings, User, Package, Upload, Loader2 } from 'lucide-react';
+import { BookOpen, Play, Library, Settings, User, Package, Upload, Loader2, GraduationCap, Briefcase, Sun } from 'lucide-react';
 import { EmptyState } from '@/features/phrases/components/EmptyState';
 import { usePhrasesLibrary } from '@/features/phrases/hooks/usePhrasesLibrary';
 import { useToast } from '@/hooks/use-toast';
-import { getPhrasesByPackId } from '@/features/phrases/data/mockPhrasesData';
+import { getPhrasesByPackId, MOCK_PHRASE_PACKS } from '@/features/phrases/data/mockPhrasesData';
 import type { MemberPhraseCard, Phrase } from '@/features/phrases/types';
 import { upsertMemberCards, insertPhrases } from '@/features/phrases/services/phrasesApi';
 import { runMigrationIfNeeded } from '@/features/phrases/utils/migrateLocalStorage';
@@ -27,14 +27,40 @@ export default function PhrasesLandingPage() {
   
   const memberId = user?.id || 'guest';
 
-  const handleSeedStarterPack = async () => {
+  const handleSeedStarterPack = async (packId: string = 'pack-001', packName: string = 'Starter pack') => {
     try {
-      // Get first 10 phrases from "Small talk starter" pack
-      const starterPhrases = getPhrasesByPackId('pack-001').slice(0, 10);
+      // Get phrases from specified pack
+      const starterPhrases = getPhrasesByPackId(packId);
       
-      // Create cards for each phrase
+      if (starterPhrases.length === 0) {
+        toast({
+          title: 'Pack not found',
+          description: `The pack "${packName}" doesn't exist or has no phrases.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Get existing cards to check for duplicates
+      const cardsKey = user?.id ? `solv_phrases_cards_${user.id}` : `solv_phrases_cards_${memberId}`;
+      const storedCards = localStorage.getItem(cardsKey);
+      const existingCards: MemberPhraseCard[] = storedCards ? JSON.parse(storedCards) : [];
+      const existingPhraseIds = new Set(existingCards.map(c => c.phrase_id));
+      
+      // Filter out phrases that already exist
+      const newPhrases = starterPhrases.filter(p => !existingPhraseIds.has(p.id));
+      
+      if (newPhrases.length === 0) {
+        toast({
+          title: 'Already added',
+          description: `You already have all phrases from the "${packName}" pack.`,
+        });
+        return;
+      }
+      
+      // Create cards for each NEW phrase only
       const now = new Date();
-      const newCards: MemberPhraseCard[] = starterPhrases.map((phrase) => ({
+      const newCards: MemberPhraseCard[] = newPhrases.map((phrase) => ({
         id: crypto.randomUUID(), // Use proper UUID for database
         member_id: memberId,
         phrase_id: phrase.id,
@@ -59,7 +85,7 @@ export default function PhrasesLandingPage() {
           await runMigrationIfNeeded(user.id);
           
           // First, insert the mock phrases to Supabase (they need to exist for FK constraint)
-          await insertPhrases(starterPhrases);
+          await insertPhrases(newPhrases);
           
           await upsertMemberCards(newCards);
         } catch (err) {
@@ -68,23 +94,18 @@ export default function PhrasesLandingPage() {
         // Also save phrases to localStorage for offline access
         const phrasesKey = `solv_phrases_${user.id}`;
         const storedPhrases = localStorage.getItem(phrasesKey);
-        const existingPhrases = storedPhrases ? JSON.parse(storedPhrases) : [];
-        localStorage.setItem(phrasesKey, JSON.stringify([...existingPhrases, ...starterPhrases]));
+        const existingPhrasesData = storedPhrases ? JSON.parse(storedPhrases) : [];
+        localStorage.setItem(phrasesKey, JSON.stringify([...existingPhrasesData, ...newPhrases]));
         
-        localStorage.setItem(`solv_phrases_cards_${user.id}`, JSON.stringify(newCards));
+        // Append new cards to existing
+        localStorage.setItem(`solv_phrases_cards_${user.id}`, JSON.stringify([...existingCards, ...newCards]));
       } else {
-        // Guest mode: save to localStorage only
-        const key = `solv_phrases_cards_${memberId}`;
-        const stored = localStorage.getItem(key);
-        const existingCards = stored ? JSON.parse(stored) : [];
-        
-        // Merge and save
-        const allCards = [...existingCards, ...newCards];
-        localStorage.setItem(key, JSON.stringify(allCards));
+        // Guest mode: save to localStorage only - append new cards to existing
+        localStorage.setItem(cardsKey, JSON.stringify([...existingCards, ...newCards]));
       }
 
       toast({
-        title: 'Starter pack added!',
+        title: `${packName} added!`,
         description: `${newCards.length} phrases are ready to practice.`,
       });
 
@@ -153,8 +174,11 @@ export default function PhrasesLandingPage() {
   if (loading) {
     return (
       <AdminPadding>
-        <div className="flex flex-col items-center justify-center min-h-screen gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center justify-center min-h-screen gap-3 animate-fade-in">
+          <div className="relative">
+            <div className="h-10 w-10 rounded-full border-4 border-muted" />
+            <div className="absolute inset-0 h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+          </div>
           <p className="text-muted-foreground">Loading your phrases...</p>
         </div>
       </AdminPadding>
@@ -165,7 +189,7 @@ export default function PhrasesLandingPage() {
 
   return (
     <AdminPadding>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background animate-fade-in">
         {/* Header */}
         <header className="border-b border-border bg-card sticky top-0 z-10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -189,31 +213,95 @@ export default function PhrasesLandingPage() {
         {/* Main content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {!hasPhrasesAssigned ? (
-            // Empty state
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex flex-col items-center justify-center text-center py-10 space-y-6">
+            // Empty state - Pack selection
+            <div className="space-y-6">
+              <div className="text-center space-y-2">
+                <div className="flex justify-center">
                   <div className="rounded-full bg-primary/10 p-4">
                     <BookOpen className="h-10 w-10 text-primary" />
                   </div>
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-lg">No phrases assigned yet</h3>
-                    <p className="text-muted-foreground max-w-md">
-                      Add a starter pack to begin your spaced repetition practice, or import your own phrases via TSV.
-                    </p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Button type="button" onClick={handleSeedStarterPack}>
-                      Add starter pack
-                    </Button>
-                    <TSVImportDialog
-                      memberId={memberId}
-                      onImport={handleTSVImport}
-                    />
-                  </div>
                 </div>
-              </CardContent>
-            </Card>
+                <h3 className="font-semibold text-lg">Choose a phrase pack to get started</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Select a themed pack to begin your spaced repetition practice, or import your own phrases via TSV.
+                </p>
+              </div>
+
+              {/* Pack selection grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Small Talk */}
+                <Card className="cursor-pointer hover:shadow-md hover:border-primary/50 transition-all" onClick={() => handleSeedStarterPack('pack-001', 'Small Talk Starter')}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/30">
+                        <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <CardTitle className="text-base">Small Talk</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-2">Everyday conversational phrases</p>
+                    <Badge variant="secondary">10 phrases</Badge>
+                  </CardContent>
+                </Card>
+
+                {/* School */}
+                <Card className="cursor-pointer hover:shadow-md hover:border-primary/50 transition-all" onClick={() => handleSeedStarterPack('pack-004', 'School Essentials')}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-md bg-green-100 dark:bg-green-900/30">
+                        <GraduationCap className="w-5 h-5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <CardTitle className="text-base">School</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-2">Academic & classroom settings</p>
+                    <Badge variant="secondary">10 phrases</Badge>
+                  </CardContent>
+                </Card>
+
+                {/* Work */}
+                <Card className="cursor-pointer hover:shadow-md hover:border-primary/50 transition-all" onClick={() => handleSeedStarterPack('pack-005', 'Workplace Professional')}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-md bg-purple-100 dark:bg-purple-900/30">
+                        <Briefcase className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <CardTitle className="text-base">Work</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-2">Office & professional contexts</p>
+                    <Badge variant="secondary">10 phrases</Badge>
+                  </CardContent>
+                </Card>
+
+                {/* Daily */}
+                <Card className="cursor-pointer hover:shadow-md hover:border-primary/50 transition-all" onClick={() => handleSeedStarterPack('pack-006', 'Daily Life Basics')}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-md bg-orange-100 dark:bg-orange-900/30">
+                        <Sun className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <CardTitle className="text-base">Daily Life</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-2">Routine activities & interactions</p>
+                    <Badge variant="secondary">10 phrases</Badge>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* TSV Import option */}
+              <div className="flex justify-center pt-4 border-t">
+                <TSVImportDialog
+                  memberId={memberId}
+                  onImport={handleTSVImport}
+                />
+              </div>
+            </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left column - Stats */}
@@ -361,19 +449,32 @@ export default function PhrasesLandingPage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Want to expand your practice? Add a starter pack or import your own.
+                      Want to expand your practice? Add a themed pack or import your own.
                     </p>
-                    <div className="flex gap-2 flex-wrap">
-                      <Button variant="outline" onClick={handleSeedStarterPack}>
-                        Add 10 more phrases
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                      <Button variant="outline" size="sm" className="justify-start gap-2" onClick={() => handleSeedStarterPack('pack-001', 'Small Talk')}>
+                        <BookOpen className="w-4 h-4 text-blue-600" />
+                        Small Talk
                       </Button>
-                      <TSVImportDialog onImport={handleTSVImport} memberId={memberId}>
-                        <Button variant="outline">
-                          <Upload className="w-4 h-4 mr-2" />
-                          Import TSV
-                        </Button>
-                      </TSVImportDialog>
+                      <Button variant="outline" size="sm" className="justify-start gap-2" onClick={() => handleSeedStarterPack('pack-004', 'School')}>
+                        <GraduationCap className="w-4 h-4 text-green-600" />
+                        School
+                      </Button>
+                      <Button variant="outline" size="sm" className="justify-start gap-2" onClick={() => handleSeedStarterPack('pack-005', 'Work')}>
+                        <Briefcase className="w-4 h-4 text-purple-600" />
+                        Work
+                      </Button>
+                      <Button variant="outline" size="sm" className="justify-start gap-2" onClick={() => handleSeedStarterPack('pack-006', 'Daily Life')}>
+                        <Sun className="w-4 h-4 text-orange-600" />
+                        Daily Life
+                      </Button>
                     </div>
+                    <TSVImportDialog onImport={handleTSVImport} memberId={memberId}>
+                      <Button variant="outline" size="sm">
+                        <Upload className="w-4 h-4 mr-2" />
+                        Import TSV
+                      </Button>
+                    </TSVImportDialog>
                   </CardContent>
                 </Card>
 

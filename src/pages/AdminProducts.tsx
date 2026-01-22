@@ -274,10 +274,16 @@ const AdminProducts = () => {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading...</div>
+              <div className="text-center py-8 animate-fade-in">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-8 w-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+                  <span className="text-muted-foreground">Loading products...</span>
+                </div>
+              </div>
             ) : products.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No product mappings yet. Add one to get started.
+              <div className="text-center py-8 text-muted-foreground animate-fade-in">
+                <Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                <p>No product mappings yet. Add one to get started.</p>
               </div>
             ) : (
               <Table>

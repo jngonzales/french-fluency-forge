@@ -74,7 +74,7 @@ const Activate = () => {
   if (magicLinkSent) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md animate-scale-in">
           <CardHeader className="text-center">
             <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               <Mail className="w-8 h-8 text-primary" />
@@ -106,7 +106,7 @@ const Activate = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md animate-fade-in-up">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
             <Lock className="w-8 h-8 text-primary" />
@@ -132,7 +132,7 @@ const Activate = () => {
             </div>
 
             {showPaywall && (
-              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 space-y-3">
+              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 space-y-3 animate-fade-in">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
                   <div>
@@ -155,7 +155,14 @@ const Activate = () => {
             )}
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Checking..." : "Continue"}
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Checking...
+                </span>
+              ) : (
+                "Continue"
+              )}
             </Button>
           </form>
 

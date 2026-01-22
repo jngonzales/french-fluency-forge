@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminMode } from '@/hooks/useAdminMode';
@@ -59,6 +60,28 @@ export function AdminToolbar() {
   const { isAdmin, isDev } = useAdminMode();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Hidden state - persisted in sessionStorage
+  const [isHidden, setIsHidden] = useState(() => {
+    return sessionStorage.getItem('admin_toolbar_hidden') === 'true';
+  });
+
+  // Keyboard shortcut: Ctrl+Shift+A to toggle visibility
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+      e.preventDefault();
+      setIsHidden(prev => {
+        const newValue = !prev;
+        sessionStorage.setItem('admin_toolbar_hidden', String(newValue));
+        return newValue;
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   // Determine visibility (calculated after all hooks)
   const shouldShow = isAdmin || isDev;
@@ -403,8 +426,8 @@ export function AdminToolbar() {
     }
   };
 
-  // Hide if not admin/dev
-  if (!shouldShow) return null;
+  // Hide if not admin/dev or if manually hidden
+  if (!shouldShow || isHidden) return null;
 
   return (
     <div className="fixed top-0 left-0 right-0 z-[9997] bg-amber-600 text-white shadow-lg">

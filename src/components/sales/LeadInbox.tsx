@@ -67,9 +67,13 @@ export function LeadInbox({ onSelectLead, onCreateLead }: LeadInboxProps) {
       </div>
 
       {loading ? (
-        <div className="text-center py-8 text-muted-foreground">Loading...</div>
+        <div className="space-y-2 animate-fade-in">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 rounded-lg bg-muted animate-pulse" />
+          ))}
+        </div>
       ) : filteredLeads.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
+        <div className="text-center py-8 text-muted-foreground animate-fade-in">
           {searchQuery ? 'No leads found' : 'No leads yet. Create your first lead!'}
         </div>
       ) : (
@@ -77,7 +81,7 @@ export function LeadInbox({ onSelectLead, onCreateLead }: LeadInboxProps) {
           {filteredLeads.map((lead) => (
             <Card
               key={lead.id}
-              className="cursor-pointer hover:bg-accent transition-colors"
+              className="cursor-pointer hover:bg-accent transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
               onClick={() => onSelectLead(lead)}
             >
               <CardContent className="p-4">

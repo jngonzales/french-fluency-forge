@@ -47,7 +47,7 @@ export function FlashcardStatsCard() {
       <CardContent className="pt-4">
         <div className="grid grid-cols-2 gap-4">
           {/* Scheduled (< 7 days) */}
-          <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 text-center">
+          <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 text-center transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
             <div className="flex items-center justify-center gap-2 mb-2">
               <Calendar className="w-4 h-4 text-amber-600 dark:text-amber-400" />
               <p className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
@@ -63,7 +63,7 @@ export function FlashcardStatsCard() {
           </div>
 
           {/* Learned (> 7 days) */}
-          <div className="bg-green-50 dark:bg-green-950/30 p-4 rounded-xl border border-green-200 dark:border-green-800/50 text-center">
+          <div className="bg-green-50 dark:bg-green-950/30 p-4 rounded-xl border border-green-200 dark:border-green-800/50 text-center transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
             <div className="flex items-center justify-center gap-2 mb-2">
               <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
               <p className="text-xs font-bold uppercase tracking-wider text-green-700 dark:text-green-300">

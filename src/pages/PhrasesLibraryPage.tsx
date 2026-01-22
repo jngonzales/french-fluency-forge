@@ -8,6 +8,7 @@ import { AdminPadding } from '@/components/AdminPadding';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { StatsSkeleton, TableSkeleton } from '@/components/ui/skeleton';
 import { ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePhrasesLibrary } from '@/features/phrases/hooks/usePhrasesLibrary';
@@ -21,8 +22,22 @@ export default function PhrasesLibraryPage() {
   if (loading) {
     return (
       <AdminPadding>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-muted-foreground">Loading library...</div>
+        <div className="min-h-screen bg-background animate-fade-in">
+          <header className="border-b border-border bg-card sticky top-0 z-10">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+              <div className="flex items-center gap-3">
+                <Button variant="ghost" size="sm" disabled>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+                <h1 className="text-2xl font-serif font-bold">Phrase library</h1>
+              </div>
+            </div>
+          </header>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+            <StatsSkeleton count={6} />
+            <TableSkeleton rows={8} />
+          </div>
         </div>
       </AdminPadding>
     );

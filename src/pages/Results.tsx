@@ -391,10 +391,20 @@ const Results = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background p-8">
+      <div className="min-h-screen bg-background p-8 animate-fade-in">
         <div className="container mx-auto max-w-4xl space-y-8">
-          <Skeleton className="h-12 w-64" />
-          <Skeleton className="h-[400px] w-full" />
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Skeleton className="h-[300px] w-full rounded-lg" />
+            <Skeleton className="h-[300px] w-full rounded-lg" />
+          </div>
+          <Skeleton className="h-[200px] w-full rounded-lg" />
         </div>
       </div>
     );
@@ -468,17 +478,18 @@ const Results = () => {
               <CardContent>
                 <div className="h-[400px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={skillData} cx="50%" cy="50%" outerRadius="80%">
-                      <PolarGrid stroke="hsl(var(--border))" />
+                    <RadarChart data={skillData} cx="50%" cy="50%" outerRadius="65%">
+                      <PolarGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
                       <PolarAngleAxis 
                         dataKey="skill" 
-                        tick={{ fill: "hsl(var(--foreground))", fontSize: 12 }}
+                        tick={{ fill: "hsl(var(--foreground))", fontSize: 12, fontWeight: 500 }}
+                        tickLine={false}
                       />
                       <PolarRadiusAxis 
                         angle={30} 
                         domain={[0, 100]} 
-                        tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
-                        tickCount={6}
+                        tick={false}
+                        axisLine={false}
                       />
                       <Radar
                         name="Score"

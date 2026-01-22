@@ -21,15 +21,31 @@ import {
   AlertCircle,
   Plus,
   Loader2,
-  ArrowLeft
+  ArrowLeft,
+  Trash2
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 interface Session {
   id: string;
   status: string;
   created_at: string;
   updated_at: string;
+  current_module: string | null;
 }
+
+// Module order for progress tracking
+const MODULE_ORDER = ['pronunciation', 'comprehension', 'confidence', 'conversation'] as const;
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   intake: { label: 'Starting', color: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300', icon: Clock },
@@ -47,15 +63,19 @@ export default function FluencyAnalyzerLandingPage() {
   const { user } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function fetchSessions() {
       if (!user?.id) return;
 
       try {
-        const { data, error } = await supabase
+        // Cast to any because current_module may not be in generated types yet
+        const { data, error } = await (supabase as any)
           .from('assessment_sessions')
-          .select('id, status, created_at, updated_at')
+          .select('id, status, created_at, updated_at, current_module')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(20);
@@ -65,7 +85,7 @@ export default function FluencyAnalyzerLandingPage() {
           return;
         }
 
-        setSessions(data || []);
+        setSessions((data as Session[]) || []);
       } catch (err) {
         console.error('[FluencyAnalyzerLanding] Unexpected error:', err);
       } finally {
@@ -96,6 +116,37 @@ export default function FluencyAnalyzerLandingPage() {
     } catch (err) {
       console.error('[FluencyAnalyzerLanding] Error creating session:', err);
     }
+  }
+
+  async function deleteSession() {
+    if (!sessionToDelete || !user?.id) return;
+
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('assessment_sessions')
+        .delete()
+        .eq('id', sessionToDelete.id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Remove from local state
+      setSessions(prev => prev.filter(s => s.id !== sessionToDelete.id));
+      toast.success('Session deleted successfully');
+    } catch (err) {
+      console.error('[FluencyAnalyzerLanding] Error deleting session:', err);
+      toast.error('Failed to delete session');
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setSessionToDelete(null);
+    }
+  }
+
+  function openDeleteDialog(session: Session) {
+    setSessionToDelete(session);
+    setDeleteDialogOpen(true);
   }
 
   function getSessionAction(session: Session) {
@@ -172,6 +223,44 @@ export default function FluencyAnalyzerLandingPage() {
     return `${dateStr} at ${timeStr}`;
   }
 
+  /**
+   * Get module progress for a session
+   * Returns: { completed: number, current: string | null, total: number }
+   */
+  function getModuleProgress(session: Session) {
+    const isCompleted = session.status === 'completed';
+    
+    if (isCompleted) {
+      return { completed: MODULE_ORDER.length, current: null, total: MODULE_ORDER.length };
+    }
+
+    if (!session.current_module) {
+      // No module started yet, assume at start
+      return { completed: 0, current: 'pronunciation', total: MODULE_ORDER.length };
+    }
+
+    const currentIndex = MODULE_ORDER.indexOf(session.current_module as typeof MODULE_ORDER[number]);
+    if (currentIndex === -1) {
+      return { completed: 0, current: session.current_module, total: MODULE_ORDER.length };
+    }
+
+    return { 
+      completed: currentIndex, 
+      current: session.current_module, 
+      total: MODULE_ORDER.length 
+    };
+  }
+
+  /**
+   * Get short module labels for display
+   */
+  const MODULE_LABELS: Record<string, string> = {
+    pronunciation: 'Pron',
+    comprehension: 'Comp',
+    confidence: 'Conf',
+    conversation: 'Conv',
+  };
+
   // Find in-progress session (newest one that's not completed)
   const inProgressSession = sessions.find(s => 
     ['intake', 'consent', 'quiz', 'mic_check', 'assessment'].includes(s.status)
@@ -215,35 +304,69 @@ export default function FluencyAnalyzerLandingPage() {
           </div>
 
           {/* In-Progress Session */}
-          {inProgressSession && (
-            <Card className="mb-6 border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Play className="w-5 h-5 text-amber-600" />
-                  Session In Progress
-                </CardTitle>
-                <CardDescription>
-                  You have an unfinished assessment. Continue where you left off.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Badge className={STATUS_CONFIG[inProgressSession.status]?.color}>
-                      {STATUS_CONFIG[inProgressSession.status]?.label || inProgressSession.status}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      Started {formatDateTime(inProgressSession.created_at)}
-                    </span>
+          {inProgressSession && (() => {
+            const progress = getModuleProgress(inProgressSession);
+            return (
+              <Card className="mb-6 border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Play className="w-5 h-5 text-amber-600" />
+                    Session In Progress
+                  </CardTitle>
+                  <CardDescription>
+                    You have an unfinished assessment. Continue where you left off.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Module Progress */}
+                  <div className="flex items-center gap-2">
+                    {MODULE_ORDER.map((module, index) => {
+                      const isModuleCompleted = index < progress.completed;
+                      const isCurrentModule = module === progress.current;
+                      const moduleLabel = module.charAt(0).toUpperCase() + module.slice(1);
+                      
+                      return (
+                        <div
+                          key={module}
+                          className={`
+                            flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
+                            ${isModuleCompleted 
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' 
+                              : isCurrentModule
+                                ? 'bg-amber-200 text-amber-800 dark:bg-amber-800 dark:text-amber-200 ring-2 ring-amber-400'
+                                : 'bg-muted/50 text-muted-foreground'
+                            }
+                          `}
+                        >
+                          {isModuleCompleted ? (
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          ) : isCurrentModule ? (
+                            <Play className="w-3 h-3" />
+                          ) : null}
+                          {moduleLabel}
+                        </div>
+                      );
+                    })}
                   </div>
-                  <Button onClick={() => navigate(`/assessment?session=${inProgressSession.id}`)} className="gap-1.5">
-                    <RotateCcw className="w-4 h-4" />
-                    Resume Session
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Badge className={STATUS_CONFIG[inProgressSession.status]?.color}>
+                        {STATUS_CONFIG[inProgressSession.status]?.label || inProgressSession.status}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        Started {formatDateTime(inProgressSession.created_at)}
+                      </span>
+                    </div>
+                    <Button onClick={() => navigate(`/assessment?session=${inProgressSession.id}`)} className="gap-1.5">
+                      <RotateCcw className="w-4 h-4" />
+                      Resume Session
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Start New Session - Always visible */}
           <Card className="mb-6 border-primary/30 bg-primary/5">
@@ -290,16 +413,17 @@ export default function FluencyAnalyzerLandingPage() {
                     const config = STATUS_CONFIG[session.status] || STATUS_CONFIG.error;
                     const Icon = config.icon;
                     const isCompleted = session.status === 'completed';
+                    const progress = getModuleProgress(session);
                     
                     return (
                       <div 
                         key={session.id}
                         className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                       >
-                        <div className="flex items-center gap-3">
-                          <Icon className={`w-4 h-4 ${session.status === 'processing' ? 'animate-spin' : ''}`} />
-                          <div>
-                            <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <Icon className={`w-4 h-4 flex-shrink-0 ${session.status === 'processing' ? 'animate-spin' : ''}`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium text-sm">
                                 {formatDate(session.created_at)}
                               </span>
@@ -313,9 +437,50 @@ export default function FluencyAnalyzerLandingPage() {
                                 : `Started ${formatDateTime(session.created_at)}`
                               }
                             </p>
+                            {/* Module Progress Indicator */}
+                            <div className="flex items-center gap-1 mt-1.5">
+                              {MODULE_ORDER.map((module, index) => {
+                                const isModuleCompleted = index < progress.completed;
+                                const isCurrentModule = module === progress.current;
+                                
+                                return (
+                                  <div
+                                    key={module}
+                                    className={`
+                                      flex items-center justify-center
+                                      h-5 px-1.5 rounded text-[10px] font-medium
+                                      transition-colors
+                                      ${isModuleCompleted 
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' 
+                                        : isCurrentModule
+                                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-700'
+                                          : 'bg-muted text-muted-foreground'
+                                      }
+                                    `}
+                                    title={`${module.charAt(0).toUpperCase() + module.slice(1)}: ${isModuleCompleted ? 'Completed' : isCurrentModule ? 'In Progress' : 'Pending'}`}
+                                  >
+                                    {isModuleCompleted ? (
+                                      <CheckCircle2 className="w-3 h-3" />
+                                    ) : (
+                                      MODULE_LABELS[module]
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
                         </div>
-                        {getSessionAction(session)}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {getSessionAction(session)}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => openDeleteDialog(session)}
+                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     );
                   })}
@@ -325,6 +490,37 @@ export default function FluencyAnalyzerLandingPage() {
           </Card>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Session?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this assessment session
+              {sessionToDelete?.status === 'completed' && ' and its results'}.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteSession}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminPadding>
   );
 }

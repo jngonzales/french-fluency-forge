@@ -50,7 +50,7 @@ const ForgotPassword = () => {
   if (isSubmitted) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md animate-scale-in">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Check Your Email</CardTitle>
             <CardDescription>
@@ -72,7 +72,7 @@ const ForgotPassword = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md animate-fade-in-up">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Forgot Password</CardTitle>
           <CardDescription>
@@ -92,12 +92,19 @@ const ForgotPassword = () => {
                 required
               />
               {error && (
-                <p className="text-xs text-destructive">{error}</p>
+                <p className="text-xs text-destructive animate-fade-in">{error}</p>
               )}
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Sending..." : "Send Reset Link"}
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Sending...
+                </span>
+              ) : (
+                "Send Reset Link"
+              )}
             </Button>
 
             <div className="text-center">

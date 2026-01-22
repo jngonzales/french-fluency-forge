@@ -19,7 +19,7 @@ import { FlashcardStatsCard } from '@/features/dashboard/components/FlashcardSta
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton, CardSkeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
   Sheet,
@@ -82,7 +82,7 @@ export default function DashboardPage() {
   if (loading.assessments && !data) {
     return (
       <AdminPadding>
-        <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+        <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8 animate-fade-in">
           {/* Header skeleton */}
           <div className="max-w-7xl mx-auto mb-8">
             <div className="flex items-center gap-4">
@@ -98,16 +98,7 @@ export default function DashboardPage() {
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Card skeletons */}
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Card key={i} className="h-64">
-                <CardHeader className="pb-2">
-                  <Skeleton className="h-6 w-40" />
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-24 w-full rounded-lg" />
-                </CardContent>
-              </Card>
+              <CardSkeleton key={i} />
             ))}
           </div>
         </div>
@@ -133,7 +124,7 @@ export default function DashboardPage() {
 
   return (
     <AdminPadding>
-      <div className="min-h-screen bg-background overflow-x-hidden">
+      <div className="min-h-screen bg-background overflow-x-hidden animate-fade-in">
         {/* Top Header */}
         <header className="border-b border-border bg-card sticky top-0 z-10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -230,6 +221,12 @@ export default function DashboardPage() {
             assessments={data.assessments.history}
           />
 
+          {/* Skill Profile */}
+          <RadarCard
+            baseline={data.assessments.baseline}
+            current={data.assessments.current}
+          />
+
           {/* Daily Momentum */}
           <HabitGridCard
             habits={habits}
@@ -240,12 +237,6 @@ export default function DashboardPage() {
             onUpdateHabit={actions.updateHabit}
             onDeleteHabit={actions.deleteHabit}
             onBadgeUnlock={actions.unlockBadge}
-          />
-
-          {/* Skill Profile */}
-          <RadarCard
-            baseline={data.assessments.baseline}
-            current={data.assessments.current}
           />
 
           {/* Outcome Goals */}

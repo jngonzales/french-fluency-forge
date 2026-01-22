@@ -65,6 +65,8 @@ const Assessment = () => {
       if (devPhase && ["pronunciation", "comprehension", "confidence", "conversation"].includes(devPhase)) {
         sessionStorage.removeItem("dev_assessment_phase");
         setAssessmentPhase(devPhase as AssessmentPhase);
+        // Also save to database so tab switches don't reset
+        // This will be done after session is loaded below
       }
 
       // If a specific session ID is provided in URL, load that session
@@ -86,6 +88,13 @@ const Assessment = () => {
             setAssessmentPhase(sessionData.current_module as AssessmentPhase);
           } else if (!devPhase) {
             setAssessmentPhase("pronunciation");
+          }
+          // If dev override was used, save it to database so tab switches don't reset
+          if (devPhase) {
+            await supabase
+              .from("assessment_sessions")
+              .update({ current_module: devPhase, current_item_index: 0 } as any)
+              .eq("id", sessionData.id);
           }
           setIsLoading(false);
           return;
@@ -113,6 +122,13 @@ const Assessment = () => {
           setAssessmentPhase(sessionData.current_module as AssessmentPhase);
         } else if (!devPhase) {
           setAssessmentPhase("pronunciation");
+        }
+        // If dev override was used, save it to database so tab switches don't reset
+        if (devPhase) {
+          await supabase
+            .from("assessment_sessions")
+            .update({ current_module: devPhase, current_item_index: 0 } as any)
+            .eq("id", sessionData.id);
         }
       } else {
         // v0 demo: Skip intake/consent/quiz/mic_check - go straight to assessment
@@ -166,9 +182,12 @@ const Assessment = () => {
 
   if (authLoading || isLoading || !assessmentPhase) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center bg-background animate-fade-in">
         <div className="text-center">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
+          <div className="relative mx-auto mb-4">
+            <div className="h-12 w-12 rounded-full border-4 border-muted" />
+            <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+          </div>
           <p className="text-muted-foreground">Preparing your assessment...</p>
         </div>
       </div>
@@ -177,10 +196,12 @@ const Assessment = () => {
 
   if (!session) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center bg-background animate-fade-in">
         <div className="text-center">
           <p className="text-destructive mb-4">Unable to start assessment</p>
-          <button onClick={() => window.location.reload()} className="text-primary underline">Try again</button>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Try again
+          </Button>
         </div>
       </div>
     );
