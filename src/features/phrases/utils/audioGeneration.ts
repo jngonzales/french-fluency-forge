@@ -36,7 +36,7 @@ interface AudioGenerationOptions {
  * Get direct Supabase Storage URL for cached audio (instant load)
  */
 export function getStorageAudioUrl(phraseId: string): string {
-  return `${SUPABASE_URL}/storage/v1/object/public/phrases-audio/phrases/${phraseId}`;
+  return `${SUPABASE_URL}/storage/v1/object/public/phrases-audio/phrases/${phraseId}.mp3`;
 }
 
 /**
