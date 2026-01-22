@@ -21,12 +21,42 @@ const requestQueue: Array<{
 }> = [];
 let isProcessingQueue = false;
 
+// Supabase Storage URL for cached audio
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+
 interface AudioGenerationOptions {
   voiceId?: string;
   speed?: number;
   stability?: number;
   outputFormat?: string;
   phraseId?: string;  // For server-side caching
+}
+
+/**
+ * Get direct Supabase Storage URL for cached audio (instant load)
+ */
+export function getStorageAudioUrl(phraseId: string): string {
+  return `${SUPABASE_URL}/storage/v1/object/public/phrases-audio/phrases/${phraseId}`;
+}
+
+/**
+ * Check if audio exists in Supabase Storage (fast HEAD request)
+ */
+export async function checkStorageAudio(phraseId: string): Promise<string | null> {
+  if (!phraseId || !SUPABASE_URL) return null;
+  
+  const url = getStorageAudioUrl(phraseId);
+  
+  try {
+    const response = await fetch(url, { method: 'HEAD' });
+    if (response.ok) {
+      return url;
+    }
+  } catch {
+    // Audio not in storage, will generate via TTS
+  }
+  
+  return null;
 }
 
 interface CachedAudio {

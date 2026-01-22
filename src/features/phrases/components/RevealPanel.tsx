@@ -3,6 +3,7 @@
  * Shows the answer after reveal
  */
 
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,11 +21,16 @@ interface RevealPanelProps {
 export function RevealPanel({ phrase, timeToReveal, showTimeToReveal }: RevealPanelProps) {
   const isRecall = phrase.mode === 'recall';
   const frenchText = phrase.canonical_fr || phrase.transcript_fr || '';
-  const { isPlaying, isLoading, play } = usePhraseAudio({
+  const { isPlaying, isLoading, play, load } = usePhraseAudio({
     phraseId: phrase.id,
     text: frenchText,
     audioUrl: phrase.audio_url,
   });
+  
+  // Auto-load audio when panel mounts for faster playback
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const formatTime = (ms: number): string => {
     const seconds = (ms / 1000).toFixed(1);

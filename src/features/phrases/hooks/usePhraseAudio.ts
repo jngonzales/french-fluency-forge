@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { generatePhraseAudio, getAudioUrl, revokeAudioUrl } from '../utils/audioGeneration';
+import { generatePhraseAudio, getAudioUrl, revokeAudioUrl, checkStorageAudio } from '../utils/audioGeneration';
 import { getCachedAudioUrl } from '../utils/audioPreload';
 
 // In-memory cache for audio URLs - persists across renders
@@ -94,6 +94,24 @@ export function usePhraseAudio({
       audio.addEventListener('ended', () => setIsPlaying(false));
       audioRef.current = audio;
       setAudioUrl(preloadedUrl);
+      return;
+    }
+    
+    // Check Supabase Storage for cached audio (fast HEAD request)
+    const storageUrl = await checkStorageAudio(phraseId);
+    if (storageUrl) {
+      const audio = new Audio(storageUrl);
+      audio.preload = 'auto';
+      audio.addEventListener('loadedmetadata', () => {
+        setDuration(audio.duration);
+        setIsLoading(false);
+      });
+      audio.addEventListener('play', () => setIsPlaying(true));
+      audio.addEventListener('pause', () => setIsPlaying(false));
+      audio.addEventListener('ended', () => setIsPlaying(false));
+      audioRef.current = audio;
+      setAudioUrl(storageUrl);
+      audioCache.set(phraseId, { url: storageUrl, isBlob: false });
       return;
     }
     
