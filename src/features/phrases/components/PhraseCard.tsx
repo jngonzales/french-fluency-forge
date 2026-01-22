@@ -59,7 +59,7 @@ export function PhraseCard({ phrase, card, showSpeechIcon, onStartSpeech }: Phra
           Say this in French
         </div>
         <div className="text-2xl md:text-3xl font-medium">
-          {phrase.prompt_en}
+          {phrase.prompt_en || phrase.translation_en || 'No prompt available'}
         </div>
         
         {/* Assist hints */}
