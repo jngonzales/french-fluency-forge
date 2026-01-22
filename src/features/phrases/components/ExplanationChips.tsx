@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Sheet,
   SheetContent,
@@ -104,16 +105,37 @@ export function ExplanationChips({ phraseId }: ExplanationChipsProps) {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent className="overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Explanation</SheetTitle>
+            <SheetTitle>
+              {selectedIntent === 'meaning' && 'Meaning'}
+              {selectedIntent === 'grammar' && 'Grammar'}
+              {selectedIntent === 'usage' && 'When to Use'}
+              {selectedIntent === 'formal_vs_casual' && 'Formal vs Casual'}
+              {selectedIntent === 'transitions' && 'Transitions'}
+              {selectedIntent === 'why_not' && 'Why Not...?'}
+              {!selectedIntent && 'Explanation'}
+            </SheetTitle>
             <SheetDescription>
-              Learn more about this phrase
+              {loading ? 'Generating explanation...' : 'Learn more about this phrase'}
             </SheetDescription>
           </SheetHeader>
 
           <div className="mt-6 space-y-6">
             {loading && (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-4/5" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-1/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-2/5" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
               </div>
             )}
 
