@@ -48,7 +48,7 @@ export function preloadAudioForPhrases(phrases: Phrase[], maxPreload = 2): void 
     // This just prevents all requests from hitting the queue at once
     setTimeout(async () => {
       try {
-        const blob = await generatePhraseAudio(frenchText);
+        const blob = await generatePhraseAudio(frenchText, { phraseId: phrase.id });
         const blobUrl = getAudioUrl(blob);
         audioBlobCache.set(phrase.id, { blob, url: blobUrl });
       } catch {
@@ -79,7 +79,7 @@ export async function preloadNextAudio(nextPhrase: Phrase | null): Promise<void>
   generatingPhrases.add(nextPhrase.id);
   
   try {
-    const blob = await generatePhraseAudio(frenchText);
+    const blob = await generatePhraseAudio(frenchText, { phraseId: nextPhrase.id });
     const blobUrl = getAudioUrl(blob);
     audioBlobCache.set(nextPhrase.id, { blob, url: blobUrl });
   } catch (err) {

@@ -26,6 +26,7 @@ interface AudioGenerationOptions {
   speed?: number;
   stability?: number;
   outputFormat?: string;
+  phraseId?: string;  // For server-side caching
 }
 
 interface CachedAudio {
@@ -96,12 +97,28 @@ async function generatePhraseAudioInternal(
       speed: options.speed ?? 0.9,
       stability: options.stability ?? 0.6,
       outputFormat: options.outputFormat || 'mp3_44100_128',
+      // Enable server-side caching if phraseId is provided
+      cacheKey: options.phraseId ? `phrases/${options.phraseId}` : undefined,
+      bucketName: 'phrases-audio',
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`TTS generation failed: ${response.status} - ${errorText}`);
+  }
+
+  // Check if response is JSON (cached URL) or binary audio
+  const contentType = response.headers.get('content-type') || '';
+  
+  if (contentType.includes('application/json')) {
+    // Got a cached URL response - fetch the actual audio
+    const data = await response.json();
+    if (data.cachedUrl) {
+      console.log(`[Audio] Using ${data.cached ? 'cached' : 'newly cached'} audio from storage`);
+      const audioResponse = await fetch(data.cachedUrl);
+      return audioResponse.blob();
+    }
   }
 
   return response.blob();

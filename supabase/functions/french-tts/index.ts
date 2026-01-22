@@ -1,9 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Generate a hash for cache key
+function hashText(text: string): string {
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    const char = text.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(36);
+}
 
 // Helper function to wrap raw PCM data in a WAV header
 function wrapPcmInWav(pcmData: Uint8Array, sampleRate: number): ArrayBuffer {
@@ -57,17 +69,67 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voiceId, speed, stability, outputFormat } = await req.json();
+    const { text, voiceId, speed, stability, outputFormat, cacheKey, bucketName } = await req.json();
 
     if (!text) {
       throw new Error("No text provided");
     }
 
     const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!ELEVENLABS_API_KEY) {
       console.error("[TTS] ELEVENLABS_API_KEY not configured");
       throw new Error("TTS service not configured");
+    }
+
+    // Initialize Supabase client for storage caching
+    let supabase = null;
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    }
+
+    // Determine the cache bucket (default: phrases-audio)
+    const storageBucket = bucketName || "phrases-audio";
+    
+    // Generate cache key if not provided
+    const audioCacheKey = cacheKey || `tts/${hashText(text)}-${voiceId || 'default'}-${speed || 0.9}`;
+    
+    // Check if audio is already cached in storage
+    if (supabase && audioCacheKey) {
+      try {
+        const { data: existingFile } = await supabase
+          .storage
+          .from(storageBucket)
+          .list('', {
+            limit: 1,
+            search: audioCacheKey.split('/').pop() // Get filename part
+          });
+
+        if (existingFile && existingFile.length > 0) {
+          // Found cached audio, return the public URL
+          const { data: urlData } = supabase
+            .storage
+            .from(storageBucket)
+            .getPublicUrl(audioCacheKey + '.mp3');
+
+          if (urlData?.publicUrl) {
+            console.log(`[TTS] Cache hit: ${audioCacheKey}`);
+            return new Response(
+              JSON.stringify({ 
+                cachedUrl: urlData.publicUrl,
+                cached: true 
+              }),
+              {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              }
+            );
+          }
+        }
+      } catch (cacheError) {
+        console.warn("[TTS] Cache check failed, generating new audio:", cacheError);
+      }
     }
 
     // Use a French voice - Laura is a good neutral French voice
@@ -132,6 +194,47 @@ serve(async (req) => {
       console.log(`[TTS] Wrapped PCM in WAV header, final size: ${audioBuffer.byteLength} bytes`);
     }
 
+    // Cache to Supabase Storage if available (only for MP3 format)
+    if (supabase && audioCacheKey && !selectedOutputFormat.startsWith("pcm_")) {
+      try {
+        const audioData = new Uint8Array(audioBuffer);
+        const { error: uploadError } = await supabase
+          .storage
+          .from(storageBucket)
+          .upload(audioCacheKey + '.mp3', audioData, {
+            contentType: 'audio/mpeg',
+            upsert: true,
+          });
+
+        if (uploadError) {
+          console.warn("[TTS] Failed to cache audio:", uploadError);
+        } else {
+          console.log(`[TTS] Cached audio to ${storageBucket}/${audioCacheKey}.mp3`);
+          
+          // Return cached URL instead of raw audio
+          const { data: urlData } = supabase
+            .storage
+            .from(storageBucket)
+            .getPublicUrl(audioCacheKey + '.mp3');
+
+          if (urlData?.publicUrl) {
+            return new Response(
+              JSON.stringify({ 
+                cachedUrl: urlData.publicUrl,
+                cached: false  // Newly cached
+              }),
+              {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              }
+            );
+          }
+        }
+      } catch (cacheError) {
+        console.warn("[TTS] Cache upload failed:", cacheError);
+      }
+    }
+
+    // Fallback: return raw audio data
     return new Response(audioBuffer, {
       headers: {
         ...corsHeaders,

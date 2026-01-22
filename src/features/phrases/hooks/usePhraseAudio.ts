@@ -110,7 +110,7 @@ export function usePhraseAudio({
       } else if (text) {
         // Generate TTS directly - skip storage checks to avoid 400 errors
         try {
-          const audioBlob = await generatePhraseAudio(text);
+          const audioBlob = await generatePhraseAudio(text, { phraseId });
           blob = audioBlob;
           url = getAudioUrl(blob);
           objectUrlRef.current = url;
