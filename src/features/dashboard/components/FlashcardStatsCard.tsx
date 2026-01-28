@@ -1,14 +1,18 @@
 /**
  * Flashcard Stats Card (Simplified for Demo)
  * Shows: Scheduled (< 7 days) vs Learned (> 7 days)
+ * 
+ * Per Tom's requirements:
+ * - Scheduled = cards with reviews due in < 7 days
+ * - Learned = cards with next review scheduled in > 7 days
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, CheckCircle2, Loader2 } from 'lucide-react';
+import { Calendar, CheckCircle2, Loader2, BookOpen } from 'lucide-react';
 import { useFlashcardStats } from '../hooks/useFlashcardStats';
 
 export function FlashcardStatsCard() {
-  const { scheduled, learned, total, loading, error } = useFlashcardStats();
+  const { scheduled, learned, newCards, total, loading, error } = useFlashcardStats();
 
   if (loading) {
     return (
@@ -41,7 +45,7 @@ export function FlashcardStatsCard() {
       <CardHeader className="pb-2">
         <CardTitle className="text-xl font-serif">Flashcard Progress</CardTitle>
         <p className="text-sm text-muted-foreground">
-          {total} total cards in your library
+          {total} total cards • {newCards} new
         </p>
       </CardHeader>
       <CardContent className="pt-4">

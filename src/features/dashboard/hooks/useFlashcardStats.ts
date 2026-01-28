@@ -1,8 +1,10 @@
 /**
  * Hook to fetch flashcard statistics (Scheduled vs Learned)
  * 
- * Scheduled: Cards with due_at < now + 7 days
- * Learned: Cards with due_at > now + 7 days (or no due date = new)
+ * Per Tom's requirements:
+ * - Scheduled: Cards with next review due within < 7 days
+ * - Learned: Cards with next review scheduled > 7 days away
+ * - New cards (never reviewed) are NOT counted in either
  */
 
 import { useState, useEffect } from 'react';
@@ -12,18 +14,19 @@ import { useAuth } from '@/contexts/AuthContext';
 interface FlashcardStats {
   scheduled: number;  // Due within 7 days
   learned: number;    // Due beyond 7 days
+  newCards: number;   // Never reviewed (scheduler_state = 'new')
   total: number;
   loading: boolean;
   error: string | null;
 }
 
 // Type assertion for tables not in generated types
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
+const db = supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> };
 
 interface CardRow {
   due_at: string | null;
   scheduler_state: string | null;
+  last_reviewed_at: string | null;
 }
 
 export function useFlashcardStats(): FlashcardStats {
@@ -31,6 +34,7 @@ export function useFlashcardStats(): FlashcardStats {
   const [stats, setStats] = useState<FlashcardStats>({
     scheduled: 0,
     learned: 0,
+    newCards: 0,
     total: 0,
     loading: true,
     error: null,
@@ -47,7 +51,7 @@ export function useFlashcardStats(): FlashcardStats {
         // Get all cards for the current user (member_id = user.id)
         const { data: cards, error } = await db
           .from('member_phrase_cards')
-          .select('due_at, scheduler_state')
+          .select('due_at, scheduler_state, last_reviewed_at')
           .eq('member_id', user.id);
 
         if (error) {
@@ -56,6 +60,7 @@ export function useFlashcardStats(): FlashcardStats {
           setStats({
             scheduled: 0,
             learned: 0,
+            newCards: 0,
             total: 0,
             loading: false,
             error: null,
@@ -67,6 +72,7 @@ export function useFlashcardStats(): FlashcardStats {
           setStats({
             scheduled: 0,
             learned: 0,
+            newCards: 0,
             total: 0,
             loading: false,
             error: null,
@@ -79,16 +85,26 @@ export function useFlashcardStats(): FlashcardStats {
 
         let scheduled = 0;
         let learned = 0;
+        let newCards = 0;
 
         (cards as CardRow[]).forEach((card) => {
+          // New cards (never reviewed) - don't count in scheduled OR learned
+          if (card.scheduler_state === 'new' || !card.last_reviewed_at) {
+            newCards++;
+            return;
+          }
+
+          // Cards that have been reviewed at least once
           if (!card.due_at) {
-            // New cards with no due_at are counted as scheduled (need to learn)
+            // Edge case: reviewed but no due_at - count as needs scheduling
             scheduled++;
             return;
           }
 
           const dueDate = new Date(card.due_at);
           
+          // Scheduled: due within the next 7 days
+          // Learned: due more than 7 days from now
           if (dueDate <= sevenDaysFromNow) {
             scheduled++;
           } else {
@@ -99,6 +115,7 @@ export function useFlashcardStats(): FlashcardStats {
         setStats({
           scheduled,
           learned,
+          newCards,
           total: cards.length,
           loading: false,
           error: null,
@@ -109,6 +126,7 @@ export function useFlashcardStats(): FlashcardStats {
         setStats({
           scheduled: 0,
           learned: 0,
+          newCards: 0,
           total: 0,
           loading: false,
           error: null,
