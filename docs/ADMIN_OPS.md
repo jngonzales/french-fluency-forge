@@ -21,16 +21,60 @@ The admin panel requires admin role and is protected by authentication.
 
 ---
 
+## Database Setup (One-Time)
+
+If the admin panel shows "Admin access required", ensure the profiles table has a `role` column and your user is set as admin.
+
+### Add Role Column to Profiles (if missing)
+
+```sql
+-- Add role column if it doesn't exist
+ALTER TABLE public.profiles 
+ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
+
+-- Create index for faster role lookups
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
+```
+
+### Set a User as Admin
+
+```sql
+-- Replace 'your.email@example.com' with the admin's email
+UPDATE public.profiles 
+SET role = 'admin' 
+WHERE id = (
+  SELECT id FROM auth.users 
+  WHERE email = 'your.email@example.com'
+);
+```
+
+### Verify Admin Status
+
+```sql
+-- Check who is an admin
+SELECT p.id, u.email, p.role 
+FROM public.profiles p
+JOIN auth.users u ON u.id = p.id
+WHERE p.role = 'admin';
+```
+
+**Note:** The frontend also checks a hardcoded list in `src/config/admin.ts`. Add emails there for client-side admin access.
+
+---
+
 ## Table of Contents
 
-1. [User Management](#1-user-management)
+1. [Database Setup](#database-setup-one-time)
+   - [Add Role Column to Profiles](#add-role-column-to-profiles-if-missing)
+   - [Set a User as Admin](#set-a-user-as-admin)
+2. [User Management](#1-user-management)
    - [Invite a New User](#invite-a-new-user)
    - [View All Users](#view-all-users)
-2. [Flashcard Assignment](#2-flashcard-assignment)
+3. [Flashcard Assignment](#2-flashcard-assignment)
    - [View Available Phrase Packs](#view-available-phrase-packs)
    - [Assign Phrases to a User](#assign-phrases-to-a-user)
    - [View User's Assigned Phrases](#view-users-assigned-phrases)
-3. [Maintenance Operations](#3-maintenance-operations)
+4. [Maintenance Operations](#3-maintenance-operations)
    - [Clear Audio Cache (Force Re-generation)](#clear-audio-cache-force-re-generation)
    - [Fix Invalid Scheduling Dates](#fix-invalid-scheduling-dates)
 

@@ -9,7 +9,7 @@ import { AdminPadding } from '@/components/AdminPadding';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Play, Library, Settings, User, Package, Upload, Loader2, GraduationCap, Briefcase, Sun } from 'lucide-react';
+import { BookOpen, Play, Library, Settings, User, Package, Upload, Loader2, GraduationCap, Briefcase, Sun, ArrowLeft } from 'lucide-react';
 import { EmptyState } from '@/features/phrases/components/EmptyState';
 import { usePhrasesLibrary } from '@/features/phrases/hooks/usePhrasesLibrary';
 import { useToast } from '@/hooks/use-toast';
@@ -201,10 +201,13 @@ export default function PhrasesLandingPage() {
                 </p>
               </div>
               <Button
-                variant="ghost"
+                variant="outline"
+                size="lg"
+                className="gap-2 border-2"
                 onClick={() => navigate('/dashboard')}
               >
-                Back to dashboard
+                <ArrowLeft className="h-5 w-5" />
+                Back to Dashboard
               </Button>
             </div>
           </div>
