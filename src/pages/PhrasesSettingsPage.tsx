@@ -1,13 +1,15 @@
 /**
  * Phrases Settings Page
  * Configure daily limits, algorithm, and preferences
+ * 
+ * NOTE: "Reset to Defaults" button REMOVED for safety (Grandparent-Proof design)
  */
 
 import { useNavigate } from 'react-router-dom';
 import { AdminPadding } from '@/components/AdminPadding';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, RotateCcw } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePhrasesSettings } from '@/features/phrases/hooks/usePhrasesSettings';
 import { SettingsForm } from '@/features/phrases/components/SettingsForm';
@@ -17,7 +19,7 @@ import type { PhraseSettings } from '@/features/phrases/types';
 export default function PhrasesSettingsPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { settings, loading, updateSettings, resetSettings } = usePhrasesSettings();
+  const { settings, loading, updateSettings } = usePhrasesSettings();
 
   const handleSave = (updates: Partial<Omit<PhraseSettings, 'member_id'>>) => {
     const success = updateSettings(updates);
@@ -27,14 +29,6 @@ export default function PhrasesSettingsPage() {
         description: 'Your preferences have been updated.',
       });
     }
-  };
-
-  const handleReset = () => {
-    resetSettings();
-    toast({
-      title: 'Settings reset',
-      description: 'All settings restored to defaults.',
-    });
   };
 
   if (loading) {
@@ -54,26 +48,18 @@ export default function PhrasesSettingsPage() {
   return (
     <AdminPadding>
       <div className="min-h-screen bg-background">
-        {/* Header */}
+        {/* Header - Simplified, no Reset button */}
         <header className="border-b border-border bg-card sticky top-0 z-10">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/phrases')}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to phrases
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleReset}
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Reset to defaults
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => navigate('/phrases')}
+              className="gap-2 text-base font-medium"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              Back to Flashcards
+            </Button>
           </div>
         </header>
 

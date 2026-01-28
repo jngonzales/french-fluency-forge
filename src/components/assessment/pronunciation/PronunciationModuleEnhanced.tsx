@@ -132,9 +132,30 @@ const PronunciationModuleEnhanced = ({ sessionId, onComplete, onSkip }: Pronunci
       ? (currentItem as RepeatItem).referenceText 
       : (currentItem as MinimalPairItem).target;
     
+    // Generate a unique cache key for this pronunciation item
+    const itemId = currentSection === "repeat"
+      ? (currentItem as RepeatItem).id
+      : (currentItem as MinimalPairItem).id;
+    const cacheKey = `pronunciation/${currentSection}/${itemId}`;
+    
     setIsLoadingReference(true);
     setReferenceAudioUrl(null);
 
+    // First, check if audio is already cached in storage (fast HEAD request)
+    const storageUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/phrases-audio/${cacheKey}.mp3`;
+    try {
+      const headResponse = await fetch(storageUrl, { method: 'HEAD' });
+      if (headResponse.ok) {
+        // Audio exists in storage, use directly
+        setReferenceAudioUrl(storageUrl);
+        setIsLoadingReference(false);
+        return;
+      }
+    } catch {
+      // Storage check failed, continue to TTS
+    }
+
+    // Fallback: Call TTS Edge Function (which will also cache to storage)
     try {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/french-tts`,
@@ -145,12 +166,31 @@ const PronunciationModuleEnhanced = ({ sessionId, onComplete, onSkip }: Pronunci
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ text, speed: 0.9, stability: 0.5 }),
+          body: JSON.stringify({ 
+            text, 
+            speed: 0.9, 
+            stability: 0.5,
+            cacheKey,
+            bucketName: 'phrases-audio'
+          }),
         }
       );
 
       if (!response.ok) throw new Error("Failed to load audio");
 
+      // Check if response is JSON (cached URL) or binary audio
+      const contentType = response.headers.get('content-type') || '';
+      
+      if (contentType.includes('application/json')) {
+        const data = await response.json();
+        if (data.cachedUrl) {
+          setReferenceAudioUrl(data.cachedUrl);
+          setIsLoadingReference(false);
+          return;
+        }
+      }
+
+      // Fallback: raw audio blob
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       setReferenceAudioUrl(url);

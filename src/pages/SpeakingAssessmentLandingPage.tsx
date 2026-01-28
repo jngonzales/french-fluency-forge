@@ -281,22 +281,23 @@ export default function FluencyAnalyzerLandingPage() {
     <AdminPadding>
       <div className="min-h-screen bg-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
+          {/* Header - Grandparent-Proof with prominent Back button */}
           <div className="mb-8">
             <Button 
-              variant="ghost" 
+              variant="outline" 
+              size="lg"
               onClick={() => navigate('/dashboard')}
-              className="mb-4 -ml-2 gap-1.5 text-muted-foreground hover:text-foreground"
+              className="mb-6 gap-2 text-base font-semibold border-2 px-6"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-5 h-5" />
               Back to Dashboard
             </Button>
             
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Mic2 className="w-6 h-6 text-primary" />
+              <div className="p-3 rounded-lg bg-primary/10">
+                <Mic2 className="w-8 h-8 text-primary" />
               </div>
-              <h1 className="text-3xl font-bold">Speaking Assessment</h1>
+              <h1 className="text-3xl sm:text-4xl font-bold">Speaking Assessment</h1>
             </div>
             <p className="text-muted-foreground">
               Assess your French speaking skills across pronunciation, comprehension, and conversation.
@@ -349,17 +350,21 @@ export default function FluencyAnalyzerLandingPage() {
                     })}
                   </div>
                   
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <Badge className={STATUS_CONFIG[inProgressSession.status]?.color}>
+                      <Badge className={STATUS_CONFIG[inProgressSession.status]?.color + " text-sm px-3 py-1"}>
                         {STATUS_CONFIG[inProgressSession.status]?.label || inProgressSession.status}
                       </Badge>
-                      <span className="text-sm text-muted-foreground">
+                      <span className="text-base text-muted-foreground">
                         Started {formatDateTime(inProgressSession.created_at)}
                       </span>
                     </div>
-                    <Button onClick={() => navigate(`/assessment?session=${inProgressSession.id}`)} className="gap-1.5">
-                      <RotateCcw className="w-4 h-4" />
+                    <Button 
+                      onClick={() => navigate(`/assessment?session=${inProgressSession.id}`)} 
+                      size="lg"
+                      className="gap-2 text-lg px-8 py-6 h-auto font-bold"
+                    >
+                      <RotateCcw className="w-5 h-5" />
                       Resume Session
                     </Button>
                   </div>
@@ -368,19 +373,23 @@ export default function FluencyAnalyzerLandingPage() {
             );
           })()}
 
-          {/* Start New Session - Always visible */}
-          <Card className="mb-6 border-primary/30 bg-primary/5">
-            <CardContent className="pt-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          {/* Start New Session - HUGE and prominent for seniors */}
+          <Card className="mb-6 border-2 border-primary bg-primary/5">
+            <CardContent className="py-8">
+              <div className="flex flex-col items-center text-center gap-6">
                 <div>
-                  <h3 className="font-semibold text-lg mb-1">Ready for a new assessment?</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Takes about 10-15 minutes to complete all modules.
+                  <h3 className="font-bold text-2xl mb-2">Ready to test your French?</h3>
+                  <p className="text-lg text-muted-foreground">
+                    Takes about 10-15 minutes to complete.
                   </p>
                 </div>
-                <Button onClick={startNewSession} size="lg" className="gap-2">
-                  <Plus className="w-5 h-5" />
-                  Start New Session
+                <Button 
+                  onClick={startNewSession} 
+                  size="lg" 
+                  className="gap-3 text-xl px-10 py-7 h-auto font-bold"
+                >
+                  <Plus className="w-6 h-6" />
+                  Start Assessment
                 </Button>
               </div>
             </CardContent>

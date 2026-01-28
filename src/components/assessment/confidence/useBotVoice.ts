@@ -44,6 +44,22 @@ export function useBotVoice({ scenario, onAudioStart, onAudioEnd, onError }: Use
     text: string,
     signal?: AbortSignal
   ): Promise<string> => {
+    // Generate a unique cache key for this conversation turn
+    const cacheKey = `confidence-phone/${scenario.id || 'default'}/turn-${turnNumber}`;
+    
+    // First, check if audio is already cached in storage (fast HEAD request)
+    const storageUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/phrases-audio/${cacheKey}.mp3`;
+    try {
+      const headResponse = await fetch(storageUrl, { method: 'HEAD', signal });
+      if (headResponse.ok) {
+        console.log(`[BotVoice] Storage hit for turn ${turnNumber}`);
+        return storageUrl;
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') throw error;
+      // Storage check failed, continue to TTS
+    }
+
     try {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/french-tts`,
@@ -58,7 +74,9 @@ export function useBotVoice({ scenario, onAudioStart, onAudioEnd, onError }: Use
             text,
             speed: 0.95, // Slightly slower for clarity in conversation
             stability: 0.6, // Balanced naturalness
-            outputFormat: 'mp3_44100_128'
+            outputFormat: 'mp3_44100_128',
+            cacheKey,
+            bucketName: 'phrases-audio'
           }),
           signal
         }
@@ -68,6 +86,18 @@ export function useBotVoice({ scenario, onAudioStart, onAudioEnd, onError }: Use
         throw new Error(`TTS generation failed: ${response.status}`);
       }
 
+      // Check if response is JSON (cached URL) or binary audio
+      const contentType = response.headers.get('content-type') || '';
+      
+      if (contentType.includes('application/json')) {
+        const data = await response.json();
+        if (data.cachedUrl) {
+          console.log(`[BotVoice] Generated and cached audio for turn ${turnNumber}`);
+          return data.cachedUrl;
+        }
+      }
+
+      // Fallback: raw audio blob
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       
@@ -81,7 +111,7 @@ export function useBotVoice({ scenario, onAudioStart, onAudioEnd, onError }: Use
       console.error(`[BotVoice] Error generating audio for turn ${turnNumber}:`, error);
       throw error;
     }
-  }, []);
+  }, [scenario.id]);
 
   /**
    * Pre-generate audio for all turns

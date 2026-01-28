@@ -95,6 +95,24 @@ export function ComprehensionModule({ sessionId, onComplete, onSkip, initialItem
       return generatedAudioUrls[item.id];
     }
 
+    const cacheKey = `comprehension/${item.id}`;
+    
+    // First, check if audio is already cached in storage (fast HEAD request)
+    const storageUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/comprehension-audio/${cacheKey}.mp3`;
+    try {
+      const headResponse = await fetch(storageUrl, { method: 'HEAD' });
+      if (headResponse.ok) {
+        // Audio exists in storage, use directly (instant!)
+        if (import.meta.env.DEV) {
+          console.log(`[Comprehension] Storage hit: ${storageUrl}`);
+        }
+        setGeneratedAudioUrls(prev => ({ ...prev, [item.id]: storageUrl }));
+        return storageUrl;
+      }
+    } catch {
+      // Storage check failed, continue to TTS
+    }
+
     try {
       setIsGeneratingAudio(true);
       
@@ -115,7 +133,7 @@ export function ComprehensionModule({ sessionId, onComplete, onSkip, initialItem
             text: textWithPauses,
             speed: 0.9,  // Slightly slower for listening comprehension
             stability: 0.35,  // More natural variation
-            cacheKey: `comprehension/${item.id}`,  // Enable caching
+            cacheKey,  // Enable caching
             bucketName: 'comprehension-audio'  // Storage bucket for caching
           }),
         }

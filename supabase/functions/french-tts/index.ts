@@ -96,26 +96,23 @@ serve(async (req) => {
     // Generate cache key if not provided
     const audioCacheKey = cacheKey || `tts/${hashText(text)}-${voiceId || 'default'}-${speed || 0.9}`;
     
-    // Check if audio is already cached in storage
+    // Check if audio is already cached in storage (fast HEAD request to public URL)
     if (supabase && audioCacheKey) {
       try {
-        const { data: existingFile } = await supabase
+        const filePath = audioCacheKey + '.mp3';
+        
+        // Get the public URL first
+        const { data: urlData } = supabase
           .storage
           .from(storageBucket)
-          .list('', {
-            limit: 1,
-            search: audioCacheKey.split('/').pop() // Get filename part
-          });
+          .getPublicUrl(filePath);
 
-        if (existingFile && existingFile.length > 0) {
-          // Found cached audio, return the public URL
-          const { data: urlData } = supabase
-            .storage
-            .from(storageBucket)
-            .getPublicUrl(audioCacheKey + '.mp3');
-
-          if (urlData?.publicUrl) {
-            console.log(`[TTS] Cache hit: ${audioCacheKey}`);
+        if (urlData?.publicUrl) {
+          // Fast HEAD request to check if file exists
+          const headResponse = await fetch(urlData.publicUrl, { method: 'HEAD' });
+          
+          if (headResponse.ok) {
+            console.log(`[TTS] Cache hit: ${filePath}`);
             return new Response(
               JSON.stringify({ 
                 cachedUrl: urlData.publicUrl,
@@ -127,13 +124,16 @@ serve(async (req) => {
             );
           }
         }
+        // If HEAD failed, file doesn't exist - continue to generate
       } catch (cacheError) {
         console.warn("[TTS] Cache check failed, generating new audio:", cacheError);
       }
     }
 
-    // Use a French voice - Laura is a good neutral French voice
-    const selectedVoiceId = voiceId || "FGY2WhTYpPnrIDTdsKH5"; // Laura - neutral French
+    // Use a French voice - Thomas for standard Metropolitan French (France)
+    // Previously used Laura (FGY2WhTYpPnrIDTdsKH5) which had a Canadian/distinct accent
+    // Thomas (GBv7mTt0atIp3Br8iCZE) is standard European French
+    const selectedVoiceId = voiceId || "GBv7mTt0atIp3Br8iCZE"; // Thomas - Metropolitan French (France)
 
     // Speed parameter: default 0.9 for clarity
     const speechSpeed = speed ?? 0.9;

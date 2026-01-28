@@ -1,6 +1,8 @@
 /**
  * Mock Scheduler - Simple interval-based SRS logic
  * For v0, this is a simplified version. v1 will use FSRS library.
+ * 
+ * SAFEGUARD: Always validates dates to prevent NaN/Invalid Date
  */
 
 import type { MemberPhraseCard, Rating } from '../types';
@@ -22,20 +24,62 @@ const EASE_MULTIPLIERS = {
 };
 
 /**
+ * SAFEGUARD: Validate and fix date to prevent NaN/Invalid Date
+ * If date is invalid, returns tomorrow as default
+ */
+function validateAndFixDate(date: Date | string | null | undefined): Date {
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  if (!date) {
+    console.warn('[Scheduler] Invalid date (null/undefined), defaulting to tomorrow');
+    return tomorrow;
+  }
+  
+  const parsed = typeof date === 'string' ? new Date(date) : date;
+  
+  // Check for NaN or Invalid Date
+  if (isNaN(parsed.getTime())) {
+    console.warn('[Scheduler] Invalid date (NaN), defaulting to tomorrow:', date);
+    return tomorrow;
+  }
+  
+  // Check for unreasonably far future dates (> 10 years)
+  const tenYearsFromNow = new Date(now);
+  tenYearsFromNow.setFullYear(tenYearsFromNow.getFullYear() + 10);
+  
+  if (parsed.getTime() > tenYearsFromNow.getTime()) {
+    console.warn('[Scheduler] Date too far in future (>10 years), defaulting to 1 year:', date);
+    const oneYearFromNow = new Date(now);
+    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+    return oneYearFromNow;
+  }
+  
+  return parsed;
+}
+
+/**
  * Calculate next review date and update card state
+ * SAFEGUARD: Always validates intervals and dates to prevent NaN
  */
 export function calculateNextReview(
   card: MemberPhraseCard,
   rating: Rating
 ): MemberPhraseCard {
   const now = new Date();
-  const currentInterval = card.scheduler.interval_days || 0;
-  const currentEaseFactor = card.scheduler.ease_factor || 2.5;
+  
+  // SAFEGUARD: Ensure interval is a valid number
+  const currentInterval = typeof card.scheduler.interval_days === 'number' && 
+    !isNaN(card.scheduler.interval_days) ? card.scheduler.interval_days : 0;
+  
+  const currentEaseFactor = typeof card.scheduler.ease_factor === 'number' && 
+    !isNaN(card.scheduler.ease_factor) ? card.scheduler.ease_factor : 2.5;
   
   let newInterval: number;
   let newEaseFactor: number;
   let newState = card.scheduler.state;
-  let lapses = card.lapses;
+  let lapses = typeof card.lapses === 'number' && !isNaN(card.lapses) ? card.lapses : 0;
 
   if (rating === 'again') {
     // Reset to learning
@@ -62,23 +106,37 @@ export function calculateNextReview(
     newEaseFactor = Math.max(1.3, Math.min(3.0, newEaseFactor));
   }
 
-  // Calculate due date
+  // SAFEGUARD: Ensure newInterval is valid and reasonable
+  if (isNaN(newInterval) || !isFinite(newInterval) || newInterval < 0) {
+    console.warn('[Scheduler] Invalid interval calculated, defaulting to 1 day:', newInterval);
+    newInterval = 1;
+  }
+  
+  // Cap maximum interval at 365 days (1 year)
+  if (newInterval > 365) {
+    newInterval = 365;
+  }
+
+  // Calculate due date with validation
   const dueDate = new Date(now);
   dueDate.setDate(dueDate.getDate() + newInterval);
+  
+  // SAFEGUARD: Final validation of due date
+  const validatedDueDate = validateAndFixDate(dueDate);
 
   return {
     ...card,
     scheduler: {
       ...card.scheduler,
       state: newState,
-      due_at: dueDate.toISOString(),
+      due_at: validatedDueDate.toISOString(),
       last_reviewed_at: now.toISOString(),
       interval_days: newInterval,
       ease_factor: newEaseFactor,
       repetitions: (card.scheduler.repetitions || 0) + 1,
     },
     lapses,
-    reviews: card.reviews + 1,
+    reviews: (typeof card.reviews === 'number' && !isNaN(card.reviews) ? card.reviews : 0) + 1,
     updated_at: now.toISOString(),
   };
 }

@@ -14,7 +14,8 @@ import {
   Zap,
   Phone,
   LayoutDashboard,
-  Trash2
+  Trash2,
+  Users
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -560,6 +561,17 @@ export function AdminToolbar() {
           >
             <Phone className="h-3 w-3 mr-1" />
             Sales Copilot
+          </Button>
+
+          {/* User Admin */}
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            className="h-7 text-xs bg-amber-700 hover:bg-amber-800"
+            onClick={() => navigate('/admin/users')}
+          >
+            <Users className="h-3 w-3 mr-1" />
+            User Admin
           </Button>
 
           {/* Dashboard */}

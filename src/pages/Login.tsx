@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -85,18 +85,25 @@ const Login = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md animate-fade-in-up">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Welcome Back</CardTitle>
-          <CardDescription>
-            Sign in to access your assessment
-          </CardDescription>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+      {/* SOLV Languages Logo */}
+      <div className="mb-8">
+        <img 
+          src="/SOLV.png" 
+          alt="SOLV Languages" 
+          className="h-20 w-auto mx-auto"
+        />
+      </div>
+
+      {/* Login Form - Clean and Simple */}
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center pb-4">
+          <CardTitle className="text-3xl font-bold">Sign In</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-3">
+              <Label htmlFor="email" className="text-lg font-medium">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -104,14 +111,15 @@ const Login = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 required
+                className="h-14 text-lg px-4"
               />
               {errors.email && (
-                <p className="text-xs text-destructive animate-fade-in">{errors.email}</p>
+                <p className="text-sm text-destructive font-medium">{errors.email}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+            <div className="space-y-3">
+              <Label htmlFor="password" className="text-lg font-medium">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -119,16 +127,21 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 required
+                className="h-14 text-lg px-4"
               />
               {errors.password && (
-                <p className="text-xs text-destructive animate-fade-in">{errors.password}</p>
+                <p className="text-sm text-destructive font-medium">{errors.password}</p>
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full h-14 text-xl font-bold" 
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  <span className="h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   Signing in...
                 </span>
               ) : (
@@ -136,26 +149,19 @@ const Login = () => {
               )}
             </Button>
 
-            <div className="text-center space-y-2">
-              <a href="/forgot-password" className="text-sm text-muted-foreground hover:text-primary transition-colors block">
+            <div className="text-center pt-4">
+              <a href="/forgot-password" className="text-base text-muted-foreground hover:text-primary transition-colors">
                 Forgot your password?
               </a>
-              <p className="text-sm text-muted-foreground">
-                Don't have an account?{" "}
-                <a href="/signup" className="text-primary hover:underline font-medium transition-colors">
-                  Sign up
-                </a>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Purchased access?{" "}
-                <a href="/activate" className="text-primary hover:underline font-medium transition-colors">
-                  Activate your account
-                </a>
-              </p>
             </div>
           </form>
         </CardContent>
       </Card>
+
+      {/* Support Email - Prominent and Clear */}
+      <p className="mt-8 text-lg text-muted-foreground">
+        Support: <a href="mailto:support@solvlanguages.com" className="text-primary font-medium hover:underline">support@solvlanguages.com</a>
+      </p>
     </div>
   );
 };

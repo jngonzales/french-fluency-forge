@@ -38,6 +38,11 @@ interface RequestBody {
   intent?: 'meaning' | 'grammar' | 'usage' | 'formal_vs_casual' | 'transitions' | 'why_not';
   whyNotText?: string;
   forceRegenerate?: boolean;
+  // Optional: Pass phrase data directly (for pre-generation when phrases aren't in DB)
+  phraseData?: {
+    frenchText: string;
+    englishText?: string;
+  };
 }
 
 serve(async (req) => {
@@ -70,7 +75,7 @@ serve(async (req) => {
 
     // Parse request body
     const body: RequestBody = await req.json();
-    const { phraseId, intent, whyNotText, forceRegenerate = false } = body;
+    const { phraseId, intent, whyNotText, forceRegenerate = false, phraseData } = body;
 
     if (!phraseId) {
       return new Response(
@@ -80,6 +85,7 @@ serve(async (req) => {
     }
 
     // Check cache first (unless forceRegenerate)
+    console.log('[phrase-explain] Checking cache for phraseId:', phraseId, 'forceRegenerate:', forceRegenerate);
     if (!forceRegenerate) {
       const { data: cached, error: cacheError } = await supabase
         .from('phrase_explanations')
@@ -87,7 +93,10 @@ serve(async (req) => {
         .eq('phrase_id', phraseId)
         .single();
 
+      console.log('[phrase-explain] Cache result:', { cached: !!cached, error: cacheError?.message, phraseId });
+      
       if (!cacheError && cached) {
+        console.log('[phrase-explain] CACHE HIT! Returning cached explanation');
         return new Response(
           JSON.stringify({
             success: true,
@@ -102,18 +111,34 @@ serve(async (req) => {
       }
     }
 
-    // Get phrase data
-    const { data: phrase, error: phraseError } = await supabase
-      .from('phrases')
-      .select('*')
-      .eq('id', phraseId)
-      .single();
+    // Get phrase data - either from database or from request body (for pre-generation)
+    let frenchText = '';
+    let englishPrompt = '';
+    let translation = '';
 
-    if (phraseError || !phrase) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Phrase not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (phraseData?.frenchText) {
+      // Use provided phrase data (for pre-generation when phrases aren't in DB)
+      frenchText = phraseData.frenchText;
+      englishPrompt = phraseData.englishText || '';
+      translation = phraseData.englishText || '';
+    } else {
+      // Try to get from database
+      const { data: phrase, error: phraseError } = await supabase
+        .from('phrases')
+        .select('*')
+        .eq('id', phraseId)
+        .single();
+
+      if (phraseError || !phrase) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Phrase not found. Provide phraseData for pre-generation.' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      frenchText = phrase.canonical_fr || phrase.transcript_fr || '';
+      englishPrompt = phrase.prompt_en || '';
+      translation = phrase.translation_en || '';
     }
 
     // Generate explanation with OpenAI
@@ -124,10 +149,6 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const frenchText = phrase.canonical_fr || phrase.transcript_fr || '';
-    const englishPrompt = phrase.prompt_en || '';
-    const translation = phrase.translation_en || '';
 
     // Build prompt based on intent
     const systemPrompt = `You are a helpful French language coach. Be concise and practical.

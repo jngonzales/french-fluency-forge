@@ -4,15 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminMode } from "@/hooks/useAdminMode";
 import { AdminPadding } from "@/components/AdminPadding";
-import IntakeForm from "@/components/assessment/IntakeForm";
-import ConsentForm from "@/components/assessment/ConsentForm";
 import { PronunciationModule } from "@/components/assessment/pronunciation";
 import { ConfidenceModule } from "@/components/assessment/confidence";
 import { ConversationModule } from "@/components/assessment/conversation";
 import { ComprehensionModule } from "@/components/assessment/comprehension";
-import { PersonalityQuiz } from "@/components/assessment/personality-quiz";
 import { ProcessingView } from "@/components/assessment/ProcessingView";
-import { LiveDataViewer } from "@/components/LiveDataViewer";
 import { EnhancedLiveDataViewer } from "@/components/EnhancedLiveDataViewer";
 import ExitButton from "@/components/assessment/ExitButton";
 import { toast } from "sonner";
@@ -244,34 +240,26 @@ const Assessment = () => {
   };
 
   switch (session.status) {
+    // v0 demo: Skip intake/consent/quiz/mic_check - treat them all as "assessment"
+    // These legacy statuses should auto-advance to assessment
     case "intake":
-      return <IntakeForm sessionId={session.id} onComplete={handleStepComplete} onSkip={() => skipToStatus("consent")} />;
-
     case "consent":
-      return <ConsentForm sessionId={session.id} onComplete={handleStepComplete} onSkip={() => skipToStatus("quiz")} />;
-
     case "quiz":
-      return (
-        <PersonalityQuiz
-          sessionId={session.id}
-          onComplete={async () => {
-            await supabase.from("assessment_sessions").update({ status: "mic_check" }).eq("id", session.id);
-            refreshSession();
-          }}
-          onSkip={() => skipToStatus("mic_check")}
-        />
-      );
-
     case "mic_check":
+      // Immediately update to assessment status and refresh
+      (async () => {
+        await supabase.from("assessment_sessions").update({ status: "assessment" }).eq("id", session.id);
+        refreshSession();
+      })();
+      // Show loading while transitioning
       return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-4">
-          <div className="text-center max-w-md">
-            <h1 className="text-2xl font-bold mb-4">Microphone Check</h1>
-            <p className="text-muted-foreground mb-6">Coming soon</p>
-            <Button onClick={async () => {
-              await supabase.from("assessment_sessions").update({ status: "assessment" }).eq("id", session.id);
-              refreshSession();
-            }}>Skip to Assessment</Button>
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <div className="text-center">
+            <div className="relative mx-auto mb-4">
+              <div className="h-12 w-12 rounded-full border-4 border-muted" />
+              <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+            </div>
+            <p className="text-muted-foreground text-lg">Starting assessment...</p>
           </div>
         </div>
       );

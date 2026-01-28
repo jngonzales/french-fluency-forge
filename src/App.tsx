@@ -27,6 +27,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Activate = lazy(() => import("./pages/Activate"));
 const AdminProducts = lazy(() => import("./pages/AdminProducts"));
 const SalesCopilot = lazy(() => import("./pages/admin/SalesCopilot"));
+const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const PhrasesLandingPage = lazy(() => import("./pages/PhrasesLandingPage"));
 const PhrasesSessionPage = lazy(() => import("./pages/PhrasesSessionPage"));
@@ -104,6 +105,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <SalesCopilot />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/users" 
+              element={
+                <ProtectedRoute>
+                  <AdminUsersPage />
                 </ProtectedRoute>
               } 
             />

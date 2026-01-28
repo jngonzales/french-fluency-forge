@@ -70,8 +70,10 @@ serve(async (req) => {
       throw new Error("TTS service not configured");
     }
 
-    // Use a French voice - Laura is a good neutral French voice
-    const selectedVoiceId = voiceId || "FGY2WhTYpPnrIDTdsKH5"; // Laura - neutral French
+    // Use a French voice - Thomas for standard Metropolitan French (France)
+    // Previously used Laura (FGY2WhTYpPnrIDTdsKH5) which had a Canadian/distinct accent
+    // Thomas (GBv7mTt0atIp3Br8iCZE) is standard European French
+    const selectedVoiceId = voiceId || "GBv7mTt0atIp3Br8iCZE"; // Thomas - Metropolitan French (France)
 
     // Speed parameter: default 0.9 for clarity
     const speechSpeed = speed ?? 0.9;

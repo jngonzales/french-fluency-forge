@@ -1,0 +1,78 @@
+The Core Directive: Functionality and Simplicity > Aesthetics. The app must be "Grandparent-Proof."
+Here is the breakdown of the necessary work, categorized by priority and component, to hit the Monday deadline.
+1. High-Level Strategy & UX Philosophy
+Target Audience: Seniors (60-80+).
+Design Language: High contrast, massive buttons, zero ambiguity. "Ugly navigation is better than no navigation."
+Critical Path: The user should never wonder "Where am I?" or "What do I do next?"
+Performance: Speed is part of the UX. Latency in audio or page loads causes confusion/frustration.
+2. Priority 0: Critical Fixes (Must Ship Monday)
+A. Dashboard Overhaul
+The Dashboard is currently too complex and "laggy." It needs to be stripped down.
+Big Buttons: Replace the current card layout with large, unavoidable buttons for:
+Start/Book Lesson (Even if manual/fake for now).
+Speaking Assessment.
+Flashcards.
+Remove Complexity:
+Hide/Remove the current "Progress Journey" graph (data is unstable/ugly).
+Remove "Skill Profile" radar chart (confusing).
+Outcome Goals: Move this to the top/center. It is the primary visual motivator.
+Fix Metric Logic:
+Scheduled: Logic change → Count cards due in < 7 days.
+Learned: Logic change → Count cards due in > 7 days.
+B. The Login Experience
+Action: Delete the marketing landing page content.
+New State: A minimal page containing only:
+SOLV Languages Logo.
+Login Form.
+Support Email (support@solvlanguages.com).
+C. Speaking Assessment Decoupling
+Currently, the Assessment is stuck behind a demographic survey. This causes friction.
+Modularize: Separate "Personality/Demographics" from "Speaking Assessment."
+Assessment Flow:
+Direct entry (No survey).
+Clear states: Start → In Progress → Resume → Results.
+Remove "Microphone Check" (Coming Soon) screen to reduce clicks.
+Remove "Fluency Analyzer" loading screens (non-essential).
+Navigation: Ensure the user always knows they are inside the assessment and how to get back.
+D. Flashcards & Audio Performance
+Latency Fix: Audio is currently generating on-the-click.
+Solution: Implement pre-generation/caching. Audio should ideally be generated when the card is assigned, not when it is played.
+Bug Fix: Investigate the scheduling algorithm. Card dates are defaulting to NaN or far-future dates.
+Safety: The "Reset to Defaults" button is a trap.
+Solution: Hide it deep in settings or require a modal confirmation ("Type DELETE to confirm").
+Content: The French voice currently sounds Canadian/Wrong. Switch the TTS voice model to standard Metropolitan French.
+3. Backend & Admin (The "Ops" Requirement)
+The client is willing to trade a UI for raw instructions to save time.
+Requirement: Invite users + Assign Flashcards.
+Option A (If time permits - <2 hours):
+Build a crude Admin Page visible only to your role that has a simple email invite form and a dropdown to bulk-assign a flashcard pack to a User ID.
+Option B (The realistic Monday MVP):
+Provide the client with a README.md or a Notion doc containing the specific SQL queries or Supabase dashboard steps.
+Invite Users: "Go to Supabase Auth -> Invite User -> Enter Email."
+Assign Cards: "Run this SQL query: INSERT INTO user_flashcards (user_id, pack_id) VALUES ('xyz', '123');"
+4. Technical & Workflow Recommendations
+To address the "laggy" feel and collaboration requests:
+Optimistic UI: When a user clicks a button (especially in Flashcards), the UI should update instantly, even if the server request takes 200ms. Do not show spinners for simple interactions.
+Audio Caching: If using an external TTS API (like OpenAI or ElevenLabs), store the resulting MP3/WAV in your own storage (AWS S3 or Supabase Storage) and reference that URL in the DB. Do not call the API on every click.
+Collaboration (Cursor):
+Create a dev branch.
+Push small, atomic commits.
+Secrets: Create a .env.example file for the repo, and share the actual .env values via 1Password or a secure note (not Slack).
+Summary Checklist for Monday
+Component	Task	Status
+Login	Strip page to Logo + Form + Email.	⬜
+Dash	Implement "Big Buttons" layout.	⬜
+Dash	Fix "Scheduled" vs "Learned" logic.	⬜
+Assess	Decouple from Demographics survey.	⬜
+Assess	Remove "Mic Check" & "Fluency" screens.	⬜
+Audio	Implement pre-generation/caching for speed.	⬜
+Cards	Fix NaN / Future date scheduling bug.	⬜
+Cards	Hide "Reset" button / Change Voice Accent.	⬜
+Admin	Document SQL/Supabase steps for inviting/assigning.	⬜
+Proposed Reply to Client
+"Got it. I understand the pivot: we are moving from a SaaS-style layout to a simplified, high-accessibility interface for seniors.
+For Monday, I commit to:
+The 'Grandparent' Dashboard: Big buttons, simplified metrics, outcome goals up top.
+Decoupled Assessment: Separation of demographics from the speaking test so users can just 'Start.'
+Performance Fixes: I will implement audio caching so playback is instant, and fix the 'NaN years' scheduling bug.
+Admin Ops: I will likely not have time for a full Admin UI, so I will provide the specific Supabase/SQL scripts to invite users and assign cards manually.
