@@ -15,7 +15,8 @@ import {
   Phone,
   LayoutDashboard,
   Trash2,
-  Users
+  Users,
+  UserCog
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -30,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { UserManagerModal } from '@/components/admin/UserManagerModal';
 
 type SessionStatus = 'intake' | 'consent' | 'quiz' | 'mic_check' | 'assessment' | 'processing' | 'completed';
 // 4 assessment modules:
@@ -61,6 +63,9 @@ export function AdminToolbar() {
   const { isAdmin, isDev } = useAdminMode();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Modal state for User Manager
+  const [userManagerOpen, setUserManagerOpen] = useState(false);
   
   // Hidden state - persisted in sessionStorage
   const [isHidden, setIsHidden] = useState(() => {
@@ -552,6 +557,17 @@ export function AdminToolbar() {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Manage Users - Modal */}
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            className="h-7 text-xs bg-purple-700 hover:bg-purple-800"
+            onClick={() => setUserManagerOpen(true)}
+          >
+            <UserCog className="h-3 w-3 mr-1" />
+            Manage Users
+          </Button>
+
           {/* Sales Copilot */}
           <Button 
             variant="secondary" 
@@ -591,6 +607,9 @@ export function AdminToolbar() {
           </Badge>
         </div>
       </div>
+
+      {/* User Manager Modal */}
+      <UserManagerModal open={userManagerOpen} onOpenChange={setUserManagerOpen} />
     </div>
   );
 }

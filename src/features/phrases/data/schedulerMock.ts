@@ -87,8 +87,23 @@ export function calculateNextReview(
     newEaseFactor = Math.max(1.3, currentEaseFactor - 0.2);
     newState = currentInterval === 0 ? 'learning' : 'relearning';
     lapses += 1;
+  } else if (rating === 'easy') {
+    // EASY: Graduate immediately to long-term review
+    // Force minimum 7 days, graduate to 'review' state
+    if (currentInterval === 0) {
+      // First review - jump straight to 7 days
+      newInterval = 7;
+    } else {
+      // Subsequent reviews - multiply by ease multiplier but ensure minimum 7 days
+      const baseMultiplier = EASE_MULTIPLIERS.easy;
+      newInterval = Math.max(7, Math.round(currentInterval * baseMultiplier));
+    }
+    // Increase ease factor by 0.2, max 3.0
+    newEaseFactor = Math.min(3.0, currentEaseFactor + 0.2);
+    // Always graduate to 'review' state for Easy rating
+    newState = 'review';
   } else {
-    // Calculate new interval
+    // Calculate new interval for Hard/Good
     if (currentInterval === 0) {
       // First review
       newInterval = INTERVALS[rating];
@@ -98,7 +113,7 @@ export function calculateNextReview(
       // Subsequent reviews
       const baseMultiplier = EASE_MULTIPLIERS[rating];
       newInterval = Math.round(currentInterval * baseMultiplier);
-      newEaseFactor = currentEaseFactor + (rating === 'easy' ? 0.15 : rating === 'hard' ? -0.15 : 0);
+      newEaseFactor = currentEaseFactor + (rating === 'hard' ? -0.15 : 0);
       newState = newInterval >= 21 ? 'review' : 'learning';
     }
 
@@ -152,6 +167,16 @@ export function previewIntervals(card: MemberPhraseCard): Record<Rating, string>
     
     if (rating === 'again') {
       days = INTERVALS.again;
+    } else if (rating === 'easy') {
+      // Easy always shows minimum 7 days (will be 10+ in practice after first review)
+      if (currentInterval === 0) {
+        days = 7;
+      } else {
+        const baseMultiplier = EASE_MULTIPLIERS.easy;
+        days = Math.max(7, Math.round(currentInterval * baseMultiplier));
+      }
+      // Show "in 10+ days" for Easy to set user expectations
+      if (days >= 7) return 'in 10+ days';
     } else if (currentInterval === 0) {
       days = INTERVALS[rating];
     } else {

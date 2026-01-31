@@ -219,13 +219,21 @@ export function usePhrasesLibrary(memberId?: string) {
       review: cards.filter((c) => c.scheduler.state === 'review').length,
       suspended: cards.filter((c) => c.status === 'suspended').length,
       buried: cards.filter((c) => c.status === 'buried').length,
+      // "Learned" = cards that have graduated to long-term review
+      // Criteria: state === 'review' AND interval_days >= 7 AND reviews >= 3
       known_recall: cards.filter((c) => {
         const phrase = phraseMap[c.phrase_id] || getPhraseById(c.phrase_id);
-        return phrase?.mode === 'recall' && c.scheduler.state === 'review' && (c.scheduler.interval_days || 0) >= 21;
+        return phrase?.mode === 'recall' && 
+          c.scheduler.state === 'review' && 
+          (c.scheduler.interval_days || 0) >= 7 && 
+          (c.reviews || 0) >= 3;
       }).length,
       known_recognition: cards.filter((c) => {
         const phrase = phraseMap[c.phrase_id] || getPhraseById(c.phrase_id);
-        return phrase?.mode === 'recognition' && c.scheduler.state === 'review' && (c.scheduler.interval_days || 0) >= 21;
+        return phrase?.mode === 'recognition' && 
+          c.scheduler.state === 'review' && 
+          (c.scheduler.interval_days || 0) >= 7 && 
+          (c.reviews || 0) >= 3;
       }).length,
     };
   }, [cards, phraseMap]);
