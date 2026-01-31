@@ -13,6 +13,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +48,8 @@ import {
   UserPlus,
   Loader2,
   Filter,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 
 type UserRole = 'student' | 'teacher' | 'admin';
@@ -64,6 +76,9 @@ export function UserManagerModal({ open, onOpenChange }: UserManagerModalProps) 
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [updatingUsers, setUpdatingUsers] = useState<Set<string>>(new Set());
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -104,21 +119,7 @@ export function UserManagerModal({ open, onOpenChange }: UserManagerModalProps) 
       profiles?.forEach((p) => allEmails.add(p.email.toLowerCase()));
       appAccounts?.forEach((a) => allEmails.add(a.email.toLowerCase()));
 
-      const roleMap = new Map<string, string>();
-      try {
-        const { data: profilesWithRole } = await (supabase as any)
-          .from('profiles')
-          .select('id, role');
-        
-        profilesWithRole?.forEach((p: { id: string; role?: string }) => {
-          if (p.role) {
-            roleMap.set(p.id, p.role);
-          }
-        });
-      } catch {
-        // role column doesn't exist
-      }
-
+      // Determine roles based on admin email list (role column doesn't exist in DB yet)
       const combinedUsers: UserProfile[] = Array.from(allEmails).map((email) => {
         const profile = profileMap.get(email);
         const account = accountMap.get(email);
@@ -126,13 +127,9 @@ export function UserManagerModal({ open, onOpenChange }: UserManagerModalProps) 
         const id = profile?.id || account?.user_id || `temp-${email}`;
         const created_at = profile?.created_at || account?.created_at || new Date().toISOString();
 
+        // Use email-based role detection (no role column in DB)
         let role: UserRole = 'student';
-        if (profile?.id && roleMap.has(profile.id)) {
-          const dbRole = roleMap.get(profile.id);
-          if (dbRole === 'admin') role = 'admin';
-          else if (dbRole === 'teacher') role = 'teacher';
-          else role = 'student';
-        } else if (isAdminEmail(email)) {
+        if (isAdminEmail(email)) {
           role = 'admin';
         }
 
@@ -285,6 +282,61 @@ export function UserManagerModal({ open, onOpenChange }: UserManagerModalProps) 
     }
   };
 
+  const confirmDelete = (user: UserProfile) => {
+    setUserToDelete(user);
+    setDeleteConfirmOpen(true);
+  };
+
+  const deleteUser = async () => {
+    if (!userToDelete) return;
+    
+    setDeleting(true);
+    try {
+      const userId = userToDelete.id;
+      const userEmail = userToDelete.email.toLowerCase();
+
+      // Delete in order to handle foreign key constraints
+      // 1. Delete from app_accounts
+      await supabase.from('app_accounts').delete().eq('email', userEmail);
+      
+      // 2. Delete user data from related tables (cascade delete)
+      if (!userId.startsWith('temp-')) {
+        // Delete recordings
+        await supabase.from('skill_recordings').delete().eq('user_id', userId);
+        await supabase.from('fluency_recordings').delete().eq('user_id', userId);
+        await supabase.from('comprehension_recordings').delete().eq('user_id', userId);
+        
+        // Delete assessment sessions
+        await supabase.from('assessment_sessions').delete().eq('user_id', userId);
+        
+        // Delete consent records
+        await supabase.from('consent_records').delete().eq('user_id', userId);
+        
+        // Delete archetype feedback
+        await supabase.from('archetype_feedback').delete().eq('user_id', userId);
+        
+        // Delete purchases
+        await supabase.from('purchases').delete().eq('user_id', userId);
+        
+        // Delete profile (this should cascade in Supabase with proper FK setup)
+        const { error: profileError } = await supabase.from('profiles').delete().eq('id', userId);
+        if (profileError) {
+          console.error('Error deleting profile:', profileError);
+        }
+      }
+
+      toast.success(`User ${userToDelete.email} deleted successfully`);
+      setDeleteConfirmOpen(false);
+      setUserToDelete(null);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error('Failed to delete user. Some data may need manual cleanup.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -372,6 +424,7 @@ export function UserManagerModal({ open, onOpenChange }: UserManagerModalProps) 
                   <TableHead className="w-[120px]">Role</TableHead>
                   <TableHead className="w-[100px]">Access</TableHead>
                   <TableHead className="w-[80px]">Active</TableHead>
+                  <TableHead className="w-[60px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -411,6 +464,17 @@ export function UserManagerModal({ open, onOpenChange }: UserManagerModalProps) 
                           disabled={isUpdating}
                         />
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => confirmDelete(user)}
+                          disabled={isUpdating}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -419,6 +483,57 @@ export function UserManagerModal({ open, onOpenChange }: UserManagerModalProps) 
           )}
         </div>
       </DialogContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Delete User
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  Are you sure you want to delete <strong>{userToDelete?.email}</strong>?
+                </p>
+                <p className="text-sm">
+                  This will permanently remove:
+                </p>
+                <ul className="text-sm list-disc list-inside text-muted-foreground">
+                  <li>User profile and account data</li>
+                  <li>All assessment sessions and recordings</li>
+                  <li>Flashcard progress and history</li>
+                  <li>Consent records and purchases</li>
+                </ul>
+                <p className="text-sm font-medium text-destructive">
+                  This action cannot be undone.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteUser}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete User
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
