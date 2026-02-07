@@ -26,17 +26,17 @@ export function CTASection() {
       
       {/* Gradient orbs */}
       <motion.div
-        className="absolute top-10 left-[10%] w-[500px] h-[350px] bg-orange/15 rounded-full blur-[100px]"
+        className="absolute top-10 left-[10%] w-[500px] h-[350px] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsl(12_100%_55%_/_0.15)_0%,transparent_70%)]"
         animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.25, 0.15] }}
         transition={{ duration: 8, repeat: Infinity }}
       />
       <motion.div
-        className="absolute bottom-10 right-[10%] w-[600px] h-[400px] bg-magenta/12 rounded-full blur-[120px]"
+        className="absolute bottom-10 right-[10%] w-[600px] h-[400px] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsl(335_100%_59%_/_0.12)_0%,transparent_70%)]"
         animate={{ scale: [1.2, 1, 1.2], opacity: [0.12, 0.2, 0.12] }}
         transition={{ duration: 10, repeat: Infinity }}
       />
       <motion.div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[300px] bg-uv/10 rounded-full blur-[80px]"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[300px] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsl(260_100%_58%_/_0.10)_0%,transparent_70%)]"
         animate={{ scale: [1, 1.15, 1], opacity: [0.08, 0.15, 0.08] }}
         transition={{ duration: 12, repeat: Infinity }}
       />
@@ -55,7 +55,7 @@ export function CTASection() {
             whileInView={{ scale: 1 }}
             viewport={{ once: true }}
             transition={{ type: "spring", delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-steel/20 bg-graphite/50 backdrop-blur-sm mb-8"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-steel/20 bg-graphite/70 mb-8"
           >
             <Zap className="w-4 h-4 text-orange" />
             <span className="text-sm text-steel font-semibold">Know your real level</span>
@@ -83,7 +83,7 @@ export function CTASection() {
             ].map((feature) => (
               <div
                 key={feature.title}
-                className="p-4 rounded-xl border border-steel/15 bg-graphite/40 backdrop-blur-sm"
+                className="p-4 rounded-xl border border-steel/15 bg-graphite/60"
               >
                 <feature.icon className="w-6 h-6 text-orange mx-auto mb-2" />
                 <div className="font-serif font-bold text-bone text-sm mb-1">{feature.title}</div>
@@ -98,7 +98,7 @@ export function CTASection() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="max-w-xl mx-auto p-6 rounded-2xl border border-steel/20 bg-graphite/60 backdrop-blur-md"
+              className="max-w-xl mx-auto p-6 rounded-2xl border border-steel/20 bg-graphite/80"
             >
               <div className="flex items-center justify-center gap-3 mb-4">
                 <span className="font-serif font-bold text-bone text-lg">Speaking Placement Test</span>
@@ -132,7 +132,7 @@ export function CTASection() {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="max-w-xl mx-auto p-8 rounded-2xl border border-orange/30 bg-orange/10 backdrop-blur-md"
+              className="max-w-xl mx-auto p-8 rounded-2xl border border-orange/30 bg-orange/15"
             >
               <div className="flex items-center justify-center gap-2 mb-3">
                 <PartyPopper className="w-8 h-8 text-orange" />

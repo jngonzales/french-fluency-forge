@@ -21,7 +21,7 @@ export function Navbar() {
       animate={{ y: 0 }}
       className="fixed top-4 left-4 right-4 z-50"
     >
-      <div className="max-w-6xl mx-auto px-4 py-3 rounded-2xl border border-steel/20 bg-graphite/80 backdrop-blur-xl shadow-[0_18px_60px_rgba(0,0,0,0.55)]">
+      <div className="max-w-6xl mx-auto px-4 py-3 rounded-2xl border border-steel/20 bg-graphite/80 backdrop-blur-xl shadow-[0_18px_60px_rgba(0,0,0,0.55)]" style={{ willChange: 'transform' }}>
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3">
@@ -96,6 +96,7 @@ export function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             className="md:hidden mt-2 mx-auto max-w-6xl rounded-2xl border border-steel/20 bg-graphite/95 backdrop-blur-xl shadow-[0_18px_60px_rgba(0,0,0,0.55)]"
+            style={{ willChange: 'transform' }}
           >
             <div className="p-4 space-y-2">
               {navLinks.map((link) => (

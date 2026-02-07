@@ -6,7 +6,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { isAdminEmail } from '@/config/admin';
 import {
   Dialog,
   DialogContent,
@@ -83,10 +82,10 @@ export function UserManagerModal({ open, onOpenChange }: UserManagerModalProps) 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: profiles, error: profilesError } = await supabase
+      const { data: profiles, error: profilesError } = await (supabase as any)
         .from('profiles')
-        .select('id, email, created_at')
-        .order('created_at', { ascending: false });
+        .select('id, email, created_at, role')
+        .order('created_at', { ascending: false }) as { data: Array<{ id: string; email: string; created_at: string; role?: string }> | null; error: any };
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
@@ -101,7 +100,7 @@ export function UserManagerModal({ open, onOpenChange }: UserManagerModalProps) 
         console.error('Error fetching app_accounts:', accountsError);
       }
 
-      const profileMap = new Map<string, { id: string; email: string; created_at: string }>();
+      const profileMap = new Map<string, { id: string; email: string; created_at: string; role?: string }>();
       profiles?.forEach((profile) => {
         profileMap.set(profile.email.toLowerCase(), profile);
       });
@@ -119,7 +118,7 @@ export function UserManagerModal({ open, onOpenChange }: UserManagerModalProps) 
       profiles?.forEach((p) => allEmails.add(p.email.toLowerCase()));
       appAccounts?.forEach((a) => allEmails.add(a.email.toLowerCase()));
 
-      // Determine roles based on admin email list (role column doesn't exist in DB yet)
+      // Determine roles from DB (pure database-driven)
       const combinedUsers: UserProfile[] = Array.from(allEmails).map((email) => {
         const profile = profileMap.get(email);
         const account = accountMap.get(email);
@@ -127,10 +126,12 @@ export function UserManagerModal({ open, onOpenChange }: UserManagerModalProps) 
         const id = profile?.id || account?.user_id || `temp-${email}`;
         const created_at = profile?.created_at || account?.created_at || new Date().toISOString();
 
-        // Use email-based role detection (no role column in DB)
-        let role: UserRole = 'student';
-        if (isAdminEmail(email)) {
-          role = 'admin';
+        // Use DB role if available, otherwise default to student
+        let role: UserRole;
+        if (profile?.role && ['admin', 'teacher', 'student'].includes(profile.role)) {
+          role = profile.role as UserRole;
+        } else {
+          role = 'student';
         }
 
         return {
@@ -359,20 +360,25 @@ export function UserManagerModal({ open, onOpenChange }: UserManagerModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col p-0">
+        <DialogHeader className="flex-shrink-0 px-6 py-4 border-b bg-gradient-to-r from-primary/5 to-orange-500/5">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-bold">Manage Users</DialogTitle>
-            <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            <div>
+              <DialogTitle className="text-2xl font-bold">Manage Users</DialogTitle>
+              <p className="text-sm text-muted-foreground mt-1">View and manage user roles and access</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading} className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
           </div>
         </DialogHeader>
 
-        <div className="flex-shrink-0 border rounded-lg p-4 bg-muted/30">
+        <div className="flex-shrink-0 mx-6 mt-4 border rounded-xl p-4 bg-card shadow-sm">
           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />
+            <div className="p-1.5 rounded-lg bg-primary/10">
+              <UserPlus className="h-4 w-4 text-primary" />
+            </div>
             Invite New Teacher
           </h3>
           <div className="flex gap-2">
@@ -381,34 +387,38 @@ export function UserManagerModal({ open, onOpenChange }: UserManagerModalProps) 
               type="email"
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
-              className="flex-1"
+              className="flex-1 h-10"
             />
-            <Button onClick={handleInviteTeacher} disabled={inviting}>
-              {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4 mr-1" />}
+            <Button onClick={handleInviteTeacher} disabled={inviting} className="h-10 px-4">
+              {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
               Invite
             </Button>
           </div>
         </div>
 
-        <div className="flex-shrink-0 flex items-center gap-2 py-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <div className="flex gap-1">
-            {(['all', 'teachers', 'pending'] as FilterType[]).map((f) => (
-              <Button
-                key={f}
-                variant={filter === f ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilter(f)}
-                className="capitalize"
-              >
-                {f}
-              </Button>
-            ))}
+        <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <div className="flex gap-1 p-1 bg-muted rounded-lg">
+              {(['all', 'teachers', 'pending'] as FilterType[]).map((f) => (
+                <Button
+                  key={f}
+                  variant={filter === f ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setFilter(f)}
+                  className={`capitalize h-8 ${filter === f ? 'shadow-sm' : ''}`}
+                >
+                  {f}
+                </Button>
+              ))}
+            </div>
           </div>
-          <span className="text-sm text-muted-foreground ml-auto">{filteredUsers.length} users</span>
+          <span className="text-sm text-muted-foreground ml-auto font-medium">
+            {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
+          </span>
         </div>
 
-        <div className="flex-1 overflow-auto border rounded-lg">
+        <div className="flex-1 overflow-auto mx-6 mb-4 border rounded-xl">
           {loading ? (
             <div className="flex items-center justify-center h-40">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -418,13 +428,13 @@ export function UserManagerModal({ open, onOpenChange }: UserManagerModalProps) 
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[250px]">Email</TableHead>
-                  <TableHead className="w-[100px]">Created</TableHead>
-                  <TableHead className="w-[120px]">Role</TableHead>
-                  <TableHead className="w-[100px]">Access</TableHead>
-                  <TableHead className="w-[80px]">Active</TableHead>
-                  <TableHead className="w-[60px]">Actions</TableHead>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="w-[280px] font-semibold">Email</TableHead>
+                  <TableHead className="w-[100px] font-semibold">Created</TableHead>
+                  <TableHead className="w-[120px] font-semibold">Role</TableHead>
+                  <TableHead className="w-[100px] font-semibold">Access</TableHead>
+                  <TableHead className="w-[80px] font-semibold">Active</TableHead>
+                  <TableHead className="w-[60px] font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

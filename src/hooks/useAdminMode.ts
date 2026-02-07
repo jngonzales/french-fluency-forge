@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { isAdminEmail } from '@/config/admin';
 
 /**
- * Hook to detect if current user is an admin
- * Admin users get special dev tools even in production
+ * Hook to detect if current user is an admin or teacher
+ * Admin and teacher users get special dev tools even in production
  * 
- * Configure admin emails in: src/config/admin.ts
+ * Admin status is determined by the `role` column in the `profiles` table.
+ * Both 'admin' and 'teacher' roles grant admin access.
  */
 export function useAdminMode() {
   const { user } = useAuth();
@@ -23,18 +23,19 @@ export function useAdminMode() {
       }
 
       try {
-        // Check by email from config
-        const isAdminByEmail = isAdminEmail(user.email);
+        // Check database for admin role in profiles table
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
 
-        // Optional: Check database for admin flag (future enhancement)
-        // const { data } = await supabase
-        //   .from('app_accounts')
-        //   .select('is_admin')
-        //   .eq('email', user.email)
-        //   .single();
-        // const isAdminByDB = data?.is_admin || false;
-
-        setIsAdmin(isAdminByEmail);
+        if (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(data?.role === 'admin' || data?.role === 'teacher');
+        }
       } catch (error) {
         console.error('Error checking admin status:', error);
         setIsAdmin(false);

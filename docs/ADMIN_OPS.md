@@ -58,7 +58,7 @@ JOIN auth.users u ON u.id = p.id
 WHERE p.role = 'admin';
 ```
 
-**Note:** The frontend also checks a hardcoded list in `src/config/admin.ts`. Add emails there for client-side admin access.
+**Note:** Admin access is now purely database-driven. Set a user's `role` to `'admin'` in the `profiles` table to grant admin access. The hardcoded email list in `src/config/admin.ts` is deprecated.
 
 ---
 

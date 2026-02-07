@@ -27,6 +27,7 @@ export interface Phrase {
   canonical_fr?: string; // primary display
   
   tags: string[];
+  pack_title?: string; // optional pack/group name for TSV imports
   difficulty: 1 | 2 | 3 | 4 | 5;
   scaffold_overrides?: {
     level2?: string;

@@ -28,12 +28,12 @@ const Activate = lazy(() => import("./pages/Activate"));
 const AdminProducts = lazy(() => import("./pages/AdminProducts"));
 const SalesCopilot = lazy(() => import("./pages/admin/SalesCopilot"));
 const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
+const AdminUserDetailPage = lazy(() => import("./pages/admin/AdminUserDetailPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const PhrasesLandingPage = lazy(() => import("./pages/PhrasesLandingPage"));
 const PhrasesSessionPage = lazy(() => import("./pages/PhrasesSessionPage"));
 const PhrasesLibraryPage = lazy(() => import("./pages/PhrasesLibraryPage"));
 const PhrasesSettingsPage = lazy(() => import("./pages/PhrasesSettingsPage"));
-const PhrasesCoachPage = lazy(() => import("./pages/PhrasesCoachPage"));
 const PhrasesReviewLogsPage = lazy(() => import("./pages/phrases/PhrasesReviewLogsPage"));
 const SRSLabPage = lazy(() => import("./pages/admin/SRSLabPage"));
 const SpeakingAssessmentLandingPage = lazy(() => import("./pages/SpeakingAssessmentLandingPage"));
@@ -117,6 +117,14 @@ const App = () => (
               } 
             />
             <Route 
+              path="/admin/users/:userId" 
+              element={
+                <ProtectedRoute>
+                  <AdminUserDetailPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
               path="/phrases" 
               element={
                 <ProtectedRoute>
@@ -145,14 +153,6 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <PhrasesSettingsPage />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/phrases/coach" 
-              element={
-                <ProtectedRoute>
-                  <PhrasesCoachPage />
                 </ProtectedRoute>
               } 
             />

@@ -39,8 +39,8 @@ export function HowItWorksSection() {
       className="py-20 md:py-28 bg-graphite relative overflow-hidden"
     >
       {/* Gradient orbs */}
-      <div className="absolute top-0 left-[20%] w-[400px] h-[300px] bg-uv/10 rounded-full blur-[100px]" />
-      <div className="absolute bottom-0 right-[20%] w-[350px] h-[250px] bg-magenta/10 rounded-full blur-[80px]" />
+      <div className="absolute top-0 left-[20%] w-[400px] h-[300px] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsl(260_100%_58%_/_0.10)_0%,transparent_70%)]" />
+      <div className="absolute bottom-0 right-[20%] w-[350px] h-[250px] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsl(335_100%_59%_/_0.10)_0%,transparent_70%)]" />
 
       <div className="container px-4 relative z-10">
         <motion.div

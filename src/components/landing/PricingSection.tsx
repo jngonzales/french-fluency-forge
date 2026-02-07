@@ -117,8 +117,8 @@ export function PricingSection() {
       className="py-20 md:py-28 bg-bone relative overflow-hidden"
     >
       {/* Background decoration */}
-      <div className="absolute top-0 right-0 w-[500px] h-[400px] bg-orange/5 rounded-full blur-[100px]" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[300px] bg-magenta/5 rounded-full blur-[80px]" />
+      <div className="absolute top-0 right-0 w-[500px] h-[400px] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsl(12_100%_55%_/_0.5)_0%,transparent_70%)]" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[300px] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsl(335_100%_59%_/_0.5)_0%,transparent_70%)]" />
 
       <div className="container px-4 relative z-10">
         <motion.div

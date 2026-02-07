@@ -281,12 +281,25 @@ export function useDashboardData(viewingUserId?: string) {
       // Generate timeline series for overall metric
       const timelineSeries = generateTimelineSeries(assessments, 'overall', 90);
 
+      // Resolve target user's email for display name
+      let targetEmail = user.email || '';
+      if (viewingUserId && viewingUserId !== user.id) {
+        const { data: targetProfile } = await (supabase as any)
+          .from('profiles')
+          .select('email')
+          .eq('id', viewingUserId)
+          .single() as { data: { email: string } | null };
+        if (targetProfile?.email) {
+          targetEmail = targetProfile.email;
+        }
+      }
+
       // Build complete dashboard data
       const dashboardData: DashboardData = {
         member: {
           id: targetUserId,
-          name: user.email?.split('@')[0] || 'Member',
-          email: user.email || '',
+          name: targetEmail.split('@')[0] || 'Member',
+          email: targetEmail,
           plan: '3090', // Mock for now, can read from app_accounts later
           features: getPlanFeatures('3090'),
         },
@@ -331,7 +344,7 @@ export function useDashboardData(viewingUserId?: string) {
         badges: false,
       });
     }
-  }, [targetUserId, user]);
+  }, [targetUserId, user, viewingUserId]);
 
   // ========================================
   // V0-CORE: Database-persisted action methods

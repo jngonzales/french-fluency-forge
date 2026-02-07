@@ -1,1 +1,29 @@
-let's push to vercel https://vercel.com/jn-gonzales-projects/frenchfluencyforge/FFRYrEuHzrijXm6yDQF8HVLFGRmX
+Tom:
+Hi JN — sorry for the slow reply, I’ve been very busy the last couple of days.
+
+I tested the app properly now, and I want to start with this: I really like the new version.
+ The design is simple, efficient, and much closer to what I had in mind. I genuinely think this will work well for real users, including less tech-savvy ones. Good call on hiding the graphs and habits — it’s always easier to add complexity later than to remove confusion.
+A few things I want to clarify and ask about, mostly on the ops / backend side:
+1) Adding teachers / users
+ I want to start adding teachers to the app.
+ Is the correct way to do this via Supabase directly? If yes, can you explain clearly:
+Where Supabase is currently hosted (my account or yours?)How I should access it safelyWhat tables / fields I should touch (and which ones I absolutely shouldn’t)Whether you recommend UI-based admin actions or direct DB actions for nowI got a bit lost here, so a short “do this / don’t do this” explanation would really help.
+2) Support email / reports
+ You mentioned creating an alternative email so you can directly see reports and act on them without me forwarding things. I’m not fully sure I understood what you meant there — can you clarify the setup you’re proposing and what access you’d need?
+3) Pace & performance
+ Please don’t be too hard on yourself. I don’t see this as a performance issue — more a case of evolving requirements and me not being as clear early on as I could have been. I really appreciate the work you’ve done, the responsiveness, and the improvements you shipped quickly. I’m confident we’ll keep working together on this.
+4) Flashcards: testing & risks
+ I’m excited that the flashcards are now usable — this is a big milestone for us.
+ Since we’re close to onboarding first real users, do you foresee any edge cases or things that could break (especially around scheduling, resets, or syncing)?
+ If you have a suggested way for me to stress-test this (or a checklist of “try to break it like this”), I’m happy to do that over the next couple of days.
+Overall: great progress. This already feels like something we can confidently put in users’ hands. Let me know anything you think we should double-check before we onboard the first students.
+Thanks again — and nice work.Tom Gauthier  [9:11 PM]
+@JN, 
+Can you tell me what's the situation with the app
+
+
+Me:
+regarding the support email, I was proposing if we could make a separate email for support of the app since ofcourse using an existing one that you have might be integrated to other services or sum' and you'll get no privacy since instead of me seeing only relevant email about the app there would be other emails from others
+Adding teachers is accesable in admin panel /admin/users where you can invite and assign flashcard packs
+right now I'm improving the roles (admin/teacher if you want them seperate,students), and also trying to break the app to find bugs
+I'll create a comprehensive FAQ and answers before the day ends

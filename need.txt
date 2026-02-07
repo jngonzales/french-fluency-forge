@@ -1,74 +1,9 @@
-TASK 1: Admin Toolbar - User/Teacher Manager
-ADD:
+We need a way to assign flashcards to students first.
+I also need to be able to see the flashcards of the student as a teacher or admin
+The teacher/admin should be able to have access on the account of student
 
-New dropdown button in AdminToolbar.tsx: "Manage Users"
+Basically what he wants is:
 
-New modal file: UserManagerModal.tsx in src/components/admin/
+let's have the Manage Users button have a seperated page not a modal/pop up in /admin/users
 
-Table showing: email, created_at, role (student/teacher/admin), access status
-
-Per-row actions: "Invite Teacher" button, Role dropdown, Access toggle switch
-
-Filters: All/Teachers/Pending at top of table
-
-Refresh button in modal header
-
-WHERE:
-
-AdminToolbar.tsx - add button next to existing admin tools
-
-UserManagerModal.tsx - complete modal implementation
-
-TASK 2: Flashcard "Easy" Button Fix
-CHANGE:
-
-schedulerMock.ts calculateNextReview() function:
-
-When rating === 'easy':
-
-Force newInterval minimum 7 days
-
-Set newState = 'review' (graduate to long-term)
-
-Increase easeFactor by 0.2 maximum 3.0
-
-CHANGE:
-
-PhraseStatsCard.tsx "Learned" count calculation:
-
-Count cards where state === 'review' AND intervaldays >= 7 AND reviews >= 3
-
-CHANGE:
-
-Rating button tooltips for Easy button:
-
-Show "in 10+ days" instead of current random intervals
-
-TEST:
-Admin UI:
-
-Click Manage Users → see all profiles table
-
-Invite new teacher → check email sent
-
-Toggle access → verify appaccounts updates
-
-Change role → verify profiles.role updates
-
-Flashcard Easy:
-
-Start phrases session
-
-Rate card "Easy" → verify toast shows 7+ days
-
-Check library → verify long due date
-
-Check dashboard → verify Learned count +1
-
-Edge cases:
-
-No users table → empty state
-
-Rate Easy on new card → still graduates properly
-
-Multi-tab refresh → intervals persist correctly
+the new page for manage users should have like make the the emails or row of the email to be clickable and after clicking it, we'll be having an access to their dashboard and can tweaks stuff such as phrases and add/import a tsv of flashcards there also the importing of TSV should have an input of title of the tsv/flashcard packs not just the Parse TSV Content, after Parse TSV it'll be put to the Add more Phrases tab

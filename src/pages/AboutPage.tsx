@@ -23,8 +23,8 @@ export default function AboutPage() {
         {/* Hero */}
         <section className="py-20 md:py-28 relative overflow-hidden">
           {/* Gradient orbs */}
-          <div className="absolute top-[10%] right-[10%] w-[400px] h-[300px] bg-uv/15 rounded-full blur-[100px]" />
-          <div className="absolute bottom-[20%] left-[10%] w-[350px] h-[250px] bg-orange/12 rounded-full blur-[80px]" />
+          <div className="absolute top-[10%] right-[10%] w-[400px] h-[300px] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsl(260_100%_58%_/_0.15)_0%,transparent_70%)]" />
+          <div className="absolute bottom-[20%] left-[10%] w-[350px] h-[250px] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsl(12_100%_55%_/_0.12)_0%,transparent_70%)]" />
           
           <div className="container px-4 relative z-10">
             <motion.div

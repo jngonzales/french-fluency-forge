@@ -6,14 +6,6 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
-// Admin emails - same list as src/config/admin.ts
-const ADMIN_EMAILS = [
-  'tom@solvlanguages.com',
-  'jngonzales.dev@gmail.com',
-  'tomgauthier0@gmail.com',
-  'jngonz24@gmail.com'
-];
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -53,8 +45,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if user email is in admin list
-    const isAdmin = ADMIN_EMAILS.includes(user.email?.toLowerCase() || '');
+    // Check if user has admin role in the profiles table
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: profile, error: profileError } = await adminClient
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError) {
+      console.error('[invite-user] Error fetching profile:', profileError);
+      return new Response(
+        JSON.stringify({ error: 'Error checking admin status' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const isAdmin = profile?.role === 'admin' || profile?.role === 'teacher';
 
     if (!isAdmin) {
       return new Response(
@@ -71,9 +78,6 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    // Create admin client with service role key
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     // Invite the user
     const { data, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {

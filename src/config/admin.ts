@@ -1,10 +1,17 @@
 /**
  * Admin Configuration
  * 
- * Add admin user emails here to enable admin mode for specific users
- * Admin users get special dev tools even in production
+ * DEPRECATED: Admin detection is now handled via the `role` column in the `profiles` table.
+ * To make a user an admin, set their role to 'admin' in Supabase:
+ * 
+ * UPDATE public.profiles SET role = 'admin' WHERE email = 'user@example.com';
+ * 
+ * This file is kept for reference only.
  */
 
+/**
+ * @deprecated Use profiles.role in the database instead
+ */
 export const ADMIN_EMAILS = [
   'tom@solvlanguages.com',
   'jngonzales.dev@gmail.com',
@@ -13,7 +20,7 @@ export const ADMIN_EMAILS = [
 ];
 
 /**
- * Check if email is an admin
+ * @deprecated Check profiles.role === 'admin' in the database instead
  */
 export function isAdminEmail(email: string | undefined): boolean {
   if (!email) return false;

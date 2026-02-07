@@ -40,18 +40,18 @@ export function HeroSection() {
         {/* SOLV Dark background with gradient glows */}
         <div className="absolute inset-0 bg-carbon" />
         
-        {/* Animated gradient orbs - Using CSS animations for better performance */}
+        {/* Static gradient orbs - radial gradients instead of CSS blur for GPU performance */}
         <div
-          className="absolute top-1/4 left-[15%] w-[600px] h-[400px] bg-uv/20 rounded-full blur-[120px] animate-pulse-slow"
-          style={{ animationDuration: '8s' }}
+          className="absolute top-1/4 left-[15%] w-[600px] h-[400px] rounded-full"
+          style={{ background: 'radial-gradient(50% 50% at 50% 50%, hsl(260 100% 58% / 0.20) 0%, transparent 70%)' }}
         />
         <div
-          className="absolute top-[20%] right-[15%] w-[450px] h-[325px] bg-magenta/15 rounded-full blur-[100px] animate-pulse-slow"
-          style={{ animationDuration: '10s', animationDelay: '1s' }}
+          className="absolute top-[20%] right-[15%] w-[450px] h-[325px] rounded-full"
+          style={{ background: 'radial-gradient(50% 50% at 50% 50%, hsl(335 100% 59% / 0.15) 0%, transparent 70%)' }}
         />
         <div
-          className="absolute bottom-[15%] right-[35%] w-[350px] h-[260px] bg-orange/15 rounded-full blur-[80px] animate-pulse-slow"
-          style={{ animationDuration: '12s', animationDelay: '2s' }}
+          className="absolute bottom-[15%] right-[35%] w-[350px] h-[260px] rounded-full"
+          style={{ background: 'radial-gradient(50% 50% at 50% 50%, hsl(12 100% 55% / 0.15) 0%, transparent 70%)' }}
         />
 
         {/* Subtle film grain overlay */}
@@ -64,7 +64,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-3 px-4 py-2.5 rounded-full border border-steel/20 bg-graphite/50 backdrop-blur-sm mb-8"
+            className="inline-flex items-center gap-3 px-4 py-2.5 rounded-full border border-steel/20 bg-graphite/70 mb-8"
           >
             <span className="w-2.5 h-2.5 rounded-full bg-orange shadow-[0_0_0_4px_rgba(255,77,26,0.2)]" />
             <span className="font-mono text-xs text-steel uppercase tracking-wider">We Value Reality</span>
@@ -103,7 +103,7 @@ export function HeroSection() {
             className="max-w-xl mx-auto"
           >
             {!isSubmitted ? (
-              <div className="p-6 rounded-2xl border border-steel/20 bg-graphite/60 backdrop-blur-md">
+              <div className="p-6 rounded-2xl border border-steel/20 bg-graphite/60 backdrop-blur-md" style={{ willChange: 'transform' }}>
                 <div className="flex items-center justify-center gap-2 mb-4">
                   <Zap className="w-5 h-5 text-orange" />
                   <span className="font-serif font-bold text-bone">Speaking Placement Test</span>
@@ -135,7 +135,7 @@ export function HeroSection() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="p-6 rounded-2xl border border-orange/30 bg-orange/10 backdrop-blur-md"
+                className="p-6 rounded-2xl border border-orange/30 bg-orange/15"
               >
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <PartyPopper className="w-6 h-6 text-orange" />

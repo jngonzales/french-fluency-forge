@@ -29,8 +29,9 @@ interface CardRow {
   last_reviewed_at: string | null;
 }
 
-export function useFlashcardStats(): FlashcardStats {
+export function useFlashcardStats(memberId?: string): FlashcardStats {
   const { user } = useAuth();
+  const targetId = memberId || user?.id;
   const [stats, setStats] = useState<FlashcardStats>({
     scheduled: 0,
     learned: 0,
@@ -42,17 +43,17 @@ export function useFlashcardStats(): FlashcardStats {
 
   useEffect(() => {
     async function fetchStats() {
-      if (!user?.id) {
+      if (!targetId) {
         setStats(prev => ({ ...prev, loading: false }));
         return;
       }
 
       try {
-        // Get all cards for the current user (member_id = user.id)
+        // Get all cards for the target user (member_id = targetId)
         const { data: cards, error } = await db
           .from('member_phrase_cards')
           .select('due_at, scheduler_state, last_reviewed_at')
-          .eq('member_id', user.id);
+          .eq('member_id', targetId);
 
         if (error) {
           console.warn('[useFlashcardStats] Error fetching cards:', error);
@@ -81,6 +82,7 @@ export function useFlashcardStats(): FlashcardStats {
         }
 
         const now = new Date();
+        // Use exactly 7 days as the boundary (168 hours)
         const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
         let scheduled = 0;
@@ -103,9 +105,10 @@ export function useFlashcardStats(): FlashcardStats {
 
           const dueDate = new Date(card.due_at);
           
-          // Scheduled: due within the next 7 days
-          // Learned: due more than 7 days from now
-          if (dueDate <= sevenDaysFromNow) {
+          // Scheduled: due within the next 7 days (exclusive of 7-day mark)
+          // Learned: due in 7 or more days from now
+          // This ensures "Easy" ratings (7+ day intervals) go to "Learned"
+          if (dueDate < sevenDaysFromNow) {
             scheduled++;
           } else {
             learned++;
@@ -135,7 +138,7 @@ export function useFlashcardStats(): FlashcardStats {
     }
 
     fetchStats();
-  }, [user?.id]);
+  }, [targetId]);
 
   return stats;
 }

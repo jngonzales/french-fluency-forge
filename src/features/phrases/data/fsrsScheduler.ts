@@ -137,6 +137,9 @@ function fsrsToCardUpdate(
   const dueIsoString = safeDateToISOString(fsrsCard.due) || now.toISOString();
   const lastReviewIsoString = safeDateToISOString(fsrsCard.last_review);
   
+  // Calculate interval_days from interval_ms (for stats and compatibility)
+  const intervalDays = Math.max(0, Math.round(intervalMs / (1000 * 60 * 60 * 24)));
+  
   return {
     scheduler: {
       ...card.scheduler,
@@ -146,6 +149,7 @@ function fsrsToCardUpdate(
       stability: fsrsCard.stability,
       difficulty: fsrsCard.difficulty,
       interval_ms: intervalMs,
+      interval_days: intervalDays,
       scheduler_state_jsonb: {
         due: dueIsoString,
         stability: fsrsCard.stability,
@@ -193,19 +197,52 @@ export function calculateNextReviewFSRS(
   if (config.enable_short_term) {
     const isNew = card.scheduler.state === 'new';
     const isRelearning = card.scheduler.state === 'relearning';
+    const isLearning = card.scheduler.state === 'learning';
+    
+    // SPECIAL CASE: "Easy" on new/learning/relearning card immediately graduates to review
+    // with minimum 7 days interval, bypassing all learning steps
+    if (rating === 'easy' && (isNew || isLearning || isRelearning)) {
+      const scheduled = fsrs.next(fsrsCard, now, fsrsRating);
+      let intervalMs = scheduled.card.due.getTime() - now.getTime();
+      
+      // Ensure minimum 7 days (604800000 ms) for Easy
+      const minEasyIntervalMs = 7 * 24 * 60 * 60 * 1000; // 7 days
+      if (intervalMs < minEasyIntervalMs) {
+        intervalMs = minEasyIntervalMs;
+      }
+      
+      const dueAt = new Date(now.getTime() + intervalMs);
+      const baseUpdate = fsrsToCardUpdate(card, scheduled.card, intervalMs, now);
+      
+      return {
+        card: {
+          ...card,
+          ...baseUpdate,
+          scheduler: {
+            ...baseUpdate.scheduler,
+            due_at: dueAt.toISOString(),
+            state: 'review',
+            short_term_step_index: undefined,
+          },
+        },
+        intervalMs,
+        dueAt,
+      };
+    }
     
     if (rating === 'again' && (isNew || isRelearning)) {
       // Reset to first step
       const steps = isNew ? config.learning_steps : config.relearning_steps;
       const firstStepMs = parseTimeString(steps[0]);
       const dueAt = new Date(now.getTime() + firstStepMs);
+      const baseUpdate = fsrsToCardUpdate(card, fsrsCard, firstStepMs, now);
       
       return {
         card: {
           ...card,
-          ...fsrsToCardUpdate(card, fsrsCard, firstStepMs, now),
+          ...baseUpdate,
           scheduler: {
-            ...card.scheduler,
+            ...baseUpdate.scheduler,
             state: isNew ? 'learning' : 'relearning',
             short_term_step_index: 0,
           },
@@ -225,13 +262,14 @@ export function calculateNextReviewFSRS(
         if (currentStepIndex < steps.length - 1) {
           const nextStepMs = parseTimeString(steps[currentStepIndex + 1]);
           const dueAt = new Date(now.getTime() + nextStepMs);
+          const baseUpdate = fsrsToCardUpdate(card, fsrsCard, nextStepMs, now);
           
           return {
             card: {
               ...card,
-              ...fsrsToCardUpdate(card, fsrsCard, nextStepMs, now),
+              ...baseUpdate,
               scheduler: {
-                ...card.scheduler,
+                ...baseUpdate.scheduler,
                 short_term_step_index: currentStepIndex + 1,
               },
             },
@@ -242,13 +280,14 @@ export function calculateNextReviewFSRS(
           // Graduate to review
           const scheduled = fsrs.next(fsrsCard, now, fsrsRating);
           const intervalMs = scheduled.card.due.getTime() - now.getTime();
+          const baseUpdate = fsrsToCardUpdate(card, scheduled.card, intervalMs, now);
           
           return {
             card: {
               ...card,
-              ...fsrsToCardUpdate(card, scheduled.card, intervalMs, now),
+              ...baseUpdate,
               scheduler: {
-                ...card.scheduler,
+                ...baseUpdate.scheduler,
                 state: 'review',
                 short_term_step_index: undefined,
               },
@@ -300,6 +339,11 @@ export function previewAllIntervalsFSRS(
 
 // Format interval for display
 export function formatIntervalFSRS(intervalMs: number): string {
+  // SAFEGUARD: Handle NaN, undefined, or invalid values
+  if (intervalMs === undefined || intervalMs === null || isNaN(intervalMs) || !isFinite(intervalMs)) {
+    console.warn('[formatIntervalFSRS] Invalid intervalMs:', intervalMs);
+    return '~1 day'; // Fallback display
+  }
   if (intervalMs < 0) return 'overdue';
   if (intervalMs < 1000) return 'now';
   if (intervalMs < 60 * 1000) return `${Math.round(intervalMs / 1000)}s`;

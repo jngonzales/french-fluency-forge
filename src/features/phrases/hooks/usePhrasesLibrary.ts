@@ -31,18 +31,25 @@ export function usePhrasesLibrary(memberId?: string) {
     const load = async () => {
       setLoading(true);
       try {
+        // When viewing another user (admin mode), skip localStorage migration/fallback
+        const isViewingOther = memberId && user?.id && memberId !== user.id;
+
         if (user?.id) {
-          await runMigrationIfNeeded(user.id);
-          const { cards: dbCards, phraseMap: dbPhrases } = await fetchMemberCardsWithPhrases(user.id);
+          if (!isViewingOther) {
+            await runMigrationIfNeeded(user.id);
+          }
+          const { cards: dbCards, phraseMap: dbPhrases } = await fetchMemberCardsWithPhrases(effectiveMemberId);
           if (!isActive) return;
           
           // If Supabase returned cards, use them
           if (dbCards.length > 0) {
             setCards(dbCards);
             setPhraseMap(dbPhrases);
-            localStorage.setItem(`solv_phrases_cards_${user.id}`, JSON.stringify(dbCards));
-          } else {
-            // Supabase returned empty, check localStorage for cached cards
+            if (!isViewingOther) {
+              localStorage.setItem(`solv_phrases_cards_${effectiveMemberId}`, JSON.stringify(dbCards));
+            }
+          } else if (!isViewingOther) {
+            // Only fall back to localStorage for the current user, not when viewing others
             const key = `solv_phrases_cards_${user.id}`;
             const stored = localStorage.getItem(key);
             if (stored) {
@@ -140,7 +147,7 @@ export function usePhrasesLibrary(memberId?: string) {
 
     load();
     return () => { isActive = false; };
-  }, [effectiveMemberId, user?.id]);
+  }, [effectiveMemberId, user?.id, memberId]);
 
   // Save cards (Supabase for authed, local cache for guests)
   const saveCards = (updatedCards: MemberPhraseCard[]) => {
@@ -211,6 +218,7 @@ export function usePhrasesLibrary(memberId?: string) {
   // Calculate stats
   const stats: PhraseStats = useMemo(() => {
     const now = new Date();
+    
     return {
       total: cards.length,
       due: cards.filter((c) => c.status === 'active' && new Date(c.scheduler.due_at) <= now).length,
@@ -220,20 +228,24 @@ export function usePhrasesLibrary(memberId?: string) {
       suspended: cards.filter((c) => c.status === 'suspended').length,
       buried: cards.filter((c) => c.status === 'buried').length,
       // "Learned" = cards that have graduated to long-term review
-      // Criteria: state === 'review' AND interval_days >= 7 AND reviews >= 3
+      // Criteria: state === 'review' AND interval >= 7 days (from interval_days or interval_ms)
       known_recall: cards.filter((c) => {
         const phrase = phraseMap[c.phrase_id] || getPhraseById(c.phrase_id);
+        // Calculate interval in days from either interval_days or interval_ms
+        const intervalDays = c.scheduler.interval_days || 
+          (c.scheduler.interval_ms ? Math.round(c.scheduler.interval_ms / (1000 * 60 * 60 * 24)) : 0);
         return phrase?.mode === 'recall' && 
           c.scheduler.state === 'review' && 
-          (c.scheduler.interval_days || 0) >= 7 && 
-          (c.reviews || 0) >= 3;
+          intervalDays >= 7;
       }).length,
       known_recognition: cards.filter((c) => {
         const phrase = phraseMap[c.phrase_id] || getPhraseById(c.phrase_id);
+        // Calculate interval in days from either interval_days or interval_ms
+        const intervalDays = c.scheduler.interval_days || 
+          (c.scheduler.interval_ms ? Math.round(c.scheduler.interval_ms / (1000 * 60 * 60 * 24)) : 0);
         return phrase?.mode === 'recognition' && 
           c.scheduler.state === 'review' && 
-          (c.scheduler.interval_days || 0) >= 7 && 
-          (c.reviews || 0) >= 3;
+          intervalDays >= 7;
       }).length,
     };
   }, [cards, phraseMap]);
@@ -305,6 +317,7 @@ export function usePhrasesLibrary(memberId?: string) {
 
   return {
     cards: enrichedCards,
+    phraseMap,
     filters,
     setFilters,
     stats,

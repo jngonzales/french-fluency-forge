@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -110,7 +111,8 @@ function parseTSV(content: string): ParsedRow[] {
  */
 function createPhrasesAndCards(
   rows: ParsedRow[],
-  memberId: string
+  memberId: string,
+  packTitle?: string
 ): { phrases: Phrase[]; cards: MemberPhraseCard[] } {
   const now = new Date();
   const phrases: Phrase[] = [];
@@ -120,6 +122,11 @@ function createPhrasesAndCards(
     const phraseId = crypto.randomUUID();
     const cardId = crypto.randomUUID();
 
+    // Merge pack tag if pack title provided
+    const tags = packTitle
+      ? [...new Set([...row.tags, `pack:${packTitle}`])]
+      : row.tags;
+
     // Create phrase
     const phrase: Phrase = {
       id: phraseId,
@@ -127,7 +134,8 @@ function createPhrasesAndCards(
       prompt_en: row.english,
       canonical_fr: row.french,
       answers_fr: [row.french, ...row.alternates],
-      tags: row.tags,
+      tags,
+      pack_title: packTitle || undefined,
       difficulty: row.difficulty,
       created_at: now.toISOString(),
     };
@@ -162,6 +170,7 @@ function createPhrasesAndCards(
 
 export function TSVImportDialog({ onImport, memberId, children }: TSVImportDialogProps) {
   const [open, setOpen] = useState(false);
+  const [packTitle, setPackTitle] = useState('');
   const [tsvContent, setTsvContent] = useState('');
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
   const [isImporting, setIsImporting] = useState(false);
@@ -182,7 +191,7 @@ export function TSVImportDialog({ onImport, memberId, children }: TSVImportDialo
 
     setIsImporting(true);
     try {
-      const { phrases, cards } = createPhrasesAndCards(parsedRows, memberId);
+      const { phrases, cards } = createPhrasesAndCards(parsedRows, memberId, packTitle.trim() || undefined);
       await onImport(phrases, cards);
       setImportResult({
         success: true,
@@ -190,6 +199,7 @@ export function TSVImportDialog({ onImport, memberId, children }: TSVImportDialo
       });
       // Reset after success
       setTimeout(() => {
+        setPackTitle('');
         setTsvContent('');
         setParsedRows([]);
         setImportResult(null);
@@ -206,6 +216,7 @@ export function TSVImportDialog({ onImport, memberId, children }: TSVImportDialo
   };
 
   const handleReset = () => {
+    setPackTitle('');
     setTsvContent('');
     setParsedRows([]);
     setImportResult(null);
@@ -236,6 +247,20 @@ export function TSVImportDialog({ onImport, memberId, children }: TSVImportDialo
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Pack title input */}
+          <div className="space-y-2">
+            <Label htmlFor="pack-title">Pack Title (optional)</Label>
+            <Input
+              id="pack-title"
+              placeholder="e.g., Restaurant Vocabulary, Travel Phrases"
+              value={packTitle}
+              onChange={(e) => setPackTitle(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Give your import a name so it appears as a separate pack. Leave blank to import without grouping.
+            </p>
+          </div>
+
           {/* Format instructions */}
           <Alert>
             <AlertDescription className="text-sm">

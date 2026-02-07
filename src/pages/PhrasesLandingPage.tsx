@@ -3,13 +3,14 @@
  * Main entry point with stats, CTAs, and empty state
  */
 
-import { useNavigate } from 'react-router-dom';
+import { useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminPadding } from '@/components/AdminPadding';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Play, Library, Settings, User, Package, Upload, Loader2, GraduationCap, Briefcase, Sun, ArrowLeft } from 'lucide-react';
+import { BookOpen, Play, Library, Settings, Package, Upload, Loader2, GraduationCap, Briefcase, Sun, ArrowLeft, Eye } from 'lucide-react';
 import { EmptyState } from '@/features/phrases/components/EmptyState';
 import { usePhrasesLibrary } from '@/features/phrases/hooks/usePhrasesLibrary';
 import { useToast } from '@/hooks/use-toast';
@@ -23,9 +24,29 @@ export default function PhrasesLandingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { stats, loading } = usePhrasesLibrary();
+  const [searchParams] = useSearchParams();
+  const viewingMemberId = searchParams.get('memberId') || undefined;
+  const { stats, loading, phraseMap } = usePhrasesLibrary(viewingMemberId);
   
-  const memberId = user?.id || 'guest';
+  const memberId = viewingMemberId || user?.id || 'guest';
+  const isViewingOther = !!viewingMemberId && viewingMemberId !== user?.id;
+
+  // Derive custom packs from phrases with pack:* tags
+  const customPacks = useMemo(() => {
+    const packs: Record<string, { title: string; count: number }> = {};
+    for (const phrase of Object.values(phraseMap)) {
+      const packTag = phrase.tags?.find((t) => t.startsWith('pack:'));
+      if (packTag) {
+        const title = packTag.replace('pack:', '');
+        if (!packs[title]) packs[title] = { title, count: 0 };
+        packs[title].count++;
+      } else if (phrase.pack_title) {
+        if (!packs[phrase.pack_title]) packs[phrase.pack_title] = { title: phrase.pack_title, count: 0 };
+        packs[phrase.pack_title].count++;
+      }
+    }
+    return Object.values(packs);
+  }, [phraseMap]);
 
   const handleSeedStarterPack = async (packId: string = 'pack-001', packName: string = 'Starter pack') => {
     try {
@@ -190,6 +211,26 @@ export default function PhrasesLandingPage() {
   return (
     <AdminPadding>
       <div className="min-h-screen bg-background animate-fade-in">
+        {/* Admin Viewing Banner */}
+        {isViewingOther && (
+          <div className="bg-amber-100 dark:bg-amber-900/30 border-b border-amber-300 dark:border-amber-700 px-4 py-2">
+            <div className="max-w-7xl mx-auto flex items-center justify-between">
+              <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200 text-sm font-medium">
+                <Eye className="h-4 w-4" />
+                <span>Admin view — Viewing student's phrases</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(`/admin/users/${viewingMemberId}`)}
+                className="h-7 text-xs text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-800"
+              >
+                <ArrowLeft className="h-3 w-3 mr-1" />
+                Back to User
+              </Button>
+            </div>
+          </div>
+        )}
         {/* Header */}
         <header className="border-b border-border bg-card sticky top-0 z-10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -481,25 +522,37 @@ export default function PhrasesLandingPage() {
                   </CardContent>
                 </Card>
 
-                {/* Coach view link (if admin) */}
-                <Card className="border-dashed">
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-md bg-muted">
-                        <User className="w-5 h-5 text-muted-foreground" />
+                {/* Custom Packs */}
+                {customPacks.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-md bg-primary/10">
+                          <Upload className="w-5 h-5 text-primary" />
+                        </div>
+                        <CardTitle className="text-lg">Custom Packs</CardTitle>
                       </div>
-                      <CardTitle className="text-lg text-muted-foreground">Coach view</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="mb-4">
-                      For coaches: View and manage member phrase assignments
-                    </CardDescription>
-                    <Button variant="ghost" onClick={() => navigate('/phrases/coach')}>
-                      Open coach view
-                    </Button>
-                  </CardContent>
-                </Card>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {customPacks.map((pack) => (
+                          <div
+                            key={pack.title}
+                            className="flex items-center gap-3 p-3 rounded-lg border bg-muted/40"
+                          >
+                            <div className="p-2 rounded-md bg-orange-100 dark:bg-orange-900/30">
+                              <Package className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{pack.title}</p>
+                              <p className="text-xs text-muted-foreground">{pack.count} phrase{pack.count !== 1 ? 's' : ''}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </div>
           )}

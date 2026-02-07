@@ -749,9 +749,8 @@ export const MOCK_PHRASE_PACKS: PhrasePack[] = [
     description: 'Navigate work situations and daily logistics with confidence',
     tags: ['work', 'logistics', 'practical'],
     phrase_ids: [
+      getPhraseUUID(11), getPhraseUUID(12), getPhraseUUID(13), getPhraseUUID(14), getPhraseUUID(15),
       getPhraseUUID(16), getPhraseUUID(17), getPhraseUUID(18), getPhraseUUID(19), getPhraseUUID(20),
-      getPhraseUUID(21), getPhraseUUID(22), getPhraseUUID(23), getPhraseUUID(24), getPhraseUUID(25),
-      getPhraseUUID(26), getPhraseUUID(27), getPhraseUUID(28),
     ],
     created_at: '2026-01-01T00:00:00Z',
   },
@@ -761,9 +760,8 @@ export const MOCK_PHRASE_PACKS: PhrasePack[] = [
     description: 'Express your feelings and reactions naturally in French',
     tags: ['emotions', 'relationships', 'feelings'],
     phrase_ids: [
-      getPhraseUUID(29), getPhraseUUID(30), getPhraseUUID(31), getPhraseUUID(32), getPhraseUUID(33),
-      getPhraseUUID(34), getPhraseUUID(35), getPhraseUUID(36), getPhraseUUID(37), getPhraseUUID(38),
-      getPhraseUUID(39), getPhraseUUID(40),
+      getPhraseUUID(21), getPhraseUUID(22), getPhraseUUID(23), getPhraseUUID(24), getPhraseUUID(25),
+      getPhraseUUID(26), getPhraseUUID(27), getPhraseUUID(28), getPhraseUUID(29), getPhraseUUID(30),
     ],
     created_at: '2026-01-01T00:00:00Z',
   },
@@ -773,8 +771,8 @@ export const MOCK_PHRASE_PACKS: PhrasePack[] = [
     description: 'Phrases for classroom, studying, and academic life',
     tags: ['school', 'classroom', 'exams', 'homework'],
     phrase_ids: [
-      getPhraseUUID(41), getPhraseUUID(42), getPhraseUUID(43), getPhraseUUID(44), getPhraseUUID(45),
-      getPhraseUUID(46), getPhraseUUID(47), getPhraseUUID(48), getPhraseUUID(49), getPhraseUUID(50),
+      getPhraseUUID(31), getPhraseUUID(32), getPhraseUUID(33), getPhraseUUID(34), getPhraseUUID(35),
+      getPhraseUUID(36), getPhraseUUID(37), getPhraseUUID(38), getPhraseUUID(39), getPhraseUUID(40),
     ],
     created_at: '2026-01-01T00:00:00Z',
   },

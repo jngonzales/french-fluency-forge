@@ -11,8 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, CheckCircle2, Loader2, BookOpen } from 'lucide-react';
 import { useFlashcardStats } from '../hooks/useFlashcardStats';
 
-export function FlashcardStatsCard() {
-  const { scheduled, learned, newCards, total, loading, error } = useFlashcardStats();
+export function FlashcardStatsCard({ memberId }: { memberId?: string } = {}) {
+  const { scheduled, learned, newCards, total, loading, error } = useFlashcardStats(memberId);
 
   if (loading) {
     return (

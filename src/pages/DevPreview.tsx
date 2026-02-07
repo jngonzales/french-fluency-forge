@@ -45,7 +45,7 @@ const DevPreview = () => {
             variant="outline" 
             size="sm" 
             onClick={() => setActivePage('none')}
-            className="bg-background/80 backdrop-blur-sm"
+            className="bg-background/80 "
           >
             ← Back to Dev Menu
           </Button>
@@ -81,7 +81,7 @@ const DevPreview = () => {
             variant="outline" 
             size="sm" 
             onClick={() => setActivePage('none')}
-            className="bg-background/80 backdrop-blur-sm"
+            className="bg-background/80 "
           >
             ← Back to Dev Menu
           </Button>
@@ -108,7 +108,7 @@ const DevPreview = () => {
             variant="outline" 
             size="sm" 
             onClick={() => setActivePage('none')}
-            className="bg-background/80 backdrop-blur-sm"
+            className="bg-background/80 "
           >
             ← Back to Dev Menu
           </Button>

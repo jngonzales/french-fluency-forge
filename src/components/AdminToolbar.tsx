@@ -8,7 +8,6 @@ import {
   Settings, 
   SkipForward, 
   Play, 
-  RotateCcw,
   Database,
   ChevronDown,
   Zap,
@@ -16,7 +15,6 @@ import {
   LayoutDashboard,
   Trash2,
   Users,
-  UserCog
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -31,7 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { UserManagerModal } from '@/components/admin/UserManagerModal';
+// UserManagerModal removed — user management is now a full page at /admin/users
 
 type SessionStatus = 'intake' | 'consent' | 'quiz' | 'mic_check' | 'assessment' | 'processing' | 'completed';
 // 4 assessment modules:
@@ -63,9 +61,6 @@ export function AdminToolbar() {
   const { isAdmin, isDev } = useAdminMode();
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // Modal state for User Manager
-  const [userManagerOpen, setUserManagerOpen] = useState(false);
   
   // Hidden state - persisted in sessionStorage
   const [isHidden, setIsHidden] = useState(() => {
@@ -171,30 +166,6 @@ export function AdminToolbar() {
     } catch (error) {
       console.error('Error:', error);
       toast.error('Failed to jump to module');
-    }
-  };
-
-  const resetSession = async () => {
-    if (!user) {
-      toast.error('Please login first');
-      return;
-    }
-
-    if (!confirm('Reset current session? This will create a fresh session.')) {
-      return;
-    }
-
-    try {
-      await supabase
-        .from('assessment_sessions')
-        .insert({ user_id: user.id, status: 'intake' });
-
-      toast.success('New session created');
-      navigate('/assessment');
-      setTimeout(() => window.location.reload(), 500);
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Failed to reset session');
     }
   };
 
@@ -448,168 +419,150 @@ export function AdminToolbar() {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Jump to Status */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="sm" className="h-7 text-xs bg-amber-700 hover:bg-amber-800">
-                <SkipForward className="h-3 w-3 mr-1" />
-                Jump to Stage
-                <ChevronDown className="h-3 w-3 ml-1" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Assessment Stages</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {STATUS_OPTIONS.map(opt => (
-                <DropdownMenuItem key={opt.value} onClick={() => jumpToStatus(opt.value)}>
-                  {opt.label}
+        <div className="flex items-center gap-1">
+          {/* === NAVIGATION GROUP === */}
+          <div className="flex items-center gap-1 pr-2 border-r border-amber-600/50">
+            {/* Dashboard */}
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="h-7 text-xs bg-slate-700 hover:bg-slate-600"
+              onClick={() => navigate('/dashboard')}
+            >
+              <LayoutDashboard className="h-3 w-3 mr-1" />
+              Dashboard
+            </Button>
+
+            {/* Sales Copilot */}
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="h-7 text-xs bg-slate-700 hover:bg-slate-600"
+              onClick={() => navigate('/admin/sales-copilot')}
+            >
+              <Phone className="h-3 w-3 mr-1" />
+              Sales Copilot
+            </Button>
+          </div>
+
+          {/* === DEV TOOLS GROUP === */}
+          <div className="flex items-center gap-1 px-2 border-r border-amber-600/50">
+            {/* Jump to Status */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary" size="sm" className="h-7 text-xs bg-amber-700 hover:bg-amber-600">
+                  <SkipForward className="h-3 w-3 mr-1" />
+                  Jump to Stage
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Assessment Stages</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {STATUS_OPTIONS.map(opt => (
+                  <DropdownMenuItem key={opt.value} onClick={() => jumpToStatus(opt.value)}>
+                    {opt.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Jump to Module */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary" size="sm" className="h-7 text-xs bg-amber-700 hover:bg-amber-600">
+                  <Play className="h-3 w-3 mr-1" />
+                  Jump to Module
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Assessment Modules</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {MODULE_OPTIONS.map(opt => (
+                  <DropdownMenuItem key={opt.value} onClick={() => jumpToModule(opt.value)}>
+                    <span className="mr-2">{opt.icon}</span>
+                    {opt.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* === ADMIN GROUP === */}
+          <div className="flex items-center gap-1 px-2 border-r border-amber-600/50">
+            {/* User Management Page */}
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="h-7 text-xs bg-purple-600 hover:bg-purple-500"
+              onClick={() => navigate('/admin/users')}
+            >
+              <Users className="h-3 w-3 mr-1" />
+              Manage Users
+            </Button>
+          </div>
+
+          {/* === DANGER ZONE === */}
+          <div className="flex items-center gap-1 pl-2">
+            {/* NEW SEASON - Selective data deletion dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  className="h-7 text-xs bg-red-700 hover:bg-red-600"
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  New Season
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="text-xs text-red-600">⚠️ Delete Data</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                
+                <DropdownMenuItem 
+                  className="text-xs cursor-pointer"
+                  onClick={() => deleteDataCategory('assessment')}
+                >
+                  🎯 Assessment Sessions & Recordings
                 </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Jump to Module */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="sm" className="h-7 text-xs bg-amber-700 hover:bg-amber-800">
-                <Play className="h-3 w-3 mr-1" />
-                Jump to Module
-                <ChevronDown className="h-3 w-3 ml-1" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Assessment Modules</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {MODULE_OPTIONS.map(opt => (
-                <DropdownMenuItem key={opt.value} onClick={() => jumpToModule(opt.value)}>
-                  <span className="mr-2">{opt.icon}</span>
-                  {opt.label}
+                
+                <DropdownMenuItem 
+                  className="text-xs cursor-pointer"
+                  onClick={() => deleteDataCategory('habits')}
+                >
+                  📊 Habits & Goals
                 </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Reset Session */}
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            className="h-7 text-xs bg-amber-700 hover:bg-amber-800"
-            onClick={resetSession}
-          >
-            <RotateCcw className="h-3 w-3 mr-1" />
-            New Session
-          </Button>
-
-          {/* NEW SEASON - Selective data deletion dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                className="h-7 text-xs bg-red-700 hover:bg-red-800"
-              >
-                <Trash2 className="h-3 w-3 mr-1" />
-                New Season
-                <ChevronDown className="h-3 w-3 ml-1" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="text-xs text-red-600">⚠️ Delete Data</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuItem 
-                className="text-xs cursor-pointer"
-                onClick={() => deleteDataCategory('assessment')}
-              >
-                🎯 Assessment Sessions & Recordings
-              </DropdownMenuItem>
-              
-              <DropdownMenuItem 
-                className="text-xs cursor-pointer"
-                onClick={() => deleteDataCategory('habits')}
-              >
-                📊 Habits & Goals
-              </DropdownMenuItem>
-              
-              <DropdownMenuItem 
-                className="text-xs cursor-pointer"
-                onClick={() => deleteDataCategory('phrases')}
-              >
-                📚 Phrases & Review Logs
-              </DropdownMenuItem>
-              
-              <DropdownMenuItem 
-                className="text-xs cursor-pointer"
-                onClick={() => deleteDataCategory('confidence')}
-              >
-                💪 Confidence Responses
-              </DropdownMenuItem>
-              
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuItem 
-                className="text-xs cursor-pointer text-red-600 font-semibold"
-                onClick={startNewSeason}
-              >
-                🚨 DELETE EVERYTHING
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Manage Users - Modal */}
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            className="h-7 text-xs bg-purple-700 hover:bg-purple-800"
-            onClick={() => setUserManagerOpen(true)}
-          >
-            <UserCog className="h-3 w-3 mr-1" />
-            Manage Users
-          </Button>
-
-          {/* Sales Copilot */}
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            className="h-7 text-xs bg-amber-700 hover:bg-amber-800"
-            onClick={() => navigate('/admin/sales-copilot')}
-          >
-            <Phone className="h-3 w-3 mr-1" />
-            Sales Copilot
-          </Button>
-
-          {/* User Admin */}
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            className="h-7 text-xs bg-amber-700 hover:bg-amber-800"
-            onClick={() => navigate('/admin/users')}
-          >
-            <Users className="h-3 w-3 mr-1" />
-            User Admin
-          </Button>
-
-          {/* Dashboard */}
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            className="h-7 text-xs bg-amber-700 hover:bg-amber-800"
-            onClick={() => navigate('/dashboard')}
-          >
-            <LayoutDashboard className="h-3 w-3 mr-1" />
-            Dashboard
-          </Button>
-
-          {/* Current Location */}
-          <Badge variant="secondary" className="text-[10px] bg-amber-800">
-            {location.pathname}
-          </Badge>
+                
+                <DropdownMenuItem 
+                  className="text-xs cursor-pointer"
+                  onClick={() => deleteDataCategory('phrases')}
+                >
+                  📚 Phrases & Review Logs
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem 
+                  className="text-xs cursor-pointer"
+                  onClick={() => deleteDataCategory('confidence')}
+                >
+                  💪 Confidence Responses
+                </DropdownMenuItem>
+                
+                <DropdownMenuSeparator />
+                
+                <DropdownMenuItem 
+                  className="text-xs cursor-pointer text-red-600 font-semibold"
+                  onClick={startNewSeason}
+                >
+                  🚨 DELETE EVERYTHING
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
-
-      {/* User Manager Modal */}
-      <UserManagerModal open={userManagerOpen} onOpenChange={setUserManagerOpen} />
     </div>
   );
 }

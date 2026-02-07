@@ -1,24 +1,20 @@
 /**
- * Admin Users Page - "Grandparent-Proof" Admin Panel
- * Simple interface to invite users and assign flashcard packs
- * 
- * NOTE: Uses Supabase Edge Function for user invites (requires service role key)
+ * Admin Users Page - Full User Management
+ * Lists all users in a clickable table. Clicking a row navigates to the user detail page.
+ * Includes invite, role management, access toggle, and delete.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminMode } from '@/hooks/useAdminMode';
-
-// Cast to 'any' to access untyped tables (phrases, member_phrase_cards)
-// These tables exist but aren't in the generated Supabase types
-const db = supabase as any;
 import { AdminPadding } from '@/components/AdminPadding';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -26,18 +22,47 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, UserPlus, Package, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  ArrowLeft,
+  RefreshCw,
+  Mail,
+  UserPlus,
+  Loader2,
+  Filter,
+  Trash2,
+  AlertTriangle,
+  ExternalLink,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
-interface PhrasePack {
-  category: string;
-  count: number;
-}
+type UserRole = 'student' | 'teacher' | 'admin';
+type FilterType = 'all' | 'teachers' | 'pending';
 
-interface RecentUser {
+interface UserProfile {
   id: string;
   email: string;
   created_at: string;
+  role: UserRole;
+  access_status: string;
+  has_app_account: boolean;
 }
 
 export default function AdminUsersPage() {
@@ -45,21 +70,20 @@ export default function AdminUsersPage() {
   const { user } = useAuth();
   const { isAdmin, isLoading: adminLoading } = useAdminMode();
 
-  // Invite form state
+  // Users state
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<FilterType>('all');
+  const [updatingUsers, setUpdatingUsers] = useState<Set<string>>(new Set());
+
+  // Invite form
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [inviteSuccess, setInviteSuccess] = useState(false);
+  const [inviting, setInviting] = useState(false);
 
-  // Assign cards form state
-  const [selectedUserId, setSelectedUserId] = useState('');
-  const [selectedPack, setSelectedPack] = useState('');
-  const [assignLoading, setAssignLoading] = useState(false);
-  const [assignSuccess, setAssignSuccess] = useState(false);
-
-  // Data state
-  const [phrasePacks, setPhrasePacks] = useState<PhrasePack[]>([]);
-  const [recentUsers, setRecentUsers] = useState<RecentUser[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
+  // Delete state
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Redirect non-admins
   useEffect(() => {
@@ -69,162 +93,300 @@ export default function AdminUsersPage() {
     }
   }, [isAdmin, adminLoading, navigate]);
 
-  // Load phrase packs by grouping tags
-  useEffect(() => {
-    async function loadData() {
-      if (!user?.id) return;
-
-      try {
-        // Load all phrases and group by first tag
-        const { data: phrases, error: phrasesError } = await db
-          .from('phrases')
-          .select('id, tags');
-
-        if (!phrasesError && phrases) {
-          // Group by first tag as "category"
-          const packCounts: Record<string, number> = {};
-          phrases.forEach((p: { id: string; tags: string[] | null }) => {
-            const tag = p.tags?.[0] || 'All Phrases';
-            packCounts[tag] = (packCounts[tag] || 0) + 1;
-          });
-          
-          // Also add an "All Phrases" option
-          const totalCount = phrases.length;
-          const packs = [
-            { category: 'ALL', count: totalCount },
-            ...Object.entries(packCounts).map(([category, count]) => ({
-              category,
-              count,
-            }))
-          ];
-          setPhrasePacks(packs);
-        }
-
-        // Note: We can't directly query auth.users from the client
-        // Users will need to enter the user ID manually or we need an edge function
-        setRecentUsers([]);
-      } catch (err) {
-        console.error('[AdminUsers] Error loading data:', err);
-      } finally {
-        setLoadingData(false);
-      }
-    }
-
-    loadData();
-  }, [user?.id]);
-
-  // Handle invite user
-  async function handleInvite(e: React.FormEvent) {
-    e.preventDefault();
-    if (!inviteEmail.trim()) {
-      toast.error('Please enter an email address');
-      return;
-    }
-
-    setInviteLoading(true);
-    setInviteSuccess(false);
-
+  // Fetch users from profiles + app_accounts
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
     try {
-      // Call the invite-user Edge Function
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-          },
-          body: JSON.stringify({ email: inviteEmail.trim() }),
-        }
-      );
+      const { data: profiles, error: profilesError } = await (supabase as any)
+        .from('profiles')
+        .select('id, email, created_at, role')
+        .order('created_at', { ascending: false }) as {
+          data: Array<{ id: string; email: string; created_at: string; role?: string }> | null;
+          error: any;
+        };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to invite user');
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
       }
 
-      setInviteSuccess(true);
-      setInviteEmail('');
-      toast.success(`Invitation sent to ${inviteEmail}`);
-    } catch (err) {
-      console.error('[AdminUsers] Invite error:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to invite user');
+      const { data: appAccounts, error: accountsError } = await supabase
+        .from('app_accounts')
+        .select('id, email, access_status, user_id, created_at')
+        .order('created_at', { ascending: false });
+
+      if (accountsError) {
+        console.error('Error fetching app_accounts:', accountsError);
+      }
+
+      // Build lookup maps
+      const profileMap = new Map<string, { id: string; email: string; created_at: string; role?: string }>();
+      profiles?.forEach((profile) => {
+        profileMap.set(profile.email.toLowerCase(), profile);
+      });
+
+      const accountMap = new Map<string, { access_status: string; user_id: string | null; created_at: string }>();
+      appAccounts?.forEach((acc) => {
+        accountMap.set(acc.email.toLowerCase(), {
+          access_status: acc.access_status,
+          user_id: acc.user_id,
+          created_at: acc.created_at,
+        });
+      });
+
+      // Merge all unique emails
+      const allEmails = new Set<string>();
+      profiles?.forEach((p) => allEmails.add(p.email.toLowerCase()));
+      appAccounts?.forEach((a) => allEmails.add(a.email.toLowerCase()));
+
+      const combinedUsers: UserProfile[] = Array.from(allEmails).map((email) => {
+        const profile = profileMap.get(email);
+        const account = accountMap.get(email);
+
+        const id = profile?.id || account?.user_id || `temp-${email}`;
+        const created_at = profile?.created_at || account?.created_at || new Date().toISOString();
+
+        let role: UserRole;
+        if (profile?.role && ['admin', 'teacher', 'student'].includes(profile.role)) {
+          role = profile.role as UserRole;
+        } else {
+          role = 'student';
+        }
+
+        return {
+          id,
+          email,
+          created_at,
+          role,
+          access_status: account?.access_status || 'no_account',
+          has_app_account: !!account,
+        };
+      });
+
+      combinedUsers.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setUsers(combinedUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to fetch users');
     } finally {
-      setInviteLoading(false);
+      setLoading(false);
     }
-  }
+  }, []);
 
-  // Handle assign flashcards
-  async function handleAssign(e: React.FormEvent) {
-    e.preventDefault();
-    if (!selectedUserId.trim() || !selectedPack) {
-      toast.error('Please enter a User ID and select a pack');
+  useEffect(() => {
+    if (!adminLoading && isAdmin) {
+      fetchUsers();
+    }
+  }, [adminLoading, isAdmin, fetchUsers]);
+
+  // Filter logic
+  const filteredUsers = users.filter((u) => {
+    if (filter === 'all') return true;
+    if (filter === 'teachers') return u.role === 'teacher' || u.role === 'admin';
+    if (filter === 'pending') return u.access_status !== 'active';
+    return true;
+  });
+
+  // Invite handler
+  const handleInvite = async () => {
+    if (!inviteEmail || !inviteEmail.includes('@')) {
+      toast.error('Please enter a valid email');
       return;
     }
 
-    setAssignLoading(true);
-    setAssignSuccess(false);
-
+    setInviting(true);
     try {
-      // Get phrases - either all or filtered by tag
-      const query = db.from('phrases').select('id, tags');
-      
-      // If not "ALL", filter by first tag containing the selected pack name
-      const { data: phrases, error: phrasesError } = await query;
-
-      if (phrasesError) throw phrasesError;
-      
-      // Filter client-side if not ALL
-      let filteredPhrases = phrases || [];
-      if (selectedPack !== 'ALL') {
-        filteredPhrases = phrases.filter((p: { id: string; tags: string[] | null }) => 
-          p.tags?.includes(selectedPack)
+      // Create app_account first
+      const { error: accountError } = await supabase
+        .from('app_accounts')
+        .upsert(
+          { email: inviteEmail.toLowerCase(), access_status: 'active' },
+          { onConflict: 'email' }
         );
-      }
-      
-      if (filteredPhrases.length === 0) {
-        toast.error('No phrases found in this pack');
-        setAssignLoading(false);
+
+      if (accountError) {
+        console.error('Error creating app_account:', accountError);
+        toast.error('Failed to create account');
+        setInviting(false);
         return;
       }
 
-      // Create member_phrase_cards for each phrase
-      const cards = filteredPhrases.map((phrase: { id: string }) => ({
-        member_id: selectedUserId.trim(),
-        phrase_id: phrase.id,
-        status: 'active',
-        scheduler: {
-          state: 'new',
-          due_at: new Date().toISOString(),
-          last_reviewed_at: null,
-          interval_days: 0,
-          ease_factor: 2.5,
-          repetitions: 0,
-        },
-        lapses: 0,
-        reviews: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }));
+      // Try edge function invite
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            },
+            body: JSON.stringify({ email: inviteEmail.trim() }),
+          }
+        );
 
-      // Use upsert to avoid duplicates
-      const { error: insertError } = await db
-        .from('member_phrase_cards')
-        .upsert(cards, { onConflict: 'member_id,phrase_id' });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to invite');
+        }
+        toast.success(`Invitation sent to ${inviteEmail}`);
+      } catch {
+        // Fallback: just create account, tell them to sign up
+        toast.success(
+          `Account created for ${inviteEmail}. Ask them to sign up at the login page.`,
+          { duration: 5000 }
+        );
+      }
 
-      if (insertError) throw insertError;
-
-      setAssignSuccess(true);
-      toast.success(`Assigned ${filteredPhrases.length} phrases to user`);
-    } catch (err) {
-      console.error('[AdminUsers] Assign error:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to assign flashcards');
+      setInviteEmail('');
+      fetchUsers();
+    } catch (error) {
+      console.error('Error inviting:', error);
+      toast.error('Failed to invite user');
     } finally {
-      setAssignLoading(false);
+      setInviting(false);
     }
-  }
+  };
 
-  if (adminLoading || loadingData) {
+  // Role change
+  const changeRole = async (targetUser: UserProfile, newRole: UserRole) => {
+    if (targetUser.id.startsWith('temp-')) {
+      toast.error('Cannot change role for users without a profile.');
+      return;
+    }
+
+    setUpdatingUsers((prev) => new Set(prev).add(targetUser.id));
+    try {
+      const { error } = await (supabase as any)
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', targetUser.id);
+
+      if (error) {
+        if (error.code === '42703') {
+          toast.error('Role column not found. Run the migration from ADMIN_OPS.md first.');
+        } else {
+          toast.error('Failed to update role');
+        }
+        return;
+      }
+
+      toast.success(`Role updated to ${newRole} for ${targetUser.email}`);
+      fetchUsers();
+    } catch {
+      toast.error('Failed to change role');
+    } finally {
+      setUpdatingUsers((prev) => {
+        const next = new Set(prev);
+        next.delete(targetUser.id);
+        return next;
+      });
+    }
+  };
+
+  // Access toggle
+  const toggleAccess = async (targetUser: UserProfile) => {
+    setUpdatingUsers((prev) => new Set(prev).add(targetUser.id));
+    try {
+      const newStatus = targetUser.access_status === 'active' ? 'inactive' : 'active';
+
+      if (!targetUser.has_app_account) {
+        const { error } = await supabase.from('app_accounts').insert({
+          email: targetUser.email.toLowerCase(),
+          access_status: newStatus,
+          user_id: targetUser.id.startsWith('temp-') ? null : targetUser.id,
+        });
+        if (error) {
+          toast.error('Failed to update access');
+          return;
+        }
+      } else {
+        const { error } = await supabase
+          .from('app_accounts')
+          .update({ access_status: newStatus })
+          .eq('email', targetUser.email.toLowerCase());
+        if (error) {
+          toast.error('Failed to update access');
+          return;
+        }
+      }
+
+      toast.success(
+        `Access ${newStatus === 'active' ? 'enabled' : 'disabled'} for ${targetUser.email}`
+      );
+      fetchUsers();
+    } catch {
+      toast.error('Failed to toggle access');
+    } finally {
+      setUpdatingUsers((prev) => {
+        const next = new Set(prev);
+        next.delete(targetUser.id);
+        return next;
+      });
+    }
+  };
+
+  // Delete user
+  const confirmDelete = (targetUser: UserProfile) => {
+    setUserToDelete(targetUser);
+    setDeleteConfirmOpen(true);
+  };
+
+  const deleteUser = async () => {
+    if (!userToDelete) return;
+
+    setDeleting(true);
+    try {
+      const userId = userToDelete.id;
+      const userEmail = userToDelete.email.toLowerCase();
+
+      // Remove app_account
+      await supabase.from('app_accounts').delete().eq('email', userEmail);
+
+      // Remove associated data if we have a real user id
+      if (!userId.startsWith('temp-')) {
+        await supabase.from('skill_recordings').delete().eq('user_id', userId);
+        await supabase.from('fluency_recordings').delete().eq('user_id', userId);
+        await supabase.from('comprehension_recordings').delete().eq('user_id', userId);
+        await supabase.from('assessment_sessions').delete().eq('user_id', userId);
+        await supabase.from('consent_records').delete().eq('user_id', userId);
+        await supabase.from('archetype_feedback').delete().eq('user_id', userId);
+        await supabase.from('purchases').delete().eq('user_id', userId);
+        await supabase.from('profiles').delete().eq('id', userId);
+      }
+
+      toast.success(`User ${userToDelete.email} deleted successfully`);
+      setDeleteConfirmOpen(false);
+      setUserToDelete(null);
+      fetchUsers();
+    } catch {
+      toast.error('Failed to delete user. Some data may need manual cleanup.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Helpers
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const getAccessBadgeVariant = (status: string) => {
+    if (status === 'active') return 'default' as const;
+    if (status === 'inactive') return 'secondary' as const;
+    return 'outline' as const;
+  };
+
+  const getRoleBadgeVariant = (role: UserRole) => {
+    if (role === 'admin') return 'destructive' as const;
+    if (role === 'teacher') return 'default' as const;
+    return 'secondary' as const;
+  };
+
+  if (adminLoading) {
     return (
       <AdminPadding>
         <div className="flex items-center justify-center min-h-screen">
@@ -234,190 +396,282 @@ export default function AdminUsersPage() {
     );
   }
 
-  if (!isAdmin) {
-    return null;
-  }
+  if (!isAdmin) return null;
 
   return (
     <AdminPadding>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-orange-50/30 dark:to-orange-950/10">
         {/* Header */}
-        <header className="border-b border-border bg-card">
-          <div className="max-w-4xl mx-auto px-4 py-4">
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => navigate('/dashboard')}
-              className="gap-2"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Back to Dashboard
-            </Button>
-            <h1 className="text-3xl font-bold mt-4">Admin: User Management</h1>
-            <p className="text-muted-foreground">Invite users and assign flashcard packs</p>
+        <header className="bg-card/95 border-b border-border/50 sticky top-0 z-10">
+          <div className="max-w-7xl mx-auto px-6 py-5">
+            <div className="flex items-center justify-between">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/dashboard')}
+                className="gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Dashboard
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchUsers}
+                disabled={loading}
+                className="gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
+            <div className="mt-6 mb-2">
+              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-orange-600 via-primary to-orange-500 bg-clip-text text-transparent drop-shadow-sm">
+                User Management
+              </h1>
+              <p className="text-lg text-muted-foreground mt-1">
+                Manage users, roles, and access. Click a user to view their dashboard.
+              </p>
+            </div>
           </div>
         </header>
 
-        <main className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-          {/* Invite User Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserPlus className="w-5 h-5" />
-                Invite New User
-              </CardTitle>
-              <CardDescription>
-                Send an invitation email to a new user. They will receive a link to set their password.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleInvite} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="inviteEmail" className="text-lg">Email Address</Label>
-                  <Input
-                    id="inviteEmail"
-                    type="email"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder="user@example.com"
-                    className="h-12 text-lg"
-                    disabled={inviteLoading}
-                  />
+        <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+          {/* Invite Section */}
+          <Card className="border border-border/50 bg-card/95 shadow-sm">
+            <CardContent className="py-5">
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-primary/10">
+                  <UserPlus className="h-4 w-4 text-primary" />
                 </div>
-                <Button
-                  type="submit"
-                  size="lg"
-                  disabled={inviteLoading || !inviteEmail.trim()}
-                  className="gap-2"
-                >
-                  {inviteLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Sending...
-                    </>
-                  ) : inviteSuccess ? (
-                    <>
-                      <CheckCircle2 className="w-5 h-5" />
-                      Invitation Sent!
-                    </>
+                Invite New User
+              </h3>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="user@example.com"
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
+                  className="flex-1 h-10"
+                />
+                <Button onClick={handleInvite} disabled={inviting} className="h-10 px-4">
+                  {inviting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <>
-                      <UserPlus className="w-5 h-5" />
-                      Send Invitation
-                    </>
+                    <Mail className="h-4 w-4 mr-2" />
                   )}
+                  Invite
                 </Button>
-              </form>
-
-              {/* Manual instructions fallback */}
-              <div className="mt-6 p-4 bg-muted rounded-lg">
-                <p className="text-sm font-medium mb-2">Alternative: Invite via Supabase Dashboard</p>
-                <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                  <li>Go to Supabase Dashboard → Authentication → Users</li>
-                  <li>Click "Invite user"</li>
-                  <li>Enter the email address</li>
-                  <li>Click "Send invitation"</li>
-                </ol>
               </div>
             </CardContent>
           </Card>
 
-          {/* Assign Flashcards Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                Assign Flashcard Pack
-              </CardTitle>
-              <CardDescription>
-                Assign a pack of phrases to a user. You'll need their User ID from the database.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleAssign} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="userId" className="text-lg">User ID (UUID)</Label>
-                  <Input
-                    id="userId"
-                    type="text"
-                    value={selectedUserId}
-                    onChange={(e) => setSelectedUserId(e.target.value)}
-                    placeholder="e.g., 12345678-1234-1234-1234-123456789012"
-                    className="h-12 text-base font-mono"
-                    disabled={assignLoading}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Find this in Supabase Dashboard → Authentication → Users → Click user → Copy ID
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="pack" className="text-lg">Flashcard Pack</Label>
-                  <Select
-                    value={selectedPack}
-                    onValueChange={setSelectedPack}
-                    disabled={assignLoading}
+          {/* Filters + Count */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <div className="flex gap-1 p-1 bg-muted rounded-lg">
+                {(['all', 'teachers', 'pending'] as FilterType[]).map((f) => (
+                  <Button
+                    key={f}
+                    variant={filter === f ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setFilter(f)}
+                    className={`capitalize h-8 ${filter === f ? 'shadow-sm' : ''}`}
                   >
-                    <SelectTrigger className="h-12 text-lg">
-                      <SelectValue placeholder="Select a pack..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {phrasePacks.map((pack) => (
-                        <SelectItem key={pack.category} value={pack.category}>
-                          {pack.category} ({pack.count} phrases)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    {f}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <span className="text-sm text-muted-foreground font-medium">
+              {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
+            </span>
+          </div>
 
-                <Button
-                  type="submit"
-                  size="lg"
-                  disabled={assignLoading || !selectedUserId.trim() || !selectedPack}
-                  className="gap-2"
-                >
-                  {assignLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Assigning...
-                    </>
-                  ) : assignSuccess ? (
-                    <>
-                      <CheckCircle2 className="w-5 h-5" />
-                      Assigned!
-                    </>
-                  ) : (
-                    <>
-                      <Package className="w-5 h-5" />
-                      Assign Pack to User
-                    </>
-                  )}
-                </Button>
-              </form>
-            </CardContent>
+          {/* User Table */}
+          <Card className="border border-border/50 bg-card/95 shadow-sm overflow-hidden">
+            {loading ? (
+              <div className="flex items-center justify-center h-40">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="flex items-center justify-center h-40 text-muted-foreground">
+                No users found
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="font-semibold">Email</TableHead>
+                    <TableHead className="font-semibold w-[110px]">Created</TableHead>
+                    <TableHead className="font-semibold w-[120px]">Role</TableHead>
+                    <TableHead className="font-semibold w-[100px]">Access</TableHead>
+                    <TableHead className="font-semibold w-[80px]">Active</TableHead>
+                    <TableHead className="font-semibold w-[100px] text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((u) => {
+                    const isUpdating = updatingUsers.has(u.id);
+                    const isClickable = !u.id.startsWith('temp-');
+                    return (
+                      <TableRow
+                        key={u.id}
+                        className={
+                          isClickable
+                            ? 'cursor-pointer hover:bg-primary/5 transition-colors'
+                            : ''
+                        }
+                        onClick={() => {
+                          if (isClickable) {
+                            navigate(`/admin/users/${u.id}`);
+                          }
+                        }}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-sm">{u.email}</span>
+                            {isClickable && (
+                              <ExternalLink className="h-3 w-3 text-muted-foreground/50" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {formatDate(u.created_at)}
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Select
+                            value={u.role}
+                            onValueChange={(value: string) => changeRole(u, value as UserRole)}
+                            disabled={isUpdating || u.id.startsWith('temp-')}
+                          >
+                            <SelectTrigger className="h-7 w-[100px]">
+                              <SelectValue>
+                                <Badge
+                                  variant={getRoleBadgeVariant(u.role)}
+                                  className="text-xs"
+                                >
+                                  {u.role}
+                                </Badge>
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="student">Student</SelectItem>
+                              <SelectItem value="teacher">Teacher</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Badge
+                            variant={getAccessBadgeVariant(u.access_status)}
+                            className="text-xs"
+                          >
+                            {u.access_status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Switch
+                            checked={u.access_status === 'active'}
+                            onCheckedChange={() => toggleAccess(u)}
+                            disabled={isUpdating}
+                          />
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()} className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => confirmDelete(u)}
+                            disabled={isUpdating}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
           </Card>
 
           {/* Quick Reference */}
-          <Card className="border-dashed">
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Reference</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground space-y-2">
-              <p>
-                <strong>To invite a user:</strong> Enter their email above, or use the Supabase Dashboard.
-              </p>
-              <p>
-                <strong>To get a User ID:</strong> Go to Supabase Dashboard → Authentication → Users → 
-                Click on the user → Copy the ID (UUID format).
-              </p>
-              <p>
-                <strong>For detailed SQL queries:</strong> See <code>docs/ADMIN_OPS.md</code>
-              </p>
+          <Card className="border border-border/30 bg-gradient-to-r from-muted/30 to-transparent ">
+            <CardContent className="py-4">
+              <div className="flex flex-wrap items-center gap-4 text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span className="text-base">💡</span>
+                  <span>
+                    Click a user row to view their dashboard, phrases, and manage flashcards
+                  </span>
+                </div>
+                <div className="h-4 w-px bg-border/50 hidden md:block" />
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span className="text-base">📖</span>
+                  <span>
+                    Full docs:{' '}
+                    <code className="text-xs bg-muted/60 px-1.5 py-0.5 rounded font-mono">
+                      docs/ADMIN_OPS.md
+                    </code>
+                  </span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </main>
       </div>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Delete User
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  Are you sure you want to delete <strong>{userToDelete?.email}</strong>?
+                </p>
+                <p className="text-sm">This will permanently remove:</p>
+                <ul className="text-sm list-disc list-inside text-muted-foreground">
+                  <li>User profile and account data</li>
+                  <li>All assessment sessions and recordings</li>
+                  <li>Flashcard progress and history</li>
+                  <li>Consent records and purchases</li>
+                </ul>
+                <p className="text-sm font-medium text-destructive">
+                  This action cannot be undone.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteUser}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete User
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminPadding>
   );
 }

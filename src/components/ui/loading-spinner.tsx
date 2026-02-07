@@ -25,7 +25,7 @@ function LoadingSpinner({ size = "md", text, className, ...props }: LoadingSpinn
 // Full page loading overlay
 function PageLoader({ text = "Loading..." }: { text?: string }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 animate-fade-in">
       <div className="flex flex-col items-center gap-4">
         <div className="relative">
           <div className="h-16 w-16 rounded-full border-4 border-muted" />

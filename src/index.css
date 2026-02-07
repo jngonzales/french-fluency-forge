@@ -168,22 +168,17 @@ All colors MUST be HSL.
     letter-spacing: -0.03em;
   }
 
-  /* Add subtle grain texture (SOLV brand) */
+  /* Add subtle grain texture (SOLV brand) - static for performance */
   body::before {
     content: '';
     position: fixed;
-    inset: -40%;
+    inset: 0;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
     opacity: 0.09;
     pointer-events: none;
     mix-blend-mode: overlay;
-    animation: drift 10s linear infinite;
     z-index: 0;
-  }
-
-  @keyframes drift {
-    0% { transform: translate3d(0, 0, 0); }
-    100% { transform: translate3d(80px, 60px, 0); }
+    will-change: auto;
   }
 
   /* Radial gradient backgrounds (SOLV brand) */

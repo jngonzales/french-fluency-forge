@@ -314,7 +314,7 @@ export function ProgressTimelineCard({
                 if (!active || !payload || !payload.length) return null;
                 const data = payload[0].payload;
                 return (
-                  <div className="bg-white/95 backdrop-blur-sm border border-border shadow-xl rounded-xl p-4 min-w-[200px]">
+                  <div className="bg-white/95 border border-border shadow-xl rounded-xl p-4 min-w-[200px]">
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3 pb-2 border-b border-border/50">
                       {new Date(data.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                     </p>
