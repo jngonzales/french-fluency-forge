@@ -50,3 +50,7 @@ fluent-french-v2/
 fluent-french-ai-main/
 repomix-output.xml
 .vercel
+
+# Shared tooling / prompts (local only)
+.github/prompts/
+.shared/
