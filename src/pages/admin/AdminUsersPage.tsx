@@ -148,6 +148,9 @@ export default function AdminUsersPage() {
         let role: UserRole;
         if (profile?.role && ['admin', 'teacher', 'student'].includes(profile.role)) {
           role = profile.role as UserRole;
+        } else if (profile?.role === 'user') {
+          // Legacy default 'user' maps to 'student'
+          role = 'student';
         } else {
           role = 'student';
         }
@@ -195,47 +198,48 @@ export default function AdminUsersPage() {
 
     setInviting(true);
     try {
-      // Create app_account first
-      const { error: accountError } = await supabase
-        .from('app_accounts')
-        .upsert(
-          { email: inviteEmail.toLowerCase(), access_status: 'active' },
-          { onConflict: 'email' }
-        );
+      const normalizedEmail = inviteEmail.trim().toLowerCase();
 
-      if (accountError) {
-        console.error('Error creating app_account:', accountError);
-        toast.error('Failed to create account');
+      // Call edge function to send invite email AND create app_account (server-side)
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+      
+      if (!accessToken) {
+        toast.error('Session expired. Please refresh and try again.');
         setInviting(false);
         return;
       }
 
-      // Try edge function invite
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-            },
-            body: JSON.stringify({ email: inviteEmail.trim() }),
-          }
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to invite');
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ email: normalizedEmail }),
         }
-        toast.success(`Invitation sent to ${inviteEmail}`);
-      } catch {
-        // Fallback: just create account, tell them to sign up
-        toast.success(
-          `Account created for ${inviteEmail}. Ask them to sign up at the login page.`,
-          { duration: 5000 }
-        );
+      );
+
+      if (!response.ok) {
+        let errorMsg = 'Failed to send invitation';
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.error || errorMsg;
+          if (response.status === 403) {
+            errorMsg = 'Permission denied. Your account may not have invite privileges. Contact an admin.';
+          }
+        } catch {
+          // Couldn't parse error response
+        }
+        console.error('[handleInvite] Edge function error:', response.status, errorMsg);
+        toast.error(errorMsg);
+        setInviting(false);
+        return;
       }
+
+      toast.success(`Invitation sent to ${inviteEmail}`);
 
       setInviteEmail('');
       fetchUsers();
@@ -336,30 +340,55 @@ export default function AdminUsersPage() {
 
     setDeleting(true);
     try {
-      const userId = userToDelete.id;
-      const userEmail = userToDelete.email.toLowerCase();
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
 
-      // Remove app_account
-      await supabase.from('app_accounts').delete().eq('email', userEmail);
-
-      // Remove associated data if we have a real user id
-      if (!userId.startsWith('temp-')) {
-        await supabase.from('skill_recordings').delete().eq('user_id', userId);
-        await supabase.from('fluency_recordings').delete().eq('user_id', userId);
-        await supabase.from('comprehension_recordings').delete().eq('user_id', userId);
-        await supabase.from('assessment_sessions').delete().eq('user_id', userId);
-        await supabase.from('consent_records').delete().eq('user_id', userId);
-        await supabase.from('archetype_feedback').delete().eq('user_id', userId);
-        await supabase.from('purchases').delete().eq('user_id', userId);
-        await supabase.from('profiles').delete().eq('id', userId);
+      if (!accessToken) {
+        toast.error('Session expired. Please refresh and try again.');
+        setDeleting(false);
+        return;
       }
 
-      toast.success(`User ${userToDelete.email} deleted successfully`);
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            userId: userToDelete.id,
+            email: userToDelete.email,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        let errorMsg = 'Failed to delete user';
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.error || errorMsg;
+        } catch {
+          // Couldn't parse error response
+        }
+        toast.error(errorMsg);
+        setDeleting(false);
+        return;
+      }
+
+      const result = await response.json();
+      if (result.warnings?.length) {
+        toast.success(`User deleted with warnings: ${result.warnings.join(', ')}`);
+      } else {
+        toast.success(`User ${userToDelete.email} deleted successfully`);
+      }
+
       setDeleteConfirmOpen(false);
       setUserToDelete(null);
       fetchUsers();
     } catch {
-      toast.error('Failed to delete user. Some data may need manual cleanup.');
+      toast.error('Failed to delete user. Please try again.');
     } finally {
       setDeleting(false);
     }

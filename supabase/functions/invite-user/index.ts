@@ -27,7 +27,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create client with caller's token to verify they're authenticated
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -39,14 +38,21 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: userError } = await userClient.auth.getUser();
     if (userError || !user) {
+      console.error('[invite-user] Auth failed:', userError?.message || 'No user found');
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: `Authentication failed: ${userError?.message || 'Invalid or expired session'}` }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check if user has admin role in the profiles table
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    console.log('[invite-user] Authenticated user:', user.email);
+
+    // Create admin client with service role key (bypasses RLS)
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    // Check if user has admin/teacher role
     const { data: profile, error: profileError } = await adminClient
       .from('profiles')
       .select('role')
@@ -56,16 +62,17 @@ Deno.serve(async (req) => {
     if (profileError) {
       console.error('[invite-user] Error fetching profile:', profileError);
       return new Response(
-        JSON.stringify({ error: 'Error checking admin status' }),
+        JSON.stringify({ error: `Error checking admin status: ${profileError.message}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log('[invite-user] Profile role:', profile?.role);
     const isAdmin = profile?.role === 'admin' || profile?.role === 'teacher';
 
     if (!isAdmin) {
       return new Response(
-        JSON.stringify({ error: 'Admin access required' }),
+        JSON.stringify({ error: `Admin access required. Your role: ${profile?.role || 'none'}` }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -79,20 +86,35 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Invite the user
-    const { data, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Ensure app_account exists with active status
+    const { error: accountError } = await adminClient
+      .from('app_accounts')
+      .upsert(
+        { email: normalizedEmail, access_status: 'active' },
+        { onConflict: 'email' }
+      );
+
+    if (accountError) {
+      console.error('[invite-user] Error creating app_account:', accountError);
+      // Non-fatal — continue with invite
+    }
+
+    // Invite the user via Auth Admin API
+    const { data, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(normalizedEmail, {
       redirectTo: `${req.headers.get('origin') || supabaseUrl}/reset-password`,
     });
 
     if (inviteError) {
-      console.error('[invite-user] Error:', inviteError);
+      console.error('[invite-user] Invite error:', inviteError);
       return new Response(
         JSON.stringify({ error: inviteError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('[invite-user] Invited:', email);
+    console.log('[invite-user] Successfully invited:', normalizedEmail);
 
     return new Response(
       JSON.stringify({ success: true, user: data.user }),
